@@ -191,6 +191,7 @@
     settings: { org: '', dept: '', logo: '' },
     user: { role: 'public', name: '' },
     curriculum: { subject: 'คณิตศาสตร์', grades: [] },
+    store: { saved: [], savedLoaded: false },
     active: null,
 
     register: function (p) { this.plugins[p.id] = p; },
@@ -198,7 +199,7 @@
     services: function () {
       return {
         api: api, toast: toast, swal: Swal, swalDark: SWAL_DARK,
-        settings: this.settings, user: this.user, curriculum: this.curriculum,
+        settings: this.settings, user: this.user, curriculum: this.curriculum, store: this.store,
         examSheetHTML: examSheetHTML, printNode: printNode,
         genProblems: genProblems, genQuiz: genQuiz, makeSetId: makeSetId,
         countUp: countUp, animateCounters: animateCounters, reveal: initReveals
@@ -227,8 +228,7 @@
       var p = this.plugins[id]; if (!p) return;
       var mt = this.meta.filter(function (x) { return x.id === id; })[0] || {};
       this.active = id; $('#hostTitle').textContent = mt.title || id;
-      var host = $('#host'); host.innerHTML = ''; host.classList.add('pop');
-      setTimeout(function () { host.classList.remove('pop'); }, 360);
+      var host = $('#host'); host.innerHTML = '';
       this.renderNav();
       p.mount(host, this.services(), this);
     },
