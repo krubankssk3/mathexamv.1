@@ -46,6 +46,7 @@
               '<div style="margin-left:auto;display:flex;flex-wrap:wrap;gap:8px">' +
                 '<button class="btn btn-ghost" id="redo"><i class="ti ti-dice-3"></i> สุ่มใหม่</button>' +
                 '<button class="btn btn-ghost" id="save"><i class="ti ti-bookmark"></i> บันทึกเข้าคลัง</button>' +
+                '<button class="btn btn-ghost" id="publish"><i class="ti ti-upload"></i> เผยแพร่สาธารณะ</button>' +
                 '<button class="btn btn-ghost" id="key"><i class="ti ti-eye"></i> แสดงเฉลย</button>' +
                 '<button class="btn btn-accent" id="print"><i class="ti ti-printer"></i> พิมพ์/PDF</button>' +
               '</div></div>' +
@@ -123,8 +124,23 @@
           });
       };
 
+      $('#publish', host).onclick = function () {
+        if (!st.current) { svc.toast('warning', 'ยังไม่มีชุด'); return; }
+        var c = st.current;
+        svc.swal.fire(Object.assign({ icon: 'question', title: 'เผยแพร่สู่คลังสาธารณะ?', text: 'ทุกคนจะเปิดดู/พิมพ์ชุด ' + c.setId + ' ได้โดยไม่ต้องล็อกอิน', showCancelButton: true, confirmButtonText: 'เผยแพร่', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#6366f1' }, svc.swalDark))
+          .then(function (r) {
+            if (!r.isConfirmed) return;
+            if (svc.store) svc.store.publicLoaded = false;   // ให้คลังสาธารณะดึงใหม่
+            svc.api('publishExam', { title: c.title, subjectName: c.subjectName, level: c.level, cols: c.cols, setId: c.setId, problems: c.problems })
+              .then(function () { svc.toast('success', 'เผยแพร่ชุด ' + c.setId + ' แล้ว'); })
+              .catch(function (e) { svc.toast('error', String(e.message || e)); });
+          });
+      };
+
       drawGrades(); drawChapters(); setTitle(); build(true);
-      if (svc.user.role === 'public') { var sb = $('#save', host); if (sb) sb.style.display = 'none'; }
+      if (svc.user.role === 'public') {
+        ['#save', '#publish'].forEach(function (sel) { var b = $(sel, host); if (b) b.style.display = 'none'; });
+      }
     }
   });
 })();
