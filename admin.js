@@ -38,9 +38,10 @@
         tr.querySelector('.switch').onclick = function () {
           var on = !this.classList.contains('on');
           var sw = this;
+          sw.classList.toggle('on', on);           // สลับทันที
+          svc.toast('success', on ? 'เปิดใช้งานแล้ว' : 'ปิดแล้ว (รีโหลดเพื่อให้เมนูอัปเดต)');
           svc.api('togglePlugin', { id: m.id, enabled: on })
-            .then(function () { sw.classList.toggle('on', on); svc.toast('success', on ? 'เปิดใช้งานแล้ว' : 'ปิดแล้ว (รีโหลดหน้าเพื่อให้เมนูอัปเดต)'); })
-            .catch(function (e) { svc.toast('error', String(e.message || e)); });
+            .catch(function (e) { sw.classList.toggle('on', !on); svc.toast('error', String(e.message || e)); });
         };
         tb.appendChild(tr);
       });
