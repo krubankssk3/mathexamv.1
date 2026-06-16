@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="th" data-theme="indigo">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>EduForge | โรงเรียนบ้านละลม — By ครูแบงค์</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.3.0/dist/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<style>
+  :root{
+    --bg:#070a14; --bg2:#0c1122; --panel:#111729cc; --panel-solid:#121a2e;
+    --line:#1e2740; --line2:#2a3556; --txt:#e6ebf7; --muted:#8b97b8; --faint:#5a648a;
+    --accent:#6366f1; --accent2:#22d3ee; --accent-ink:#fff;
+    --glow:rgba(99,102,241,.45); --ok:#34d399; --warn:#fbbf24; --bad:#fb7185;
+  }
+  html[data-theme="emerald"]{ --accent:#10b981; --accent2:#34d399; --glow:rgba(16,185,129,.45); }
+  html[data-theme="amber"]{ --accent:#f59e0b; --accent2:#fde047; --glow:rgba(245,158,11,.45); }
+  html[data-theme="rose"]{ --accent:#f43f5e; --accent2:#fb7185; --glow:rgba(244,63,94,.45); }
+  html[data-theme="sky"]{ --accent:#0ea5e9; --accent2:#67e8f9; --glow:rgba(14,165,233,.45); }
+  html[data-theme="violet"]{ --accent:#a855f7; --accent2:#e879f9; --glow:rgba(168,85,247,.45); }
+
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--txt);font-family:'Sarabun',sans-serif;min-height:100vh;-webkit-font-smoothing:antialiased}
+  .font-display{font-family:'Kanit',sans-serif}
+  .mono{font-family:'IBM Plex Mono',monospace;font-variant-numeric:tabular-nums}
+  .hidden{display:none!important}
+  .flex{display:flex}.items-center{align-items:center}.gap2{gap:.5rem}
+
+  .bg-fx{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+  .bg-fx::before{content:"";position:absolute;inset:-20%;
+    background:radial-gradient(60% 50% at 15% 10%,var(--glow),transparent 60%),
+      radial-gradient(50% 40% at 88% 92%,color-mix(in srgb,var(--accent2) 28%,transparent),transparent 60%);
+    filter:blur(22px);opacity:.5}
+  .bg-grid{position:absolute;inset:0;background-image:linear-gradient(var(--line) 1px,transparent 1px),linear-gradient(90deg,var(--line) 1px,transparent 1px);
+    background-size:46px 46px;opacity:.22;mask-image:radial-gradient(circle at 50% 25%,#000,transparent 75%)}
+  .wrap{position:relative;z-index:1}
+
+  .panel{background:var(--panel);border:1px solid var(--line);border-radius:18px;backdrop-filter:blur(14px);box-shadow:0 24px 60px -34px #000}
+  .eyebrow{font-family:'IBM Plex Mono',monospace;letter-spacing:.26em;text-transform:uppercase;font-size:11px;color:var(--accent2)}
+
+  .btn{display:inline-flex;align-items:center;gap:.5rem;border-radius:12px;padding:.6rem 1.05rem;font-family:'Kanit',sans-serif;font-weight:500;border:1px solid transparent;cursor:pointer;transition:.18s;font-size:.93rem}
+  .btn:active{transform:translateY(1px) scale(.99)}
+  .btn-accent{background:linear-gradient(135deg,var(--accent),color-mix(in srgb,var(--accent) 55%,var(--accent2)));color:var(--accent-ink);box-shadow:0 10px 30px -12px var(--glow)}
+  .btn-ghost{background:transparent;border-color:var(--line2);color:var(--txt)}
+  .btn-ghost:hover{border-color:var(--accent);color:var(--accent2)}
+
+  .seg{display:flex;gap:6px;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:5px}
+  .seg button{flex:1;border:none;background:transparent;color:var(--muted);font-family:'Kanit',sans-serif;padding:.5rem .4rem;border-radius:8px;cursor:pointer;font-size:.86rem;transition:.15s}
+  .seg button.on{background:var(--accent);color:var(--accent-ink);font-weight:600}
+
+  .chip{display:inline-flex;align-items:center;gap:.4rem;padding:.26rem .68rem;border-radius:999px;border:1px solid var(--line2);color:var(--muted);font-size:.76rem;cursor:default}
+  .chip.click{cursor:pointer}
+  .field{width:100%;background:var(--bg2);border:1px solid var(--line);border-radius:10px;color:var(--txt);padding:.58rem .8rem;font-family:'Sarabun';outline:none;transition:.15s}
+  .field:focus{border-color:var(--accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 25%,transparent)}
+  label.lbl{font-size:.8rem;color:var(--muted);font-family:'Kanit';font-weight:500}
+
+  /* layout */
+  .shell{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
+  .sidebar{border-right:1px solid var(--line);padding:18px 14px;position:sticky;top:0;height:100vh;overflow:auto;background:color-mix(in srgb,var(--bg) 70%,transparent)}
+  .nav-item{display:flex;align-items:center;gap:11px;padding:.62rem .7rem;border-radius:12px;cursor:pointer;color:var(--muted);font-family:'Kanit';transition:.15s;margin-bottom:4px}
+  .nav-item:hover{background:var(--bg2);color:var(--txt)}
+  .nav-item.on{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--txt)}
+  .nav-item.on .ni-ic{color:var(--accent2)}
+  .ni-ic{width:34px;height:34px;border-radius:9px;display:grid;place-items:center;font-size:19px;background:var(--bg2);color:var(--muted)}
+  .nav-item.on .ni-ic{background:color-mix(in srgb,var(--accent) 25%,transparent)}
+
+  .topbar{height:62px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:14px;padding:0 22px;position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 82%,transparent);backdrop-filter:blur(12px)}
+  .host{padding:24px;max-width:1180px;margin:0 auto}
+
+  .theme-dot{width:18px;height:18px;border-radius:50%;border:2px solid transparent;cursor:pointer;padding:0}
+
+  /* tiles */
+  .tile{position:relative;text-align:left;background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:15px;cursor:pointer;transition:.18s}
+  .tile:hover{border-color:var(--accent);transform:translateY(-3px)}
+  .tile.on{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 40%,transparent) inset}
+  .tile .ic{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;font-size:22px;background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent2)}
+
+  /* paper */
+  .stage{background:repeating-linear-gradient(45deg,#0a0f1d,#0a0f1d 14px,#0b1120 14px,#0b1120 28px);border:1px solid var(--line);border-radius:16px;padding:24px;overflow:auto}
+  .sheet{background:#fff;color:#15181f;width:100%;max-width:720px;margin:0 auto 22px;border-radius:6px;padding:44px 46px;box-shadow:0 30px 80px -30px rgba(0,0,0,.8);font-family:'Sarabun';line-height:1.55}
+  .sheet .exam-head{display:flex;gap:16px;align-items:center;border-bottom:2px solid #15181f;padding-bottom:14px}
+  .sheet .exam-head img{width:52px;height:52px;object-fit:contain}
+  .sheet h1{font-family:'Kanit';font-size:19px;margin:0;font-weight:700}
+  .sheet .sub{color:#566;font-size:13px;margin-top:2px}
+  .meta-row{display:flex;flex-wrap:wrap;gap:8px 22px;margin:14px 0 6px;font-size:14px}
+  .blank{display:inline-block;border-bottom:1px dotted #333;min-width:120px}
+  .instr{background:#f4f6fb;border-left:4px solid var(--accent);padding:9px 13px;border-radius:4px;font-size:13.5px;margin:10px 0 16px}
+  .qcols{column-gap:36px}.qcols.c2{column-count:2}
+  .qitem{break-inside:avoid;margin:0 0 13px;font-size:15px;display:flex;gap:8px}
+  .qno{font-family:'IBM Plex Mono';font-weight:600;color:var(--accent);min-width:26px}
+  .qbody{flex:1}
+  .ans-line{display:inline-block;border-bottom:1px solid #999;min-width:70px;margin-left:6px}
+  .frac{display:inline-flex;flex-direction:column;text-align:center;vertical-align:middle;line-height:1;margin:0 2px}
+  .frac span:first-child{border-bottom:1.5px solid currentColor;padding:0 4px}
+  .frac span:last-child{padding:1px 4px 0}
+  .sheet-foot{margin-top:24px;border-top:1px solid #d6dbe6;padding-top:10px;font-size:11px;color:#7a8194;display:flex;justify-content:space-between}
+  .key-sheet{border-top:4px solid var(--accent)}
+  .key-tag{display:inline-block;background:var(--accent);color:#fff;font-family:'Kanit';font-weight:600;padding:3px 12px;border-radius:999px;font-size:12px}
+  .key-grid{column-count:3;column-gap:24px;margin-top:14px}
+  .key-grid .ans{font-weight:700;color:#0a7}
+  .stamp{font-family:'IBM Plex Mono';border:2px solid var(--accent);color:var(--accent);border-radius:8px;padding:4px 10px;font-size:12px;transform:rotate(-3deg)}
+
+  /* quiz */
+  .qcard{background:var(--bg2);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:12px}
+  .opt{display:flex;align-items:center;gap:10px;padding:.6rem .8rem;border:1px solid var(--line2);border-radius:10px;cursor:pointer;margin-top:8px;transition:.12s;font-family:'Sarabun'}
+  .opt:hover{border-color:var(--accent)}
+  .opt.sel{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 16%,transparent)}
+  .opt.correct{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 18%,transparent)}
+  .opt.wrong{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 16%,transparent)}
+  .opt .k{width:26px;height:26px;border-radius:7px;display:grid;place-items:center;background:var(--bg);font-family:'IBM Plex Mono';font-size:.8rem;color:var(--muted)}
+
+  table.adm{width:100%;border-collapse:collapse;font-size:.92rem}
+  table.adm th{text-align:left;color:var(--muted);font-family:'Kanit';font-weight:500;font-size:.8rem;padding:.6rem .8rem;border-bottom:1px solid var(--line)}
+  table.adm td{padding:.7rem .8rem;border-bottom:1px solid var(--line)}
+  .switch{position:relative;width:42px;height:24px;border-radius:999px;background:var(--line2);cursor:pointer;transition:.2s}
+  .switch.on{background:var(--accent)}
+  .switch i{position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:.2s}
+  .switch.on i{left:21px}
+
+  .site-foot{border-top:1px solid var(--line);color:var(--muted);font-size:13px}
+  @keyframes pop{0%{transform:scale(.97);opacity:0}100%{transform:none;opacity:1}}
+  .pop{animation:pop .35s ease both}
+  /* animated color-shifting headline */
+  .grad-text{background:linear-gradient(90deg,var(--accent2),var(--accent),#fff,var(--accent),var(--accent2));
+    background-size:300% 100%;-webkit-background-clip:text;background-clip:text;color:transparent;
+    animation:gradmove 7s linear infinite}
+  @keyframes gradmove{0%{background-position:0% 50%}100%{background-position:300% 50%}}
+  /* scroll reveal (ค่อยๆ เลื่อนขึ้น) */
+  .reveal{opacity:0;transform:translateY(24px);transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1)}
+  .reveal.in{opacity:1;transform:none}
+  .stat-num{font-family:'Kanit';font-weight:800;font-size:clamp(26px,4vw,40px);line-height:1}
+
+  .swal2-popup{font-family:'Sarabun'!important;border-radius:18px!important}
+  .swal2-title{font-family:'Kanit'!important}
+
+  @media print{
+    @page{size:A4;margin:14mm}
+    body{background:#fff}
+    .no-print,.bg-fx,.site-foot,.topbar,.sidebar,.mnav{display:none!important}
+    .shell{grid-template-columns:1fr}
+    .stage{background:#fff;border:none;padding:0;overflow:visible}
+    .sheet{box-shadow:none;max-width:none;margin:0;padding:0;page-break-after:always}
+    .key-sheet{page-break-before:always}
+  }
+  @media (max-width:880px){
+    .shell{grid-template-columns:1fr}
+    .sidebar{display:none}
+    .grid-main{grid-template-columns:1fr!important}
+    .key-grid{column-count:2}
+  }
+  @media (prefers-reduced-motion:reduce){ .pop{animation:none;opacity:1} .grad-text{animation:none} .reveal{transition:none;opacity:1;transform:none} }
+</style>
+</head>
+<body>
+<div class="bg-fx"><div class="bg-grid"></div></div>
+
+<!-- ===== LOGIN ===== -->
+<div id="loginView" class="wrap" style="min-height:100vh;display:flex;flex-direction:column">
+  <div style="flex:1;max-width:1040px;width:100%;margin:0 auto;padding:36px 20px 0">
+    <section class="login-grid" style="display:grid;gap:34px;grid-template-columns:1.1fr 1fr;align-items:center;min-height:74vh">
+      <div>
+        <div class="flex items-center gap2 reveal" style="margin-bottom:18px">
+          <img src="https://img2.pic.in.th/Logo-removebg-previewd44fed925d2a2228.png" style="width:46px;height:46px;object-fit:contain">
+          <div><div class="eyebrow">SISAKET P.3 · EDU PLATFORM</div><div class="font-display" style="font-weight:600">โรงเรียนบ้านละลม</div></div>
+        </div>
+        <h1 class="font-display reveal" style="font-weight:800;line-height:1.12;font-size:clamp(28px,5vw,46px);transition-delay:.08s">
+          EduForge<br><span class="grad-text">แพลตฟอร์มรวมระบบสื่อการเรียน</span>
+        </h1>
+        <p class="reveal" style="color:var(--muted);max-width:44ch;margin-top:14px;line-height:1.7;transition-delay:.16s">
+          เปลือกระบบเดียว ติดตั้ง “ระบบย่อย” เพิ่มได้ไม่จำกัด — ออกข้อสอบกระดาษ ทดสอบออนไลน์
+          คลังข้อสอบ และระบบใหม่ๆ ที่จะเพิ่มในอนาคต ใช้ล็อกอิน ธีม และ Footer ร่วมกันทั้งหมด
+        </p>
+        <div class="flex reveal" style="flex-wrap:wrap;gap:8px;margin-top:22px;transition-delay:.24s">
+          <span class="chip"><i class="ti ti-puzzle"></i> สถาปัตยกรรมปลั๊กอิน</span>
+          <span class="chip"><i class="ti ti-brand-github"></i> เพิ่มระบบผ่าน GitHub</span>
+          <button class="chip click" onclick="showNews()"><i class="ti ti-bell-ringing"></i> ข่าวประชาสัมพันธ์</button>
+        </div>
+      </div>
+
+      <div class="panel reveal" style="padding:28px;transition-delay:.18s">
+        <div class="eyebrow" style="margin-bottom:4px">เข้าสู่ระบบ</div>
+        <h2 class="font-display" style="font-size:24px;font-weight:600;margin:0 0 2px">ยินดีต้อนรับ</h2>
+        <p style="color:var(--muted);font-size:.9rem;margin:0 0 18px">เลือกประเภทผู้ใช้เพื่อเริ่มใช้งาน</p>
+        <div class="seg" id="loginSeg" style="margin-bottom:18px">
+          <button class="on" data-role="public"><i class="ti ti-user"></i> ผู้ใช้ทั่วไป</button>
+          <button data-role="admin"><i class="ti ti-shield-lock"></i> ผู้ดูแลระบบ</button>
+        </div>
+        <label class="lbl">ชื่อผู้ใช้</label>
+        <input id="loginUser" class="field" style="margin:4px 0 12px" placeholder="เช่น teacher" autocomplete="off">
+        <label class="lbl">รหัสผ่าน</label>
+        <input id="loginPass" type="password" class="field" style="margin:4px 0 18px" placeholder="••••••••">
+        <button class="btn btn-accent" style="width:100%;justify-content:center" onclick="doLogin()"><i class="ti ti-login-2"></i> เข้าสู่ระบบ</button>
+        <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px" onclick="guestLogin()"><i class="ti ti-bolt"></i> เข้าใช้แบบทดลอง (Guest)</button>
+        <p class="mono" style="color:var(--faint);font-size:.72rem;margin-top:14px;text-align:center">เดโม · admin/admin · teacher/1234</p>
+      </div>
+    </section>
+
+    <!-- count-up stats -->
+    <section class="panel reveal" style="padding:22px;margin-top:8px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center">
+      <div><div class="stat-num grad-text" id="stGrades" data-count="9">0</div><div style="color:var(--muted);font-size:.82rem;margin-top:4px">ระดับชั้น</div></div>
+      <div><div class="stat-num" id="stChapters" data-count="0" data-suffix="+" style="color:var(--accent2)">0</div><div style="color:var(--muted);font-size:.82rem;margin-top:4px">บทเรียน</div></div>
+      <div><div class="stat-num" id="stSubjects" data-count="6" style="color:var(--accent2)">0</div><div style="color:var(--muted);font-size:.82rem;margin-top:4px">ชนิดโจทย์</div></div>
+      <div><div class="stat-num grad-text">∞</div><div style="color:var(--muted);font-size:.82rem;margin-top:4px">ชุดข้อสอบ (สุ่มใหม่ได้เรื่อยๆ)</div></div>
+    </section>
+
+    <!-- features (reveal-on-scroll, staggered) -->
+    <section style="margin:38px 0 30px">
+      <div class="eyebrow reveal" style="text-align:center;margin-bottom:18px">ทำอะไรได้บ้าง</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px" class="feat-grid">
+        <div class="panel reveal click" style="padding:20px;cursor:pointer" onclick="featInfo('worksheet')">
+          <div class="ic" style="width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent2)"><i class="ti ti-file-pencil"></i></div>
+          <div class="font-display" style="font-weight:600;margin-top:12px">ออกข้อสอบกระดาษ</div>
+          <p style="color:var(--muted);font-size:.86rem;margin:6px 0 0">เลือกชั้นและบท สุ่มโจทย์ใหม่ไม่จำกัด พร้อมเฉลยและพิมพ์เป็น A4</p>
+        </div>
+        <div class="panel reveal click" style="padding:20px;cursor:pointer;transition-delay:.1s" onclick="featInfo('quiz')">
+          <div class="ic" style="width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent2)"><i class="ti ti-list-check"></i></div>
+          <div class="font-display" style="font-weight:600;margin-top:12px">ทดสอบออนไลน์</div>
+          <p style="color:var(--muted);font-size:.86rem;margin:6px 0 0">ทำแบบทดสอบเลือกตอบ ตรวจและสรุปคะแนนให้อัตโนมัติ</p>
+        </div>
+        <div class="panel reveal click" style="padding:20px;cursor:pointer;transition-delay:.2s" onclick="featInfo('vault')">
+          <div class="ic" style="width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent2)"><i class="ti ti-archive"></i></div>
+          <div class="font-display" style="font-weight:600;margin-top:12px">คลังข้อสอบ</div>
+          <p style="color:var(--muted);font-size:.86rem;margin:6px 0 0">เก็บชุดที่ออกไว้ นำกลับมาพิมพ์ซ้ำได้ทุกเมื่อ</p>
+        </div>
+      </div>
+    </section>
+  </div>
+  <footer class="site-foot" style="text-align:center;padding:18px">พัฒนาโดย นายชิติพัทธ์ นิลวรรณ ครู สพป.ศรีสะเกษ เขต 3</footer>
+</div>
+
+<!-- ===== APP SHELL ===== -->
+<div id="appView" class="wrap hidden">
+  <div class="shell">
+    <!-- sidebar -->
+    <aside class="sidebar no-print">
+      <div class="flex items-center gap2" style="padding:4px 6px 16px">
+        <img src="https://img2.pic.in.th/Logo-removebg-previewd44fed925d2a2228.png" style="width:34px;height:34px;object-fit:contain">
+        <div><div class="font-display" style="font-weight:700;line-height:1">EduForge</div><div class="mono" style="font-size:.62rem;color:var(--faint)">By ครูแบงค์</div></div>
+      </div>
+      <div class="eyebrow" style="padding:0 8px 8px">ระบบที่ติดตั้ง</div>
+      <nav id="navList"></nav>
+    </aside>
+
+    <!-- main -->
+    <div>
+      <header class="topbar no-print">
+        <div class="font-display" id="hostTitle" style="font-weight:600;font-size:1.05rem">—</div>
+        <div style="margin-left:auto" class="flex items-center gap2">
+          <div class="flex items-center" style="gap:7px;padding:6px 9px;border:1px solid var(--line);border-radius:11px">
+            <span class="mono" style="font-size:.62rem;color:var(--faint)">THEME</span>
+            <button class="theme-dot" data-theme="indigo"></button>
+            <button class="theme-dot" data-theme="emerald"></button>
+            <button class="theme-dot" data-theme="amber"></button>
+            <button class="theme-dot" data-theme="rose"></button>
+            <button class="theme-dot" data-theme="sky"></button>
+            <button class="theme-dot" data-theme="violet"></button>
+          </div>
+          <span class="chip" id="userChip"><i class="ti ti-user"></i> <span>ผู้ใช้</span></span>
+          <button class="btn btn-ghost" style="padding:.5rem .7rem" onclick="logout()"><i class="ti ti-logout"></i></button>
+        </div>
+      </header>
+
+      <!-- mobile nav -->
+      <div class="mnav no-print" id="mnav" style="display:none;gap:8px;overflow:auto;padding:12px 16px;border-bottom:1px solid var(--line)"></div>
+
+      <main class="host" id="host"></main>
+
+      <footer class="site-foot no-print" style="text-align:center;padding:18px;margin-top:10px">พัฒนาโดย นายชิติพัทธ์ นิลวรรณ ครู สพป.ศรีสะเกษ เขต 3</footer>
+    </div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script src="core.js"></script>
+</body>
+</html>
