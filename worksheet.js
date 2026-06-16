@@ -124,6 +124,7 @@
       };
 
       drawGrades(); drawChapters(); setTitle(); build(true);
+      if (svc.user.role === 'public') { var sb = $('#save', host); if (sb) sb.style.display = 'none'; }
     }
   });
 })();
