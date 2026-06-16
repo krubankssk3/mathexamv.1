@@ -98,6 +98,92 @@
     setTimeout(function () { window.print(); host.innerHTML = keep; }, 200);
   }
 
+  /* ---------- เครื่องสุ่มโจทย์ฝั่ง client (ลื่น ไม่ต้องรอ GAS) ---------- */
+  function ri(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+  function pick(arr) { return arr[ri(0, arr.length - 1)]; }
+  function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
+  function frac(n, d) { return '<span class="frac"><span>' + n + '</span><span>' + d + '</span></span>'; }
+  function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = ri(0, i); var t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+  function makeSetId() {
+    var A = 'ABCDEFGHJKMNPQRSTUVWXYZ'.split(''), N = '23456789'.split('');
+    return pick(A) + pick(A) + '-' + pick(N) + pick(N) + pick(N);
+  }
+  var GEN = {
+    arith: function (c) {
+      var out = [], D = { easy: [1, 20, 10], medium: [5, 99, 12], hard: [20, 999, 25] }[c.level];
+      var addR = c.addRange || [D[0], D[1]], mulM = c.mulMax || D[2];
+      var ops = (c.ops && c.ops.length) ? c.ops : ['+'];
+      for (var i = 0; i < c.count; i++) {
+        var op = pick(ops), a, b, ans, sym;
+        if (op === '+') { a = ri(addR[0], addR[1]); b = ri(addR[0], addR[1]); ans = a + b; sym = '+'; }
+        else if (op === '-') { a = ri(addR[0], addR[1]); b = ri(addR[0], a); ans = a - b; sym = '\u2212'; }
+        else if (op === 'x') { a = ri(2, mulM); b = ri(2, mulM); ans = a * b; sym = '\u00d7'; }
+        else { b = ri(2, mulM); ans = ri(2, mulM); a = b * ans; sym = '\u00f7'; }
+        out.push({ q: a + ' ' + sym + ' ' + b + ' =', a: String(ans), n: ans });
+      }
+      return out;
+    },
+    percent: function (c) {
+      var P = { easy: [10, 25, 50], medium: [5, 15, 20, 30, 40], hard: [12, 18, 35, 65, 85] };
+      var B = { easy: [20, 40, 60, 80, 100], medium: [80, 120, 150, 200], hard: [150, 260, 320, 480] };
+      var out = [];
+      for (var i = 0; i < c.count; i++) { var p = pick(P[c.level]), b = pick(B[c.level]); var v = Math.round(p / 100 * b * 100) / 100; out.push({ q: p + '% ของ ' + b + ' เท่ากับเท่าใด', a: String(v), n: v }); }
+      return out;
+    },
+    measure: function (c) {
+      var u = [{ q: 'เมตร', to: 'ซม.', f: 100 }, { q: 'กก.', to: 'กรัม', f: 1000 }, { q: 'กม.', to: 'เมตร', f: 1000 }, { q: 'ลิตร', to: 'มล.', f: 1000 }];
+      var N = c.range || ({ easy: [1, 9], medium: [2, 25], hard: [5, 99] }[c.level]); var out = [];
+      for (var i = 0; i < c.count; i++) { var x = pick(u), n = ri(N[0], N[1]); out.push({ q: n + ' ' + x.q + ' = _____ ' + x.to, a: (n * x.f) + ' ' + x.to, n: n * x.f }); }
+      return out;
+    },
+    fraction: function (c) {
+      var M = c.maxDen || ({ easy: 6, medium: 10, hard: 15 }[c.level]); var out = [];
+      for (var i = 0; i < c.count; i++) {
+        var d1 = ri(2, M), d2 = ri(2, M), n1 = ri(1, d1 - 1), n2 = ri(1, d2 - 1), plus = Math.random() < 0.5;
+        var num = plus ? (n1 * d2 + n2 * d1) : Math.abs(n1 * d2 - n2 * d1), den = d1 * d2, g = gcd(num, den) || 1;
+        out.push({ q: frac(n1, d1) + ' ' + (plus ? '+' : '\u2212') + ' ' + frac(n2, d2) + ' =', a: num === 0 ? '0' : frac(num / g, den / g) });
+      }
+      return out;
+    },
+    equation: function (c) {
+      var R = { easy: [1, 5, 1, 10], medium: [2, 9, -9, 20], hard: [2, 15, -30, 60] }[c.level]; var out = [];
+      for (var i = 0; i < c.count; i++) { var a = ri(R[0], R[1]), x = ri(R[2], R[3]), b = ri(R[2] < 0 ? -12 : 1, 12), cc = a * x + b; out.push({ q: a + 'x ' + (b < 0 ? '\u2212 ' + (-b) : '+ ' + b) + ' = ' + cc, a: 'x = ' + x, n: x }); }
+      return out;
+    },
+    word: function (c) {
+      var names = ['น้องฟ้า', 'เด็กชายเอก', 'น้องมุก', 'พี่บาส'], items = ['ดินสอ', 'สมุด', 'ลูกอม', 'ส้ม'];
+      var R = c.range || ({ easy: [2, 12], medium: [5, 40], hard: [12, 120] }[c.level]); var out = [];
+      for (var i = 0; i < c.count; i++) {
+        var nm = pick(names), it = pick(items), a = ri(R[0], R[1]), b = ri(R[0], R[1]), t = ri(0, 2), q, ans;
+        if (t === 0) { q = nm + 'มี' + it + ' ' + a + ' ชิ้น ซื้อเพิ่มอีก ' + b + ' ชิ้น มีทั้งหมดกี่ชิ้น'; ans = a + b; }
+        else if (t === 1) { var bg = Math.max(a, b), sm = Math.min(a, b); q = nm + 'มี' + it + ' ' + bg + ' ชิ้น ให้เพื่อน ' + sm + ' ชิ้น เหลือกี่ชิ้น'; ans = bg - sm; }
+        else { q = nm + 'ซื้อ' + it + 'วันละ ' + a + ' ชิ้น เป็นเวลา ' + b + ' วัน รวมกี่ชิ้น'; ans = a * b; }
+        out.push({ q: q, a: ans + ' ชิ้น', n: ans });
+      }
+      return out;
+    }
+  };
+  function buildProblems(ch, level, count) {
+    var fn = GEN[ch.gen]; if (!fn) return [];
+    var cfg = { level: level || 'easy', count: Math.max(4, Math.min(40, Number(count) || 12)) };
+    if (ch.ops && ch.ops.length) cfg.ops = ch.ops;
+    var ov = ch.lv && ch.lv[cfg.level]; if (ov) for (var k in ov) cfg[k] = ov[k];
+    return fn(cfg);
+  }
+  function genProblems(ch, level, count) { return { setId: makeSetId(), problems: buildProblems(ch, level, count) }; }
+  function genQuiz(ch, level, count) {
+    var raw = buildProblems(ch, level, count);
+    var items = raw.map(function (it) {
+      var correct = (typeof it.n === 'number') ? it.n : Number(String(it.a).replace(/[^0-9.\-]/g, ''));
+      var seen = {}, keys = [correct]; seen[correct] = 1; var guard = 0;
+      while (keys.length < 4 && guard++ < 60) { var d = pick([1, 2, 3, 4, 5, 10, -1, -2, -3, -5]); var cand = correct + d; if (cand >= 0 && !seen[cand]) { seen[cand] = 1; keys.push(cand); } }
+      while (keys.length < 4) keys.push(correct + keys.length);
+      var arr = shuffle(keys.slice());
+      return { q: it.q, choices: arr, correct: arr.indexOf(correct) };
+    });
+    return { items: items };
+  }
+
   /* ---------- PLATFORM ---------- */
   var Platform = {
     plugins: {},          // id -> { mount }
@@ -114,6 +200,7 @@
         api: api, toast: toast, swal: Swal, swalDark: SWAL_DARK,
         settings: this.settings, user: this.user, curriculum: this.curriculum,
         examSheetHTML: examSheetHTML, printNode: printNode,
+        genProblems: genProblems, genQuiz: genQuiz, makeSetId: makeSetId,
         countUp: countUp, animateCounters: animateCounters, reveal: initReveals
       };
     },
@@ -166,7 +253,9 @@
     return fetch('manifest.json').then(function (r) { return r.json(); }).then(function (mf) {
       var files = (mf.plugins || []);
       return files.reduce(function (chain, name) {
-        return chain.then(function () { return loadScript(name + '.js'); });
+        return chain.then(function () {
+          return loadScript('plugins/' + name + '.js').catch(function () { return loadScript(name + '.js'); });
+        });
       }, Promise.resolve());
     });
   }
