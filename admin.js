@@ -18,7 +18,7 @@
           '<div style="display:flex;align-items:center;margin-bottom:14px"><div><div class="eyebrow">ระบบย่อย (Plugins)</div>' +
           '<p style="color:var(--muted);font-size:.86rem;margin:2px 0 0">เปิด/ปิดระบบที่จะให้ผู้ใช้เห็นในแถบด้านซ้าย (บันทึกลง Google Sheets)</p></div>' +
           '<button class="btn btn-accent" id="addsys" style="margin-left:auto"><i class="ti ti-plus"></i> ติดตั้งระบบใหม่</button></div>' +
-          '<div style="overflow:auto"><table class="adm"><thead><tr><th>ระบบ</th><th>ไฟล์</th><th style="text-align:center">สถานะ</th></tr></thead><tbody id="tb"></tbody></table></div>' +
+          '<div style="overflow:auto"><table class="adm"><thead><tr><th>ระบบ</th><th>ไฟล์</th><th style="text-align:center">สถานะ</th><th style="text-align:center">จัดการ</th></tr></thead><tbody id="tb"></tbody></table></div>' +
         '</div>' +
         '<div class="panel" style="padding:20px;margin-top:16px">' +
           '<div class="eyebrow" style="margin-bottom:12px">หัวกระดาษ (ใช้ทุกระบบ)</div>' +
@@ -34,7 +34,8 @@
         tr.innerHTML =
           '<td><div class="flex items-center gap2"><span class="ni-ic" style="width:30px;height:30px"><i class="ti ' + m.icon + '"></i></span><b class="font-display">' + m.title + '</b>' + (m.adminOnly ? ' <span class="chip" style="font-size:.62rem">admin</span>' : '') + '</div></td>' +
           '<td class="mono" style="color:var(--muted)">plugins/' + m.id + '.js</td>' +
-          '<td style="text-align:center"><div class="switch on" style="margin:0 auto"><i></i></div></td>';
+          '<td style="text-align:center"><div class="switch on" style="margin:0 auto"><i></i></div></td>' +
+          '<td style="text-align:center"><button class="btn btn-ghost del-sys" style="padding:.4rem .6rem;color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,transparent)"><i class="ti ti-trash"></i> ลบ</button></td>';
         tr.querySelector('.switch').onclick = function () {
           var on = !this.classList.contains('on');
           var sw = this;
@@ -42,6 +43,24 @@
           svc.toast('success', on ? 'เปิดใช้งานแล้ว' : 'ปิดแล้ว (รีโหลดเพื่อให้เมนูอัปเดต)');
           svc.api('togglePlugin', { id: m.id, enabled: on })
             .catch(function (e) { sw.classList.toggle('on', !on); svc.toast('error', String(e.message || e)); });
+        };
+        tr.querySelector('.del-sys').onclick = function () {
+          svc.swal.fire(Object.assign({
+            icon: 'warning', title: 'ลบระบบนี้ออก?', showCancelButton: true,
+            confirmButtonText: 'ลบออก', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#fb7185',
+            html: '“<b>' + m.title + '</b>” จะถูกเอาออกจากเมนู<br><span style="font-size:.82rem;color:#9aa8c8">หมายเหตุ: ไฟล์ <code>plugins/' + m.id + '.js</code> บน GitHub ยังอยู่ ถ้าจะเอาออกถาวรให้ลบบรรทัดใน <code>manifest.json</code> และไฟล์นั้นด้วย</span>'
+          }, svc.swalDark)).then(function (r) {
+            if (!r.isConfirmed) return;
+            var idx = -1; for (var i = 0; i < P.meta.length; i++) { if (P.meta[i].id === m.id) { idx = i; break; } }
+            var removed = idx >= 0 ? P.meta.splice(idx, 1)[0] : null;
+            P.mount('admin');                                  // เอาออกจากตาราง+เมนูทันที
+            svc.api('deletePlugin', { id: m.id })
+              .then(function () { svc.toast('success', 'ลบ “' + m.title + '” แล้ว'); })
+              .catch(function (e) {
+                if (removed) { P.meta.splice(idx, 0, removed); P.mount('admin'); }
+                svc.toast('error', 'ลบไม่สำเร็จ: ' + String(e.message || e));
+              });
+          });
         };
         tb.appendChild(tr);
       });
