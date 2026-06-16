@@ -33,14 +33,11 @@
       $('#cnt', host).oninput = function (e) { st.count = Math.max(4, Math.min(20, +e.target.value || 8)); };
 
       function build() {
-        if (st.busy) return; st.busy = true;
-        svc.api('quizGen', { chapterId: st.chapterId, level: st.level, count: st.count })
-          .then(function (res) {
-            st.items = res.items; st.answers = new Array(res.items.length).fill(-1); st.checked = false;
-            $('#score', host).style.display = 'none'; $('#quizFoot', host).style.display = 'flex'; render();
-          })
-          .catch(function (e) { svc.toast('error', String(e.message || e)); })
-          .then(function () { st.busy = false; });
+        var ch = null;
+        svc.curriculum.grades.forEach(function (g) { g.chapters.forEach(function (c) { if (c.id === st.chapterId) ch = c; }); });
+        var res = svc.genQuiz(ch, st.level, st.count);
+        st.items = res.items; st.answers = new Array(res.items.length).fill(-1); st.checked = false;
+        $('#score', host).style.display = 'none'; $('#quizFoot', host).style.display = 'flex'; render();
       }
       function render() {
         var area = $('#quizArea', host), L = ['ก', 'ข', 'ค', 'ง'];
