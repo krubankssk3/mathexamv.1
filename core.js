@@ -166,7 +166,7 @@
     return fetch('manifest.json').then(function (r) { return r.json(); }).then(function (mf) {
       var files = (mf.plugins || []);
       return files.reduce(function (chain, name) {
-        return chain.then(function () { return loadScript('plugins/' + name + '.js'); });
+        return chain.then(function () { return loadScript(name + '.js'); });
       }, Promise.resolve());
     });
   }
