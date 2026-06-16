@@ -83,16 +83,11 @@
       $('#ttl', host).oninput = function (e) { st.title = e.target.value; };
 
       function build(announce) {
-        if (st.busy) return; st.busy = true;
         var g = gradeOf(st.gradeId), ch = chapterOf(st.gradeId, st.chapterId);
-        svc.api('generate', { gradeId: st.gradeId, chapterId: st.chapterId, level: st.level, count: st.count })
-          .then(function (res) {
-            st.current = { setId: res.setId, subjectName: g.name + ' · ' + ch.name, problems: res.problems, level: st.level, cols: st.cols, title: st.title };
-            st.showKey = false; keyBtn(); render();
-            if (announce) svc.toast('success', 'สร้างชุด ' + res.setId);
-          })
-          .catch(function (e) { svc.toast('error', String(e.message || e)); })
-          .then(function () { st.busy = false; });
+        var res = svc.genProblems(ch, st.level, st.count);
+        st.current = { setId: res.setId, subjectName: g.name + ' · ' + ch.name, problems: res.problems, level: st.level, cols: st.cols, title: st.title };
+        st.showKey = false; keyBtn(); render();
+        if (announce) svc.toast('success', 'สร้างชุด ' + res.setId);
       }
       function render() {
         var c = st.current; if (!c) return;
