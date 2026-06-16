@@ -1,4 +1,4 @@
-/*** EduForge plugin — คลังข้อสอบ (vault) *******************************/
+/*** EduForge plugin — คลังข้อสอบ (vault) — แคชในหน่วยความจำ + optimistic ***/
 (function () {
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return [].slice.call((r || document).querySelectorAll(s)); };
@@ -6,38 +6,58 @@
   window.Platform.register({
     id: 'vault',
     mount: function (host, svc) {
-      function render(list) {
+      var store = svc.store;
+
+      function render(loading) {
+        var list = store.saved;
         host.innerHTML =
           '<div class="panel" style="padding:20px">' +
-            '<div class="eyebrow" style="margin-bottom:4px">คลังข้อสอบ</div>' +
+            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">' +
+              '<div class="eyebrow">คลังข้อสอบ</div>' +
+              '<button class="btn btn-ghost" id="refresh" style="margin-left:auto;padding:.4rem .7rem"><i class="ti ti-refresh"></i> รีเฟรช</button>' +
+            '</div>' +
             '<h3 class="font-display" style="margin:0 0 4px;font-weight:600">ชุดข้อสอบที่บันทึกไว้</h3>' +
-            '<p style="color:var(--muted);font-size:.88rem;margin:0 0 16px">ชุดที่กด “บันทึกเข้าคลัง” จากระบบออกข้อสอบกระดาษจะมาอยู่ที่นี่ นำกลับมาพิมพ์ซ้ำได้</p>' +
-            (list.length === 0 ? '<div style="text-align:center;padding:40px;color:var(--muted)"><i class="ti ti-inbox" style="font-size:42px"></i><div style="margin-top:8px">ยังไม่มีชุดที่บันทึก</div></div>' : '') +
+            '<p style="color:var(--muted);font-size:.88rem;margin:0 0 16px">ชุดที่กด “บันทึกเข้าคลัง” จะมาอยู่ที่นี่ นำกลับมาพิมพ์ซ้ำได้</p>' +
+            (loading && list.length === 0 ? '<div style="text-align:center;padding:40px;color:var(--muted)">กำลังโหลด...</div>' : '') +
+            (!loading && list.length === 0 ? '<div style="text-align:center;padding:40px;color:var(--muted)"><i class="ti ti-inbox" style="font-size:42px"></i><div style="margin-top:8px">ยังไม่มีชุดที่บันทึก</div></div>' : '') +
             '<div style="display:grid;gap:12px">' + list.map(function (s, i) {
               return '<div class="qcard" style="display:flex;align-items:center;gap:14px;margin:0">' +
                 '<span class="stamp">' + s.setId + '</span>' +
-                '<div style="flex:1"><div class="font-display" style="font-weight:600">' + s.title + '</div>' +
+                '<div style="flex:1"><div class="font-display" style="font-weight:600">' + s.title + (s._syncing ? ' <span class="mono" style="font-size:.66rem;color:var(--muted)">· กำลังซิงค์</span>' : '') + '</div>' +
                 '<div style="color:var(--muted);font-size:.82rem">' + s.subjectName + ' · ' + s.problems.length + ' ข้อ</div></div>' +
                 '<button class="btn btn-ghost" data-print="' + i + '"><i class="ti ti-printer"></i> พิมพ์</button>' +
-                '<button class="btn btn-ghost" data-del="' + s.id + '" style="color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,transparent)"><i class="ti ti-trash"></i></button></div>';
+                '<button class="btn btn-ghost" data-del="' + i + '" style="color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,transparent)"><i class="ti ti-trash"></i></button></div>';
             }).join('') + '</div></div>';
 
+        $('#refresh', host).onclick = function () { store.savedLoaded = false; load(); };
         $$('[data-print]', host).forEach(function (b) {
           b.onclick = function () {
-            var s = list[+b.dataset.print];
+            var s = store.saved[+b.dataset.print];
             svc.printNode(svc.examSheetHTML({ title: s.title, subjectName: s.subjectName, level: s.level, setId: s.setId, problems: s.problems, cols: s.cols, withKey: true }));
           };
         });
         $$('[data-del]', host).forEach(function (b) {
           b.onclick = function () {
-            svc.api('deleteExam', { id: b.dataset.del }).then(function () { svc.toast('success', 'ลบแล้ว'); load(); })
-              .catch(function (e) { svc.toast('error', String(e.message || e)); });
+            var item = store.saved[+b.dataset.del];
+            store.saved.splice(+b.dataset.del, 1);
+            render(false);
+            svc.toast('success', 'ลบแล้ว');
+            if (item && item.id && String(item.id).indexOf('tmp-') !== 0) {
+              svc.api('deleteExam', { id: item.id }).catch(function (e) {
+                store.saved.unshift(item); render(false);
+                svc.toast('error', 'ลบไม่สำเร็จ: ' + String(e.message || e));
+              });
+            }
           };
         });
       }
+
       function load() {
-        host.innerHTML = '<div class="panel" style="padding:40px;text-align:center;color:var(--muted)">กำลังโหลด...</div>';
-        svc.api('listExams').then(render).catch(function (e) {
+        if (store.savedLoaded) { render(false); return; }
+        render(true);
+        svc.api('listExams').then(function (list) {
+          store.saved = list; store.savedLoaded = true; render(false);
+        }).catch(function (e) {
           host.innerHTML = '<div class="panel" style="padding:30px;text-align:center;color:var(--bad)">โหลดไม่ได้: ' + String(e.message || e) + '</div>';
         });
       }
