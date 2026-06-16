@@ -104,9 +104,15 @@
       $('#save', host).onclick = function () {
         if (!st.current) { svc.toast('warning', 'ยังไม่มีชุด'); return; }
         var c = st.current;
+        var item = { id: 'tmp-' + c.setId, title: c.title, subjectName: c.subjectName, level: c.level, cols: c.cols, setId: c.setId, problems: c.problems, _syncing: true };
+        svc.store.saved.unshift(item);            // โผล่ในคลังทันที
+        svc.toast('success', 'บันทึกชุด ' + c.setId + ' เข้าคลังแล้ว');
         svc.api('saveExam', { title: c.title, gradeId: st.gradeId, chapterId: st.chapterId, subjectName: c.subjectName, level: c.level, cols: c.cols, setId: c.setId, problems: c.problems })
-          .then(function () { svc.toast('success', 'บันทึกชุด ' + c.setId + ' เข้าคลังแล้ว'); })
-          .catch(function (e) { svc.toast('error', String(e.message || e)); });
+          .then(function (res) { item.id = res.id; item._syncing = false; })
+          .catch(function (e) {
+            var i = svc.store.saved.indexOf(item); if (i >= 0) svc.store.saved.splice(i, 1);
+            svc.toast('error', 'บันทึกไม่สำเร็จ: ' + String(e.message || e));
+          });
       };
       $('#print', host).onclick = function () {
         if (!st.current) { svc.toast('warning', 'ยังไม่มีชุด'); return; }
