@@ -279,11 +279,21 @@
     }).catch(function (e) { alertErr('เข้าสู่ระบบไม่สำเร็จ', String(e.message || e)); });
   };
   window.guestLogin = function () {
-    // เดโม/ทดลอง: เข้าด้วยบัญชี teacher อัตโนมัติ
-    api('login', { username: 'teacher', password: '1234' }).then(function (res) {
-      session.token = res.token; localStorage.setItem(LS, res.token);
-      return enterAppFromBootstrap();
-    }).catch(function (e) { alertErr('เข้าใช้แบบทดลองไม่ได้', String(e.message || e)); });
+    // โหมดสาธารณะ: เข้าใช้ได้เลยโดยไม่ต้องล็อกอิน (เห็นเฉพาะระบบที่เปิดเป็น public)
+    api('publicBootstrap').then(function (b) {
+      session.token = ''; localStorage.removeItem(LS);
+      Platform.settings = b.settings || Platform.settings;
+      Platform.meta = b.plugins || [];
+      Platform.curriculum = b.curriculum || Platform.curriculum;
+      Platform.user = { role: 'public', name: 'ผู้ใช้สาธารณะ' };
+      Platform.store = { saved: [], savedLoaded: false };
+      $('#loginView').classList.add('hidden'); $('#appView').classList.remove('hidden');
+      $('#userChip span').textContent = 'สาธารณะ';
+      $('#userChip i').className = 'ti ti-world';
+      $('#mnav').style.display = window.innerWidth <= 880 ? 'flex' : 'none';
+      Platform.start();
+      toast('success', 'เข้าใช้งานแบบสาธารณะ');
+    }).catch(function (e) { alertErr('เข้าใช้สาธารณะไม่ได้', String(e.message || e)); });
   };
   window.logout = function () {
     Swal.fire(Object.assign({ icon: 'question', title: 'ออกจากระบบ?', showCancelButton: true, confirmButtonText: 'ออกจากระบบ', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#fb7185' }, SWAL_DARK))
