@@ -131,9 +131,10 @@
           .then(function (r) {
             if (!r.isConfirmed) return;
             if (svc.store) svc.store.publicLoaded = false;   // ให้คลังสาธารณะดึงใหม่
+            svc.loading('กำลังเผยแพร่...');
             svc.api('publishExam', { title: c.title, subjectName: c.subjectName, level: c.level, cols: c.cols, setId: c.setId, problems: c.problems })
-              .then(function () { svc.toast('success', 'เผยแพร่ชุด ' + c.setId + ' แล้ว'); })
-              .catch(function (e) { svc.toast('error', String(e.message || e)); });
+              .then(function () { svc.done(); svc.toast('success', 'เผยแพร่ชุด ' + c.setId + ' แล้ว'); })
+              .catch(function (e) { svc.done(); svc.toast('error', String(e.message || e)); });
           });
       };
 
