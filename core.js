@@ -291,14 +291,53 @@
       };
     });
   }
+  window.toggleLoginPass = function () {
+    var inp = $('#loginPass'), ic = $('#pwIcon');
+    if (!inp) return;
+    if (inp.type === 'password') { inp.type = 'text'; if (ic) ic.className = 'ti ti-eye-off'; }
+    else { inp.type = 'password'; if (ic) ic.className = 'ti ti-eye'; }
+  };
+
+  var CPINP = 'width:100%;margin:.3rem 0;padding:.6rem .8rem;border-radius:8px;background:#0b1120;color:#e6ebf7;border:1px solid #2a3556;font-family:Sarabun,sans-serif';
+  function openChangePassword(force) {
+    var html = '<div style="text-align:left">' +
+      (force ? '<p style="color:#fbbf24;font-size:.85rem;margin:0 0 6px">เพื่อความปลอดภัย กรุณาตั้งรหัสผ่านใหม่ก่อนใช้งานครั้งแรก</p>' : '<input id="cp-old" type="password" placeholder="รหัสผ่านเดิม" style="' + CPINP + '">') +
+      '<input id="cp-new" type="password" placeholder="รหัสผ่านใหม่ (อย่างน้อย 4 ตัว)" style="' + CPINP + '">' +
+      '<input id="cp-new2" type="password" placeholder="ยืนยันรหัสผ่านใหม่" style="' + CPINP + '">' +
+      '</div>';
+    return Swal.fire(Object.assign({
+      title: 'เปลี่ยนรหัสผ่าน', html: html, focusConfirm: false,
+      showCancelButton: !force, allowOutsideClick: !force, allowEscapeKey: !force,
+      confirmButtonText: 'บันทึก', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#6366f1',
+      preConfirm: function () {
+        var oldp = force ? '' : document.getElementById('cp-old').value;
+        var n1 = document.getElementById('cp-new').value, n2 = document.getElementById('cp-new2').value;
+        if (n1.length < 4) { Swal.showValidationMessage('รหัสผ่านใหม่ต้องยาวอย่างน้อย 4 ตัว'); return false; }
+        if (n1 !== n2) { Swal.showValidationMessage('ยืนยันรหัสผ่านไม่ตรงกัน'); return false; }
+        return { oldPassword: oldp, newPassword: n1 };
+      }
+    }, SWAL_DARK));
+  }
+  function forceChangeThenEnter() {
+    return openChangePassword(true).then(function (r) {
+      if (!r.isConfirmed) { return forceChangeThenEnter(); }
+      loading('กำลังบันทึกรหัสผ่านใหม่...');
+      return api('changePassword', { newPassword: r.value.newPassword }).then(function () {
+        done(); toast('success', 'ตั้งรหัสผ่านใหม่แล้ว');
+        loading('กำลังโหลด...'); return enterAppFromBootstrap().then(done);
+      }).catch(function (e) { done(); alertErr('เปลี่ยนรหัสไม่สำเร็จ', String(e.message || e)); return forceChangeThenEnter(); });
+    });
+  }
+
   window.doLogin = function () {
     var u = $('#loginUser').value.trim(), p = $('#loginPass').value.trim();
     loading('กำลังเข้าสู่ระบบ...');
     api('login', { username: u, password: p }).then(function (res) {
       session.token = res.token; localStorage.setItem(LS, res.token);
-      return enterAppFromBootstrap();
-    }).then(function () { done(); })
-      .catch(function (e) { done(); alertErr('เข้าสู่ระบบไม่สำเร็จ', String(e.message || e)); });
+      done();
+      if (res.mustChange) return forceChangeThenEnter();
+      loading('กำลังโหลด...'); return enterAppFromBootstrap().then(done);
+    }).catch(function (e) { done(); alertErr('เข้าสู่ระบบไม่สำเร็จ', String(e.message || e)); });
   };
   window.guestLogin = function () {
     // โหมดสาธารณะ: เข้าใช้ได้เลยโดยไม่ต้องล็อกอิน (เห็นเฉพาะระบบที่เปิดเป็น public)
@@ -313,10 +352,25 @@
       $('#loginView').classList.add('hidden'); $('#appView').classList.remove('hidden');
       $('#userChip span').textContent = 'สาธารณะ';
       $('#userChip i').className = 'ti ti-world';
+      bindUserChip(false);
       Platform.start();
       done(); toast('success', 'เข้าใช้งานแบบสาธารณะ');
     }).catch(function (e) { done(); alertErr('เข้าใช้สาธารณะไม่ได้', String(e.message || e)); });
   };
+  function bindUserChip(loggedIn) {
+    var chip = $('#userChip'); if (!chip) return;
+    chip.style.cursor = loggedIn ? 'pointer' : 'default';
+    chip.title = loggedIn ? 'คลิกเพื่อเปลี่ยนรหัสผ่าน' : '';
+    chip.onclick = loggedIn ? function () {
+      openChangePassword(false).then(function (r) {
+        if (!r.isConfirmed) return;
+        loading('กำลังเปลี่ยนรหัสผ่าน...');
+        api('changePassword', { oldPassword: r.value.oldPassword, newPassword: r.value.newPassword })
+          .then(function () { done(); toast('success', 'เปลี่ยนรหัสผ่านแล้ว'); })
+          .catch(function (e) { done(); alertErr('เปลี่ยนรหัสไม่สำเร็จ', String(e.message || e)); });
+      });
+    } : null;
+  }
   window.logout = function () {
     Swal.fire(Object.assign({ icon: 'question', title: 'ออกจากระบบ?', showCancelButton: true, confirmButtonText: 'ออกจากระบบ', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#fb7185' }, SWAL_DARK))
       .then(function (r) {
@@ -336,6 +390,7 @@
       $('#loginView').classList.add('hidden'); $('#appView').classList.remove('hidden');
       $('#userChip span').textContent = b.user.role === 'admin' ? 'ผู้ดูแลระบบ' : (b.user.name || 'ครูผู้สอน');
       $('#userChip i').className = b.user.role === 'admin' ? 'ti ti-shield-lock' : 'ti ti-user';
+      bindUserChip(true);
       Platform.start();
       toast('success', b.user.role === 'admin' ? 'เข้าสู่ระบบผู้ดูแลแล้ว' : 'พร้อมใช้งานแล้ว');
     });
