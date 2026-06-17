@@ -60,8 +60,15 @@
   label.lbl{font-size:.8rem;color:var(--muted);font-family:'Kanit';font-weight:500}
 
   /* layout */
-  .shell{display:grid;grid-template-columns:248px 1fr;min-height:100vh}
-  .sidebar{border-right:1px solid var(--line);padding:18px 14px;position:sticky;top:0;height:100vh;overflow:auto;background:color-mix(in srgb,var(--bg) 70%,transparent)}
+  .shell{min-height:100vh}
+  .launch-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:16px}
+  .launch-card{position:relative;text-align:left;background:var(--panel);border:1px solid var(--line);border-radius:18px;padding:22px;cursor:pointer;display:flex;flex-direction:column;gap:5px;color:var(--txt);transition:.18s;backdrop-filter:blur(14px)}
+  .launch-card:hover{border-color:var(--accent);transform:translateY(-4px);box-shadow:0 26px 54px -30px var(--glow)}
+  .lc-ic{width:54px;height:54px;border-radius:15px;display:grid;place-items:center;font-size:26px;background:color-mix(in srgb,var(--accent) 20%,transparent);color:var(--accent2);margin-bottom:8px}
+  .lc-title{font-family:'Kanit',sans-serif;font-weight:700;font-size:1.12rem}
+  .lc-desc{color:var(--muted);font-size:.85rem}
+  .lc-go{position:absolute;top:22px;right:22px;color:var(--muted);transition:.18s}
+  .launch-card:hover .lc-go{color:var(--accent2);transform:translateX(3px)}
   .nav-item{display:flex;align-items:center;gap:11px;padding:.62rem .7rem;border-radius:12px;cursor:pointer;color:var(--muted);font-family:'Kanit';transition:.15s;margin-bottom:4px}
   .nav-item:hover{background:var(--bg2);color:var(--txt)}
   .nav-item.on{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--txt)}
@@ -236,20 +243,13 @@
 <!-- ===== APP SHELL ===== -->
 <div id="appView" class="wrap hidden">
   <div class="shell">
-    <!-- sidebar -->
-    <aside class="sidebar no-print">
-      <div class="flex items-center gap2" style="padding:4px 6px 16px">
-        <img src="https://img2.pic.in.th/Logo-removebg-previewd44fed925d2a2228.png" style="width:34px;height:34px;object-fit:contain">
-        <div><div class="font-display" style="font-weight:700;line-height:1">EduForge</div><div class="mono" style="font-size:.62rem;color:var(--faint)">By ครูแบงค์</div></div>
-      </div>
-      <div class="eyebrow" style="padding:0 8px 8px">ระบบที่ติดตั้ง</div>
-      <nav id="navList"></nav>
-    </aside>
-
-    <!-- main -->
+    <!-- main (เต็มจอ ไม่มีแถบข้าง) -->
     <div>
       <header class="topbar no-print">
-        <div class="font-display" id="hostTitle" style="font-weight:600;font-size:1.05rem">—</div>
+        <img src="https://img2.pic.in.th/Logo-removebg-previewd44fed925d2a2228.png" style="width:34px;height:34px;object-fit:contain">
+        <div class="leading-tight"><div class="font-display" style="font-weight:700;line-height:1">EduForge</div><div class="mono" style="font-size:.62rem;color:var(--faint)">By ครูแบงค์</div></div>
+        <button class="btn btn-ghost" id="homeBtn" style="display:none;margin-left:10px;padding:.45rem .8rem" onclick="goHome()"><i class="ti ti-arrow-left"></i> หน้าหลัก</button>
+        <div class="font-display" id="hostTitle" style="font-weight:600;font-size:1rem;color:var(--muted);margin-left:8px"></div>
         <div style="margin-left:auto" class="flex items-center gap2">
           <div class="flex items-center" style="gap:7px;padding:6px 9px;border:1px solid var(--line);border-radius:11px">
             <span class="mono" style="font-size:.62rem;color:var(--faint)">THEME</span>
@@ -264,9 +264,6 @@
           <button class="btn btn-ghost" style="padding:.5rem .7rem" onclick="logout()"><i class="ti ti-logout"></i></button>
         </div>
       </header>
-
-      <!-- mobile nav -->
-      <div class="mnav no-print" id="mnav" style="display:none;gap:8px;overflow:auto;padding:12px 16px;border-bottom:1px solid var(--line)"></div>
 
       <main class="host" id="host"></main>
 
