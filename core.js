@@ -37,6 +37,15 @@
   function alertErr(title, text) {
     return Swal.fire(Object.assign({ icon: 'error', title: title, text: text || '', confirmButtonColor: '#6366f1' }, SWAL_DARK));
   }
+  // ป็อปอัปกำลังโหลด (มีสปินเนอร์) — เรียก loading('ข้อความ') แล้วปิดด้วย done()
+  function loading(msg) {
+    Swal.fire(Object.assign({
+      title: msg || 'กำลังดำเนินการ...',
+      allowOutsideClick: false, allowEscapeKey: false,
+      didOpen: function () { Swal.showLoading(); }
+    }, SWAL_DARK));
+  }
+  function done() { if (Swal.isVisible()) Swal.close(); }
 
   /* ---------- ตัวเลขนับขึ้น + scroll reveal ---------- */
   var REDUCE = matchMedia('(prefers-reduced-motion:reduce)').matches;
@@ -198,7 +207,7 @@
 
     services: function () {
       return {
-        api: api, toast: toast, swal: Swal, swalDark: SWAL_DARK,
+        api: api, toast: toast, swal: Swal, swalDark: SWAL_DARK, loading: loading, done: done,
         settings: this.settings, user: this.user, curriculum: this.curriculum, store: this.store,
         examSheetHTML: examSheetHTML, printNode: printNode,
         genProblems: genProblems, genQuiz: genQuiz, makeSetId: makeSetId,
@@ -273,13 +282,16 @@
   }
   window.doLogin = function () {
     var u = $('#loginUser').value.trim(), p = $('#loginPass').value.trim();
+    loading('กำลังเข้าสู่ระบบ...');
     api('login', { username: u, password: p }).then(function (res) {
       session.token = res.token; localStorage.setItem(LS, res.token);
       return enterAppFromBootstrap();
-    }).catch(function (e) { alertErr('เข้าสู่ระบบไม่สำเร็จ', String(e.message || e)); });
+    }).then(function () { done(); })
+      .catch(function (e) { done(); alertErr('เข้าสู่ระบบไม่สำเร็จ', String(e.message || e)); });
   };
   window.guestLogin = function () {
     // โหมดสาธารณะ: เข้าใช้ได้เลยโดยไม่ต้องล็อกอิน (เห็นเฉพาะระบบที่เปิดเป็น public)
+    loading('กำลังเข้าสู่โหมดสาธารณะ...');
     api('publicBootstrap').then(function (b) {
       session.token = ''; localStorage.removeItem(LS);
       Platform.settings = b.settings || Platform.settings;
@@ -292,8 +304,8 @@
       $('#userChip i').className = 'ti ti-world';
       $('#mnav').style.display = window.innerWidth <= 880 ? 'flex' : 'none';
       Platform.start();
-      toast('success', 'เข้าใช้งานแบบสาธารณะ');
-    }).catch(function (e) { alertErr('เข้าใช้สาธารณะไม่ได้', String(e.message || e)); });
+      done(); toast('success', 'เข้าใช้งานแบบสาธารณะ');
+    }).catch(function (e) { done(); alertErr('เข้าใช้สาธารณะไม่ได้', String(e.message || e)); });
   };
   window.logout = function () {
     Swal.fire(Object.assign({ icon: 'question', title: 'ออกจากระบบ?', showCancelButton: true, confirmButtonText: 'ออกจากระบบ', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#fb7185' }, SWAL_DARK))
