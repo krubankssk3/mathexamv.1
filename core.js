@@ -291,6 +291,34 @@
       };
     });
   }
+  window.openRegister = function () {
+    var IN = 'width:100%;margin:.3rem 0;padding:.6rem .8rem;border-radius:8px;background:#0b1120;color:#e6ebf7;border:1px solid #2a3556;font-family:Sarabun,sans-serif';
+    Swal.fire(Object.assign({
+      title: 'สมัครผู้ใช้ทั่วไป', focusConfirm: false, showCancelButton: true,
+      confirmButtonText: 'สมัคร', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#6366f1',
+      html: '<div style="text-align:left">' +
+        '<input id="r-user" placeholder="ชื่อผู้ใช้ (อังกฤษ/ตัวเลข)" style="' + IN + '">' +
+        '<input id="r-name" placeholder="ชื่อที่แสดง" style="' + IN + '">' +
+        '<input id="r-pass" type="password" placeholder="รหัสผ่าน (อย่างน้อย 4 ตัว)" style="' + IN + '">' +
+        '<input id="r-pass2" type="password" placeholder="ยืนยันรหัสผ่าน" style="' + IN + '">' +
+        '<p style="font-size:.8rem;color:#9aa8c8;margin:.4rem 0 0">สมัครแล้วต้องรอผู้ดูแลอนุมัติก่อนจึงเข้าใช้ได้</p></div>',
+      preConfirm: function () {
+        var u = document.getElementById('r-user').value.trim(), n = document.getElementById('r-name').value.trim();
+        var p1 = document.getElementById('r-pass').value, p2 = document.getElementById('r-pass2').value;
+        if (!/^[a-zA-Z0-9_.]{3,}$/.test(u)) { Swal.showValidationMessage('ชื่อผู้ใช้ต้องเป็นอังกฤษ/ตัวเลข อย่างน้อย 3 ตัว'); return false; }
+        if (p1.length < 4) { Swal.showValidationMessage('รหัสผ่านต้องยาวอย่างน้อย 4 ตัว'); return false; }
+        if (p1 !== p2) { Swal.showValidationMessage('ยืนยันรหัสผ่านไม่ตรงกัน'); return false; }
+        return { username: u, displayName: n || u, password: p1 };
+      }
+    }, SWAL_DARK)).then(function (r) {
+      if (!r.isConfirmed) return;
+      loading('กำลังสมัคร...');
+      api('register', r.value).then(function () {
+        done(); Swal.fire(Object.assign({ icon: 'success', title: 'สมัครเรียบร้อย', text: 'รอผู้ดูแลอนุมัติบัญชี แล้วจึงเข้าสู่ระบบได้', confirmButtonColor: '#6366f1' }, SWAL_DARK));
+      }).catch(function (e) { done(); alertErr('สมัครไม่สำเร็จ', String(e.message || e)); });
+    });
+  };
+
   window.toggleLoginPass = function () {
     var inp = $('#loginPass'), ic = $('#pwIcon');
     if (!inp) return;
