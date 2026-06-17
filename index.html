@@ -200,7 +200,10 @@
         <label class="lbl">ชื่อผู้ใช้</label>
         <input id="loginUser" class="field" style="margin:4px 0 12px" placeholder="เช่น teacher" autocomplete="off">
         <label class="lbl">รหัสผ่าน</label>
-        <input id="loginPass" type="password" class="field" style="margin:4px 0 18px" placeholder="••••••••">
+        <div style="position:relative;margin:4px 0 18px">
+          <input id="loginPass" type="password" class="field" style="padding-right:44px" placeholder="••••••••">
+          <button type="button" id="pwToggle" onclick="toggleLoginPass()" aria-label="แสดง/ซ่อนรหัสผ่าน" style="position:absolute;top:50%;right:8px;transform:translateY(-50%);background:transparent;border:none;cursor:pointer;color:#fff;padding:6px;display:grid;place-items:center;font-size:18px"><i class="ti ti-eye" id="pwIcon"></i></button>
+        </div>
         <button class="btn btn-accent" style="width:100%;justify-content:center" onclick="doLogin()"><i class="ti ti-login-2"></i> เข้าสู่ระบบ</button>
         <button class="btn btn-ghost" style="width:100%;justify-content:center;margin-top:8px" onclick="guestLogin()"><i class="ti ti-world"></i> ใช้งานแบบสาธารณะ (ไม่ต้องเข้าสู่ระบบ)</button>
         <p class="mono" style="color:var(--faint);font-size:.72rem;margin-top:14px;text-align:center">เดโม · admin/admin · teacher/1234</p>
