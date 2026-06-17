@@ -215,40 +215,51 @@
       };
     },
 
-    renderNav: function () {
-      var self = this, list = $('#navList'), m = $('#mnav');
-      list.innerHTML = ''; m.innerHTML = '';
-      this.meta.forEach(function (mt) {
-        if (!self.plugins[mt.id]) return;
-        var el = document.createElement('div');
-        el.className = 'nav-item' + (mt.id === self.active ? ' on' : '');
-        el.innerHTML = '<span class="ni-ic"><i class="ti ' + mt.icon + '"></i></span><div><div style="font-weight:500">' + mt.title + '</div></div>';
-        el.onclick = function () { self.mount(mt.id); };
-        list.appendChild(el);
-        var mb = document.createElement('button');
-        mb.className = 'chip click'; mb.style.whiteSpace = 'nowrap';
-        mb.innerHTML = '<i class="ti ' + mt.icon + '"></i> ' + mt.title;
-        mb.onclick = function () { self.mount(mt.id); };
-        m.appendChild(mb);
-      });
+    syncTopbar: function () {
+      var back = $('#homeBtn'); if (back) back.style.display = this.active ? '' : 'none';
+    },
+
+    showHome: function () {
+      this.active = null;
+      $('#hostTitle').textContent = '';
+      this.syncTopbar();
+      var self = this;
+      var items = this.meta.filter(function (m) { return self.plugins[m.id]; });
+      var DESC = { worksheet: 'สร้าง/สุ่มโจทย์ แล้วพิมพ์ใบงาน', quiz: 'ทำแบบทดสอบออนไลน์ ตรวจให้อัตโนมัติ', vault: 'ชุดข้อสอบที่บันทึกไว้', library: 'คลังข้อสอบสาธารณะ ดาวน์โหลดได้', admin: 'ตั้งค่าและจัดการระบบ' };
+      var cards = items.map(function (m, i) {
+        return '<button class="launch-card reveal" data-id="' + m.id + '" style="transition-delay:' + (i * 0.05) + 's">' +
+          '<span class="lc-ic"><i class="ti ' + m.icon + '"></i></span>' +
+          '<span class="lc-title">' + m.title + '</span>' +
+          '<span class="lc-desc">' + (DESC[m.id] || '') + '</span>' +
+          '<span class="lc-go"><i class="ti ti-arrow-right"></i></span>' +
+        '</button>';
+      }).join('');
+      var host = $('#host');
+      host.innerHTML =
+        '<div style="max-width:1040px;margin:0 auto">' +
+          '<div class="reveal in" style="margin-bottom:20px"><div class="eyebrow">ยินดีต้อนรับ</div>' +
+          '<h2 class="font-display" style="font-size:clamp(1.5rem,3vw,2rem);font-weight:800;margin:.25rem 0"><span class="grad-text">เลือกระบบที่ต้องการใช้งาน</span></h2></div>' +
+          '<div class="launch-grid">' + cards + '</div>' +
+        '</div>';
+      $$('.launch-card', host).forEach(function (b) { b.onclick = function () { self.mount(b.dataset.id); }; });
+      initReveals(host);
     },
 
     mount: function (id) {
       var p = this.plugins[id]; if (!p) return;
       var mt = this.meta.filter(function (x) { return x.id === id; })[0] || {};
       this.active = id; $('#hostTitle').textContent = mt.title || id;
+      this.syncTopbar();
       var host = $('#host'); host.innerHTML = '';
-      this.renderNav();
       p.mount(host, this.services(), this);
     },
 
-    start: function () {
-      this.renderNav();
-      var first = this.meta.filter(function (m) { return Platform.plugins[m.id]; })[0];
-      if (first) this.mount(first.id);
-    }
+    renderNav: function () { this.syncTopbar(); },   // เผื่อโค้ดเดิมที่ยังเรียก
+
+    start: function () { this.showHome(); }
   };
   window.Platform = Platform;
+  window.goHome = function () { Platform.showHome(); };
 
   /* ---------- โหลดปลั๊กอินตาม manifest.json ---------- */
   function loadScript(src) {
@@ -302,7 +313,6 @@
       $('#loginView').classList.add('hidden'); $('#appView').classList.remove('hidden');
       $('#userChip span').textContent = 'สาธารณะ';
       $('#userChip i').className = 'ti ti-world';
-      $('#mnav').style.display = window.innerWidth <= 880 ? 'flex' : 'none';
       Platform.start();
       done(); toast('success', 'เข้าใช้งานแบบสาธารณะ');
     }).catch(function (e) { done(); alertErr('เข้าใช้สาธารณะไม่ได้', String(e.message || e)); });
@@ -326,7 +336,6 @@
       $('#loginView').classList.add('hidden'); $('#appView').classList.remove('hidden');
       $('#userChip span').textContent = b.user.role === 'admin' ? 'ผู้ดูแลระบบ' : (b.user.name || 'ครูผู้สอน');
       $('#userChip i').className = b.user.role === 'admin' ? 'ti ti-shield-lock' : 'ti ti-user';
-      $('#mnav').style.display = window.innerWidth <= 880 ? 'flex' : 'none';
       Platform.start();
       toast('success', b.user.role === 'admin' ? 'เข้าสู่ระบบผู้ดูแลแล้ว' : 'พร้อมใช้งานแล้ว');
     });
@@ -391,9 +400,7 @@
       enterAppFromBootstrap().catch(function () { session.token = ''; localStorage.removeItem(LS); });
     }
 
-    window.addEventListener('resize', function () {
-      if (!$('#appView').classList.contains('hidden')) $('#mnav').style.display = window.innerWidth <= 880 ? 'flex' : 'none';
-    });
+
 
     if (!REDUCE) setTimeout(function () {
       if ($('#appView').classList.contains('hidden') && !session.token)
