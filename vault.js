@@ -54,10 +54,11 @@
 
       function load() {
         if (store.savedLoaded) { render(false); return; }
-        render(true);
+        render(true); svc.loading('กำลังโหลดคลังข้อสอบ...');
         svc.api('listExams').then(function (list) {
-          store.saved = list; store.savedLoaded = true; render(false);
+          store.saved = list; store.savedLoaded = true; svc.done(); render(false);
         }).catch(function (e) {
+          svc.done();
           host.innerHTML = '<div class="panel" style="padding:30px;text-align:center;color:var(--bad)">โหลดไม่ได้: ' + String(e.message || e) + '</div>';
         });
       }
