@@ -294,7 +294,7 @@
   window.openRegister = function () {
     var IN = 'width:100%;margin:.3rem 0;padding:.6rem .8rem;border-radius:8px;background:#0b1120;color:#e6ebf7;border:1px solid #2a3556;font-family:Sarabun,sans-serif';
     Swal.fire(Object.assign({
-      title: 'สมัครผู้ใช้ทั่วไป', focusConfirm: false, showCancelButton: true,
+      title: 'สมัครเข้าใช้งาน', focusConfirm: false, showCancelButton: true,
       confirmButtonText: 'สมัคร', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#6366f1',
       html: '<div style="text-align:left">' +
         '<input id="r-user" placeholder="ชื่อผู้ใช้ (อังกฤษ/ตัวเลข)" style="' + IN + '">' +
