@@ -301,14 +301,17 @@
         '<input id="r-name" placeholder="ชื่อที่แสดง" style="' + IN + '">' +
         '<input id="r-pass" type="password" placeholder="รหัสผ่าน (อย่างน้อย 4 ตัว)" style="' + IN + '">' +
         '<input id="r-pass2" type="password" placeholder="ยืนยันรหัสผ่าน" style="' + IN + '">' +
+        '<label style="font-size:.85rem;color:#9aa8c8">สมัครเป็น</label>' +
+        '<select id="r-role" style="' + IN + '"><option value="member">ผู้ใช้ทั่วไป</option><option value="teacher">ครู</option></select>' +
         '<p style="font-size:.8rem;color:#9aa8c8;margin:.4rem 0 0">สมัครแล้วต้องรอผู้ดูแลอนุมัติก่อนจึงเข้าใช้ได้</p></div>',
       preConfirm: function () {
         var u = document.getElementById('r-user').value.trim(), n = document.getElementById('r-name').value.trim();
         var p1 = document.getElementById('r-pass').value, p2 = document.getElementById('r-pass2').value;
+        var role = document.getElementById('r-role').value;
         if (!/^[a-zA-Z0-9_.]{3,}$/.test(u)) { Swal.showValidationMessage('ชื่อผู้ใช้ต้องเป็นอังกฤษ/ตัวเลข อย่างน้อย 3 ตัว'); return false; }
         if (p1.length < 4) { Swal.showValidationMessage('รหัสผ่านต้องยาวอย่างน้อย 4 ตัว'); return false; }
         if (p1 !== p2) { Swal.showValidationMessage('ยืนยันรหัสผ่านไม่ตรงกัน'); return false; }
-        return { username: u, displayName: n || u, password: p1 };
+        return { username: u, displayName: n || u, password: p1, role: role };
       }
     }, SWAL_DARK)).then(function (r) {
       if (!r.isConfirmed) return;
