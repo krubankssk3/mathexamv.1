@@ -506,12 +506,17 @@
 
 
 
-    // ป๊อปอัปต้อนรับ: แสดงเฉพาะตอนอยู่หน้าล็อกอินจริงๆ และไม่มีหน้าต่างอื่นเปิดอยู่
-    // ปิดทันทีเมื่อระบบหลักกำลังจะขึ้น เพื่อไม่ให้ "สวนทาง" กัน
+    // ทักทายแบบ toast ด้านบน (ไม่บังหน้าหลัก ไม่มีฉากหลังคลุมจอ)
     if (!REDUCE && !session.token) window._welcomeTimer = setTimeout(function () {
       var onLogin = !$('#loginView').classList.contains('hidden') && $('#appView').classList.contains('hidden');
       if (onLogin && !session.token && !Swal.isVisible()) {
-        Swal.fire(Object.assign({ iconHtml: '<img src="https://img2.pic.in.th/Logo-removebg-previewd44fed925d2a2228.png" style="width:84px;height:84px;object-fit:contain">', customClass: { icon: 'no-border-icon', popup: 'welcome-pop' }, title: 'ยินดีต้อนรับเข้าสู่ระบบ EduForge', text: 'แพลตฟอร์มรวมระบบสร้างสื่อการเรียนที่พัฒนาโดย ครูแบงค์', confirmButtonText: 'เริ่มเลย', confirmButtonColor: '#6366f1', timer: 6000, timerProgressBar: true }, SWAL_DARK));
+        Swal.fire(Object.assign({
+          toast: true, position: 'top', showConfirmButton: false, timer: 5000, timerProgressBar: true,
+          iconHtml: '<img src="https://img2.pic.in.th/Logo-removebg-previewd44fed925d2a2228.png" style="width:32px;height:32px;object-fit:contain">',
+          customClass: { icon: 'no-border-icon' },
+          title: 'ยินดีต้อนรับเข้าสู่ระบบ EduForge',
+          html: '<div style="font-size:.8rem;color:#9aa8c8">แพลตฟอร์มรวมระบบสร้างสื่อการเรียนที่พัฒนาโดย ครูแบงค์</div>'
+        }, SWAL_DARK));
       }
     }, 700);
   }
