@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600;700;800&family=Sarabun:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.3.0/dist/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 
 <style>
   :root{
@@ -249,7 +250,7 @@
             <button class="theme-dot" data-theme="violet"></button>
           </div>
           <span class="chip" id="userChip"><i class="ti ti-user"></i> <span>ผู้ใช้</span></span>
-          <button class="btn btn-ghost" style="padding:.5rem .7rem" onclick="logout()"><i class="ti ti-logout"></i></button>
+          <button class="btn btn-ghost" id="exitBtn" style="padding:.5rem .7rem" onclick="logout()"><i class="ti ti-logout"></i></button>
         </div>
       </header>
 
