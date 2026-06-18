@@ -227,7 +227,7 @@
       var items = this.meta.filter(function (m) { return self.plugins[m.id]; });
       var DESC = { worksheet: 'สร้าง/สุ่มโจทย์ แล้วพิมพ์ใบงาน', quiz: 'ทำแบบทดสอบออนไลน์ ตรวจให้อัตโนมัติ', vault: 'ชุดข้อสอบที่บันทึกไว้', library: 'คลังข้อสอบสาธารณะ ดาวน์โหลดได้', admin: 'ตั้งค่าและจัดการระบบ' };
       var cards = items.map(function (m, i) {
-        return '<button class="launch-card reveal" data-id="' + m.id + '" style="transition-delay:' + (i * 0.05) + 's">' +
+        return '<button class="launch-card reveal" data-id="' + m.id + '" style="transition-delay:' + (i * 0.05) + 's;animation-delay:' + (i * 0.5) + 's">' +
           '<span class="lc-ic"><i class="ti ' + m.icon + '"></i></span>' +
           '<span class="lc-title">' + m.title + '</span>' +
           '<span class="lc-desc">' + (DESC[m.id] || '') + '</span>' +
@@ -238,9 +238,9 @@
       host.innerHTML =
         '<div style="max-width:1040px;margin:0 auto">' +
           '<div class="reveal in" style="margin-bottom:20px"><div class="eyebrow">ยินดีต้อนรับ</div>' +
-          '<h2 class="font-display" style="font-size:clamp(1.5rem,3vw,2rem);font-weight:800;margin:.25rem 0"><span class="grad-text">เลือกระบบที่ต้องการใช้งาน</span></h2></div>' +
-          '<div class="launch-grid">' + cards + '</div>' +
+          '<h2 class="font-display" style="font-size:clamp(1.5rem,3vw,2rem);font-weight:800;margin:.25rem 0"><span class="grad-text glow-head">เลือกระบบที่ต้องการใช้งาน</span></h2></div>' +
           '<div id="homeStats"></div>' +
+          '<div class="launch-grid">' + cards + '</div>' +
         '</div>';
       $$('.launch-card', host).forEach(function (b) { b.onclick = function () { self.mount(b.dataset.id); }; });
       initReveals(host);
@@ -379,18 +379,19 @@
     api('publicStats').then(function (s) {
       var vbs = (s.viewsBySystem || []).filter(function (v) { return v.count > 0; });
       var totalViews = (s.viewsBySystem || []).reduce(function (a, v) { return a + (v.count || 0); }, 0);
+      window._lastVBS = vbs;
       box.innerHTML =
-        '<div class="panel reveal" style="margin-top:28px;padding:24px">' +
-          '<div class="eyebrow" style="margin-bottom:16px">สถิติการใช้งาน</div>' +
+        '<div class="panel reveal glow-panel" style="margin:0 0 26px;padding:24px">' +
+          '<div class="eyebrow glow-head" style="margin-bottom:16px">สถิติการใช้งาน</div>' +
           '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center;margin-bottom:20px">' +
-            '<div><div class="stat-num grad-text">' + s.systems + '</div><div style="color:var(--muted);font-size:.82rem">ระบบ</div></div>' +
-            '<div><div class="stat-num" style="color:var(--accent2)">' + s.users + '</div><div style="color:var(--muted);font-size:.82rem">ยอดผู้ใช้งาน</div></div>' +
-            '<div><div class="stat-num" style="color:var(--accent2)">' + totalViews + '</div><div style="color:var(--muted);font-size:.82rem">จำนวนการดู</div></div>' +
+            '<div><div class="stat-num grad-text glow-head">' + s.systems + '</div><div style="color:var(--muted);font-size:.82rem">ระบบ</div></div>' +
+            '<div><div class="stat-num glow-head" style="color:var(--accent2)">' + s.users + '</div><div style="color:var(--muted);font-size:.82rem">ยอดผู้ใช้งาน</div></div>' +
+            '<div><div class="stat-num glow-head" style="color:var(--accent2)">' + totalViews + '</div><div style="color:var(--muted);font-size:.82rem">จำนวนการดู</div></div>' +
           '</div>' +
           (vbs.length
             ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:center" class="grid-main">' +
-                '<div style="max-width:300px;margin:0 auto;width:100%"><div class="eyebrow" style="text-align:center;margin-bottom:8px">สัดส่วนการเข้าดู</div><canvas id="pieViews"></canvas></div>' +
-                '<div><div class="eyebrow" style="text-align:center;margin-bottom:8px">การเข้าดูแต่ละระบบ</div><canvas id="barViews" height="200"></canvas></div>' +
+                '<div style="max-width:300px;margin:0 auto;width:100%"><div class="eyebrow" style="text-align:center;margin-bottom:8px">สัดส่วนการเข้าดู</div><canvas id="pieViews" class="glow-chart"></canvas></div>' +
+                '<div><div class="eyebrow" style="text-align:center;margin-bottom:8px">การเข้าดูแต่ละระบบ</div><canvas id="barViews" class="glow-chart" height="200"></canvas></div>' +
               '</div>'
             : '<p style="text-align:center;color:var(--muted)">ยังไม่มีข้อมูลการเข้าดูระบบ — ลองกดเข้าระบบสักครั้งแล้วกลับมาดู</p>') +
         '</div>';
@@ -398,16 +399,27 @@
       if (vbs.length) drawViewCharts(vbs);
     }).catch(function () {});
   }
+  function themeColor(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#6366f1'; }
+  function hexToRgba(hex, a) {
+    hex = String(hex).replace('#', ''); if (hex.length === 3) hex = hex.split('').map(function (c) { return c + c; }).join('');
+    var r = parseInt(hex.slice(0, 2), 16), g = parseInt(hex.slice(2, 4), 16), b = parseInt(hex.slice(4, 6), 16);
+    return 'rgba(' + (r || 0) + ',' + (g || 0) + ',' + (b || 0) + ',' + a + ')';
+  }
+  function viewPalette(n) {
+    var base = [themeColor('--accent'), themeColor('--accent2')], out = [];
+    for (var i = 0; i < n; i++) { var al = 1 - Math.floor(i / 2) * 0.22; if (al < 0.4) al = 0.4; out.push(hexToRgba(base[i % 2], al)); }
+    return out;
+  }
   function drawViewCharts(vbs) {
     if (typeof Chart === 'undefined') return;
     var labels = vbs.map(function (v) { return v.title; });
     var data = vbs.map(function (v) { return v.count; });
-    var colors = ['#6366f1', '#22c55e', '#f59e0b', '#fb7185', '#38bdf8', '#a78bfa', '#f472b6'];
+    var accent = themeColor('--accent'), tick = '#9aa8c8';
     if (window._pieChart) window._pieChart.destroy();
     if (window._barChart) window._barChart.destroy();
     var pe = document.getElementById('pieViews'), be = document.getElementById('barViews');
-    if (pe) window._pieChart = new Chart(pe, { type: 'doughnut', data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderColor: 'transparent' }] }, options: { plugins: { legend: { position: 'bottom', labels: { color: '#cdd6f4', font: { family: 'Sarabun' } } } } } });
-    if (be) window._barChart = new Chart(be, { type: 'bar', data: { labels: labels, datasets: [{ label: 'การเข้าดู', data: data, backgroundColor: '#6366f1', borderRadius: 8 }] }, options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9aa8c8', font: { family: 'Sarabun' } }, grid: { display: false } }, y: { beginAtZero: true, ticks: { color: '#9aa8c8', precision: 0 }, grid: { color: 'rgba(255,255,255,.06)' } } } } });
+    if (pe) window._pieChart = new Chart(pe, { type: 'doughnut', data: { labels: labels, datasets: [{ data: data, backgroundColor: viewPalette(labels.length), borderColor: 'transparent' }] }, options: { plugins: { legend: { position: 'bottom', labels: { color: '#cdd6f4', font: { family: 'Sarabun' } } } } } });
+    if (be) window._barChart = new Chart(be, { type: 'bar', data: { labels: labels, datasets: [{ label: 'การเข้าดู', data: data, backgroundColor: hexToRgba(accent, 0.85), borderRadius: 8 }] }, options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { color: tick, font: { family: 'Sarabun' } }, grid: { display: false } }, y: { beginAtZero: true, ticks: { color: tick, precision: 0 }, grid: { color: 'rgba(255,255,255,.06)' } } } } });
   }
 
   window.exitPublic = function () {
@@ -506,7 +518,10 @@
   }
   function bindTheme() {
     $$('.theme-dot').forEach(function (d) {
-      d.onclick = function () { document.documentElement.dataset.theme = d.dataset.theme; paintDots(); };
+      d.onclick = function () {
+        document.documentElement.dataset.theme = d.dataset.theme; paintDots();
+        if (window._lastVBS && window._lastVBS.length && document.getElementById('pieViews')) drawViewCharts(window._lastVBS);
+      };
     });
     paintDots();
   }
