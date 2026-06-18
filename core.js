@@ -361,6 +361,7 @@
   }
 
   window.doLogin = function () {
+    if (window._welcomeTimer) clearTimeout(window._welcomeTimer);
     var u = $('#loginUser').value.trim(), p = $('#loginPass').value.trim();
     loading('กำลังเข้าสู่ระบบ...');
     api('login', { username: u, password: p }).then(function (res) {
@@ -371,6 +372,7 @@
     }).catch(function (e) { done(); alertErr('เข้าสู่ระบบไม่สำเร็จ', String(e.message || e)); });
   };
   window.guestLogin = function () {
+    if (window._welcomeTimer) clearTimeout(window._welcomeTimer);
     // โหมดสาธารณะ: เข้าใช้ได้เลยโดยไม่ต้องล็อกอิน (เห็นเฉพาะระบบที่เปิดเป็น public)
     loading('กำลังเข้าสู่โหมดสาธารณะ...');
     api('publicBootstrap').then(function (b) {
@@ -488,9 +490,13 @@
 
 
 
-    if (!REDUCE) setTimeout(function () {
-      if ($('#appView').classList.contains('hidden') && !session.token)
-        Swal.fire(Object.assign({ iconHtml: '<img src="https://img2.pic.in.th/Logo-removebg-previewd44fed925d2a2228.png" style="width:84px;height:84px;object-fit:contain">', customClass: { icon: 'no-border-icon' }, title: 'ยินดีต้อนรับเข้าสู่ระบบ EduForge', text: 'แพลตฟอร์มรวมระบบสร้างสื่อการเรียนที่พัฒนาโดย ครูแบงค์', confirmButtonText: 'เริ่มเลย', confirmButtonColor: '#6366f1', timer: 6000, timerProgressBar: true }, SWAL_DARK));
+    // ป๊อปอัปต้อนรับ: แสดงเฉพาะตอนอยู่หน้าล็อกอินจริงๆ และไม่มีหน้าต่างอื่นเปิดอยู่
+    // ปิดทันทีเมื่อระบบหลักกำลังจะขึ้น เพื่อไม่ให้ "สวนทาง" กัน
+    if (!REDUCE && !session.token) window._welcomeTimer = setTimeout(function () {
+      var onLogin = !$('#loginView').classList.contains('hidden') && $('#appView').classList.contains('hidden');
+      if (onLogin && !session.token && !Swal.isVisible()) {
+        Swal.fire(Object.assign({ iconHtml: '<img src="https://img2.pic.in.th/Logo-removebg-previewd44fed925d2a2228.png" style="width:84px;height:84px;object-fit:contain">', customClass: { icon: 'no-border-icon', popup: 'welcome-pop' }, title: 'ยินดีต้อนรับเข้าสู่ระบบ EduForge', text: 'แพลตฟอร์มรวมระบบสร้างสื่อการเรียนที่พัฒนาโดย ครูแบงค์', confirmButtonText: 'เริ่มเลย', confirmButtonColor: '#6366f1', timer: 6000, timerProgressBar: true }, SWAL_DARK));
+      }
     }, 700);
   }
 
