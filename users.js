@@ -94,7 +94,9 @@
 
       function load() {
         var tb = $('#ub', host); tb.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:20px">กำลังโหลด...</td></tr>';
-        svc.api('listUsers').then(render).catch(function (e) {
+        svc.loading('กำลังโหลดข้อมูลผู้ใช้...');
+        svc.api('listUsers').then(function (list) { svc.done(); render(list); }).catch(function (e) {
+          svc.done();
           tb.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--bad);padding:20px">โหลดไม่ได้: ' + String(e.message || e) + '</td></tr>';
         });
       }
