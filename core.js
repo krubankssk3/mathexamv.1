@@ -371,7 +371,21 @@
       loading('กำลังโหลด...'); return enterAppFromBootstrap().then(done);
     }).catch(function (e) { done(); alertErr('เข้าสู่ระบบไม่สำเร็จ', String(e.message || e)); });
   };
-  window.guestLogin = function () {
+  function renderFeatures(list) {
+    var host = $('#featGrid'); if (!host) return;
+    var DESC = { worksheet: 'เลือกชั้นและบท สุ่มโจทย์ใหม่ไม่จำกัด พร้อมเฉลยและพิมพ์ A4', quiz: 'ทำแบบทดสอบเลือกตอบ ตรวจและสรุปคะแนนอัตโนมัติ', vault: 'เก็บชุดข้อสอบที่ออกไว้ นำกลับมาพิมพ์ซ้ำได้', library: 'คลังข้อสอบสาธารณะ เปิดดู/พิมพ์ได้ทุกเมื่อ' };
+    if (!list.length) { host.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--muted)">ยังไม่มีระบบที่เปิดสาธารณะ</p>'; return; }
+    host.innerHTML = list.map(function (m, i) {
+      return '<div class="panel reveal click" style="padding:20px;cursor:pointer;transition-delay:' + (i * 0.08) + 's" onclick="guestLogin(\'' + m.id + '\')">' +
+        '<div class="ic" style="width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent2)"><i class="ti ' + m.icon + '"></i></div>' +
+        '<div class="font-display" style="font-weight:600;margin-top:12px">' + m.title + '</div>' +
+        '<p style="color:var(--muted);font-size:.86rem;margin:6px 0 0">' + (DESC[m.id] || '') + '</p>' +
+        '<div style="margin-top:10px;color:var(--accent2);font-size:.82rem;font-weight:600">เปิดใช้งาน <i class="ti ti-arrow-right"></i></div>' +
+      '</div>';
+    }).join('');
+  }
+
+  window.guestLogin = function (targetId) {
     if (window._welcomeTimer) clearTimeout(window._welcomeTimer);
     // โหมดสาธารณะ: เข้าใช้ได้เลยโดยไม่ต้องล็อกอิน (เห็นเฉพาะระบบที่เปิดเป็น public)
     loading('กำลังเข้าสู่โหมดสาธารณะ...');
@@ -387,6 +401,7 @@
       $('#userChip i').className = 'ti ti-world';
       bindUserChip(false);
       Platform.start();
+      if (targetId && Platform.plugins[targetId]) Platform.mount(targetId);
       done(); toast('success', 'เข้าใช้งานแบบสาธารณะ');
     }).catch(function (e) { done(); alertErr('เข้าใช้สาธารณะไม่ได้', String(e.message || e)); });
   };
@@ -475,10 +490,11 @@
     // เติมตัวเลขสถิติหน้า public + เริ่มเอฟเฟกต์
     apiGetPublicStats().then(function (s) {
       if (s) {
-        var g = $('#stGrades'), c = $('#stChapters'), su = $('#stSubjects');
+        var g = $('#stGrades'), sy = $('#stSystems'), us = $('#stUsers');
         if (g) g.dataset.count = s.grades;
-        if (c) c.dataset.count = s.chapters;
-        if (su) su.dataset.count = s.subjects;
+        if (sy) sy.dataset.count = s.systems;
+        if (us) us.dataset.count = s.visits;
+        renderFeatures(s.systemsList || []);
       }
       initReveals();
     });
