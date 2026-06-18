@@ -8,6 +8,8 @@
 
   var API = (window.EDU_CONFIG && window.EDU_CONFIG.API_URL) || '';
   var LS = 'eduforge_token';
+  var LS_THEME = 'eduforge_theme';
+  (function () { try { var t = localStorage.getItem(LS_THEME); if (t) document.documentElement.dataset.theme = t; } catch (e) {} })();
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return [].slice.call((r || document).querySelectorAll(s)); };
 
@@ -520,6 +522,7 @@
     $$('.theme-dot').forEach(function (d) {
       d.onclick = function () {
         document.documentElement.dataset.theme = d.dataset.theme; paintDots();
+        try { localStorage.setItem(LS_THEME, d.dataset.theme); } catch (e) {}
         if (window._lastVBS && window._lastVBS.length && document.getElementById('pieViews')) drawViewCharts(window._lastVBS);
       };
     });
