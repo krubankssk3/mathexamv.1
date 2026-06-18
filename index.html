@@ -71,6 +71,18 @@
   .lc-desc{color:var(--muted);font-size:.85rem}
   .lc-go{position:absolute;top:22px;right:22px;color:var(--muted);transition:.18s}
   .launch-card:hover .lc-go{color:var(--accent2);transform:translateX(3px)}
+  /* ---- เอฟเฟกต์เรืองแสงวิ๊บวับ (ตามสีธีม) ---- */
+  @keyframes lc-breathe{0%,100%{box-shadow:0 12px 32px -24px var(--glow)}50%{box-shadow:0 0 28px -2px var(--glow)}}
+  @keyframes ic-glow{0%,100%{box-shadow:0 0 5px color-mix(in srgb,var(--accent) 25%,transparent)}50%{box-shadow:0 0 22px color-mix(in srgb,var(--accent) 70%,transparent)}}
+  @keyframes txt-twinkle{0%,100%{text-shadow:0 0 0 transparent}50%{text-shadow:0 0 16px var(--glow)}}
+  @keyframes panel-glow{0%,100%{box-shadow:0 0 0 1px var(--line)}50%{box-shadow:0 0 0 1px color-mix(in srgb,var(--accent) 45%,var(--line)),0 0 34px -8px var(--glow)}}
+  .launch-card{animation:lc-breathe 3.4s ease-in-out infinite}
+  .launch-card .lc-ic{animation:ic-glow 2.6s ease-in-out infinite}
+  .launch-card .lc-title{animation:txt-twinkle 3s ease-in-out infinite}
+  .glow-head{animation:txt-twinkle 3s ease-in-out infinite}
+  .glow-panel{animation:panel-glow 3.8s ease-in-out infinite}
+  .glow-chart{filter:drop-shadow(0 0 9px color-mix(in srgb,var(--accent) 45%,transparent))}
+  @media (prefers-reduced-motion:reduce){.launch-card,.launch-card .lc-ic,.launch-card .lc-title,.glow-head,.glow-panel{animation:none}}
   .nav-item{display:flex;align-items:center;gap:11px;padding:.62rem .7rem;border-radius:12px;cursor:pointer;color:var(--muted);font-family:'Kanit';transition:.15s;margin-bottom:4px}
   .nav-item:hover{background:var(--bg2);color:var(--txt)}
   .nav-item.on{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--txt)}
