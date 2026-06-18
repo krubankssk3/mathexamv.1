@@ -440,7 +440,7 @@
     var DESC = { worksheet: 'เลือกชั้นและบท สุ่มโจทย์ใหม่ไม่จำกัด พร้อมเฉลยและพิมพ์ A4', quiz: 'ทำแบบทดสอบเลือกตอบ ตรวจและสรุปคะแนนอัตโนมัติ', vault: 'เก็บชุดข้อสอบที่ออกไว้ นำกลับมาพิมพ์ซ้ำได้', library: 'คลังข้อสอบสาธารณะ เปิดดู/พิมพ์ได้ทุกเมื่อ' };
     if (!list.length) { host.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--muted)">ยังไม่มีระบบที่เปิดสาธารณะ</p>'; return; }
     host.innerHTML = list.map(function (m, i) {
-      return '<div class="panel reveal click" style="padding:20px;cursor:pointer;transition-delay:' + (i * 0.08) + 's" onclick="guestLogin(\'' + m.id + '\')">' +
+      return '<div class="panel reveal click feat-card" style="padding:20px;cursor:pointer;transition-delay:' + (i * 0.08) + 's;animation-delay:' + (i * 0.5) + 's" onclick="guestLogin(\'' + m.id + '\')">' +
         '<div class="ic" style="width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent2)"><i class="ti ' + m.icon + '"></i></div>' +
         '<div class="font-display" style="font-weight:600;margin-top:12px">' + m.title + '</div>' +
         '<p style="color:var(--muted);font-size:.86rem;margin:6px 0 0">' + (DESC[m.id] || '') + '</p>' +
