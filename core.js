@@ -240,9 +240,11 @@
           '<div class="reveal in" style="margin-bottom:20px"><div class="eyebrow">ยินดีต้อนรับ</div>' +
           '<h2 class="font-display" style="font-size:clamp(1.5rem,3vw,2rem);font-weight:800;margin:.25rem 0"><span class="grad-text">เลือกระบบที่ต้องการใช้งาน</span></h2></div>' +
           '<div class="launch-grid">' + cards + '</div>' +
+          '<div id="homeStats"></div>' +
         '</div>';
       $$('.launch-card', host).forEach(function (b) { b.onclick = function () { self.mount(b.dataset.id); }; });
       initReveals(host);
+      loadHomeStats();
     },
 
     mount: function (id) {
@@ -252,6 +254,7 @@
       this.syncTopbar();
       var host = $('#host'); host.innerHTML = '';
       p.mount(host, this.services(), this);
+      if (this.user && this.user.role === 'public') api('bumpView', { id: id, title: mt.title || id }).catch(function () {});
     },
 
     renderNav: function () { this.syncTopbar(); },   // เผื่อโค้ดเดิมที่ยังเรียก
@@ -371,6 +374,53 @@
       loading('กำลังโหลด...'); return enterAppFromBootstrap().then(done);
     }).catch(function (e) { done(); alertErr('เข้าสู่ระบบไม่สำเร็จ', String(e.message || e)); });
   };
+  function loadHomeStats() {
+    var box = $('#homeStats'); if (!box) return;
+    api('publicStats').then(function (s) {
+      var vbs = (s.viewsBySystem || []).filter(function (v) { return v.count > 0; });
+      var totalViews = (s.viewsBySystem || []).reduce(function (a, v) { return a + (v.count || 0); }, 0);
+      box.innerHTML =
+        '<div class="panel reveal" style="margin-top:28px;padding:24px">' +
+          '<div class="eyebrow" style="margin-bottom:16px">สถิติการใช้งาน</div>' +
+          '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center;margin-bottom:20px">' +
+            '<div><div class="stat-num grad-text">' + s.systems + '</div><div style="color:var(--muted);font-size:.82rem">ระบบ</div></div>' +
+            '<div><div class="stat-num" style="color:var(--accent2)">' + s.users + '</div><div style="color:var(--muted);font-size:.82rem">ยอดผู้ใช้งาน</div></div>' +
+            '<div><div class="stat-num" style="color:var(--accent2)">' + totalViews + '</div><div style="color:var(--muted);font-size:.82rem">จำนวนการดู</div></div>' +
+          '</div>' +
+          (vbs.length
+            ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:center" class="grid-main">' +
+                '<div style="max-width:300px;margin:0 auto;width:100%"><div class="eyebrow" style="text-align:center;margin-bottom:8px">สัดส่วนการเข้าดู</div><canvas id="pieViews"></canvas></div>' +
+                '<div><div class="eyebrow" style="text-align:center;margin-bottom:8px">การเข้าดูแต่ละระบบ</div><canvas id="barViews" height="200"></canvas></div>' +
+              '</div>'
+            : '<p style="text-align:center;color:var(--muted)">ยังไม่มีข้อมูลการเข้าดูระบบ — ลองกดเข้าระบบสักครั้งแล้วกลับมาดู</p>') +
+        '</div>';
+      initReveals($('#host'));
+      if (vbs.length) drawViewCharts(vbs);
+    }).catch(function () {});
+  }
+  function drawViewCharts(vbs) {
+    if (typeof Chart === 'undefined') return;
+    var labels = vbs.map(function (v) { return v.title; });
+    var data = vbs.map(function (v) { return v.count; });
+    var colors = ['#6366f1', '#22c55e', '#f59e0b', '#fb7185', '#38bdf8', '#a78bfa', '#f472b6'];
+    if (window._pieChart) window._pieChart.destroy();
+    if (window._barChart) window._barChart.destroy();
+    var pe = document.getElementById('pieViews'), be = document.getElementById('barViews');
+    if (pe) window._pieChart = new Chart(pe, { type: 'doughnut', data: { labels: labels, datasets: [{ data: data, backgroundColor: colors, borderColor: 'transparent' }] }, options: { plugins: { legend: { position: 'bottom', labels: { color: '#cdd6f4', font: { family: 'Sarabun' } } } } } });
+    if (be) window._barChart = new Chart(be, { type: 'bar', data: { labels: labels, datasets: [{ label: 'การเข้าดู', data: data, backgroundColor: '#6366f1', borderRadius: 8 }] }, options: { plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#9aa8c8', font: { family: 'Sarabun' } }, grid: { display: false } }, y: { beginAtZero: true, ticks: { color: '#9aa8c8', precision: 0 }, grid: { color: 'rgba(255,255,255,.06)' } } } } });
+  }
+
+  window.exitPublic = function () {
+    if (window._welcomeTimer) clearTimeout(window._welcomeTimer);
+    session.token = ''; localStorage.removeItem(LS); Platform.user = {};
+    $('#appView').classList.add('hidden'); $('#loginView').classList.remove('hidden');
+  };
+  function setExitButton(loggedIn) {
+    var b = $('#exitBtn'); if (!b) return;
+    if (loggedIn) { b.innerHTML = '<i class="ti ti-logout"></i>'; b.title = 'ออกจากระบบ'; b.onclick = window.logout; }
+    else { b.innerHTML = '<i class="ti ti-home"></i>'; b.title = 'กลับหน้าแรก'; b.onclick = window.exitPublic; }
+  }
+
   function renderFeatures(list) {
     var host = $('#featGrid'); if (!host) return;
     var DESC = { worksheet: 'เลือกชั้นและบท สุ่มโจทย์ใหม่ไม่จำกัด พร้อมเฉลยและพิมพ์ A4', quiz: 'ทำแบบทดสอบเลือกตอบ ตรวจและสรุปคะแนนอัตโนมัติ', vault: 'เก็บชุดข้อสอบที่ออกไว้ นำกลับมาพิมพ์ซ้ำได้', library: 'คลังข้อสอบสาธารณะ เปิดดู/พิมพ์ได้ทุกเมื่อ' };
@@ -400,6 +450,7 @@
       $('#userChip span').textContent = 'สาธารณะ';
       $('#userChip i').className = 'ti ti-world';
       bindUserChip(false);
+      setExitButton(false);
       Platform.start();
       if (targetId && Platform.plugins[targetId]) Platform.mount(targetId);
       done(); toast('success', 'เข้าใช้งานแบบสาธารณะ');
@@ -439,6 +490,7 @@
       $('#userChip span').textContent = b.user.role === 'admin' ? 'ผู้ดูแลระบบ' : (b.user.name || 'ครูผู้สอน');
       $('#userChip i').className = b.user.role === 'admin' ? 'ti ti-shield-lock' : 'ti ti-user';
       bindUserChip(true);
+      setExitButton(true);
       Platform.start();
       toast('success', b.user.role === 'admin' ? 'เข้าสู่ระบบผู้ดูแลแล้ว' : 'พร้อมใช้งานแล้ว');
     });
