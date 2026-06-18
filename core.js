@@ -563,7 +563,7 @@
       var onLogin = !$('#loginView').classList.contains('hidden') && $('#appView').classList.contains('hidden');
       if (onLogin && !session.token && !Swal.isVisible()) {
         Swal.fire(Object.assign({
-          toast: true, position: 'top', showConfirmButton: false, timer: 5000, timerProgressBar: true,
+          toast: true, position: 'top', showConfirmButton: false, timer: 2800, timerProgressBar: true,
           iconHtml: '<img src="https://img2.pic.in.th/Logo-removebg-previewd44fed925d2a2228.png" style="width:32px;height:32px;object-fit:contain">',
           customClass: { icon: 'no-border-icon' },
           title: 'ยินดีต้อนรับเข้าสู่ระบบ EduForge',
