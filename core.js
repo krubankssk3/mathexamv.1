@@ -490,7 +490,7 @@
 
     if (!REDUCE) setTimeout(function () {
       if ($('#appView').classList.contains('hidden') && !session.token)
-        Swal.fire(Object.assign({ iconHtml: '<i class="ti ti-sparkles"></i>', title: 'ยินดีต้อนรับสู่ EduForge', text: 'แพลตฟอร์มรวมระบบสร้างสื่อการเรียนของโรงเรียนบ้านละลม', confirmButtonText: 'เริ่มเลย', confirmButtonColor: '#6366f1', timer: 6000, timerProgressBar: true }, SWAL_DARK));
+        Swal.fire(Object.assign({ iconHtml: '<img src="https://img2.pic.in.th/Logo-removebg-previewd44fed925d2a2228.png" style="width:84px;height:84px;object-fit:contain">', customClass: { icon: 'no-border-icon' }, title: 'ยินดีต้อนรับเข้าสู่ระบบ EduForge', text: 'แพลตฟอร์มรวมระบบสร้างสื่อการเรียนที่พัฒนาโดย ครูแบงค์', confirmButtonText: 'เริ่มเลย', confirmButtonColor: '#6366f1', timer: 6000, timerProgressBar: true }, SWAL_DARK));
     }, 700);
   }
 
