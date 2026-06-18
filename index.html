@@ -214,31 +214,15 @@
     <!-- count-up stats -->
     <section class="panel reveal" style="padding:22px;margin-top:8px;display:grid;grid-template-columns:repeat(4,1fr);gap:10px;text-align:center">
       <div><div class="stat-num grad-text" id="stGrades" data-count="9">0</div><div style="color:var(--muted);font-size:.82rem;margin-top:4px">ระดับชั้น</div></div>
-      <div><div class="stat-num" id="stChapters" data-count="0" data-suffix="+" style="color:var(--accent2)">0</div><div style="color:var(--muted);font-size:.82rem;margin-top:4px">บทเรียน</div></div>
-      <div><div class="stat-num" id="stSubjects" data-count="6" style="color:var(--accent2)">0</div><div style="color:var(--muted);font-size:.82rem;margin-top:4px">ชนิดโจทย์</div></div>
+      <div><div class="stat-num" id="stSystems" data-count="0" style="color:var(--accent2)">0</div><div style="color:var(--muted);font-size:.82rem;margin-top:4px">ระบบให้ใช้งาน</div></div>
+      <div><div class="stat-num" id="stUsers" data-count="0" style="color:var(--accent2)">0</div><div style="color:var(--muted);font-size:.82rem;margin-top:4px">ผู้เข้าใช้งาน</div></div>
       <div><div class="stat-num grad-text">∞</div><div style="color:var(--muted);font-size:.82rem;margin-top:4px">ชุดข้อสอบ (สุ่มใหม่ได้เรื่อยๆ)</div></div>
     </section>
 
     <!-- features (reveal-on-scroll, staggered) -->
     <section style="margin:38px 0 30px">
-      <div class="eyebrow reveal" style="text-align:center;margin-bottom:18px">ทำอะไรได้บ้าง</div>
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px" class="feat-grid">
-        <div class="panel reveal click" style="padding:20px;cursor:pointer" onclick="featInfo('worksheet')">
-          <div class="ic" style="width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent2)"><i class="ti ti-file-pencil"></i></div>
-          <div class="font-display" style="font-weight:600;margin-top:12px">ออกข้อสอบกระดาษ</div>
-          <p style="color:var(--muted);font-size:.86rem;margin:6px 0 0">เลือกชั้นและบท สุ่มโจทย์ใหม่ไม่จำกัด พร้อมเฉลยและพิมพ์เป็น A4</p>
-        </div>
-        <div class="panel reveal click" style="padding:20px;cursor:pointer;transition-delay:.1s" onclick="featInfo('quiz')">
-          <div class="ic" style="width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent2)"><i class="ti ti-list-check"></i></div>
-          <div class="font-display" style="font-weight:600;margin-top:12px">ทดสอบออนไลน์</div>
-          <p style="color:var(--muted);font-size:.86rem;margin:6px 0 0">ทำแบบทดสอบเลือกตอบ ตรวจและสรุปคะแนนให้อัตโนมัติ</p>
-        </div>
-        <div class="panel reveal click" style="padding:20px;cursor:pointer;transition-delay:.2s" onclick="featInfo('vault')">
-          <div class="ic" style="width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:22px;background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent2)"><i class="ti ti-archive"></i></div>
-          <div class="font-display" style="font-weight:600;margin-top:12px">คลังข้อสอบ</div>
-          <p style="color:var(--muted);font-size:.86rem;margin:6px 0 0">เก็บชุดที่ออกไว้ นำกลับมาพิมพ์ซ้ำได้ทุกเมื่อ</p>
-        </div>
-      </div>
+      <div class="eyebrow reveal" style="text-align:center;margin-bottom:18px">ระบบทั้งหมดในแพลตฟอร์ม (กดเพื่อเข้าใช้งานได้เลย)</div>
+      <div id="featGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px" class="feat-grid"></div>
     </section>
   </div>
   <footer class="site-foot" style="text-align:center;padding:18px">พัฒนาโดย นายชิติพัทธ์ นิลวรรณ ครู สพป.ศรีสะเกษ เขต 3</footer>
