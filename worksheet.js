@@ -7,9 +7,11 @@
     id: 'worksheet',
     mount: function (host, svc) {
       var CUR = svc.curriculum;
+      var lockGrade = (svc.ctx && svc.ctx.gradeId) || null;
+      var firstG = lockGrade ? (CUR.grades.filter(function (g) { return g.id === lockGrade; })[0] || CUR.grades[0]) : CUR.grades[0];
       var st = {
-        gradeId: CUR.grades[0] && CUR.grades[0].id,
-        chapterId: CUR.grades[0] && CUR.grades[0].chapters[0].id,
+        gradeId: firstG && firstG.id,
+        chapterId: firstG && firstG.chapters[0] && firstG.chapters[0].id,
         level: 'easy', count: 12, cols: 2, title: '', current: null, showKey: false, busy: false
       };
       function gradeOf(id) { return CUR.grades.filter(function (g) { return g.id === id; })[0]; }
@@ -56,11 +58,13 @@
 
       function drawGrades() {
         var g = $('#grades', host); g.innerHTML = '';
-        CUR.grades.forEach(function (gr) {
+        var list = lockGrade ? CUR.grades.filter(function (gr) { return gr.id === lockGrade; }) : CUR.grades;
+        list.forEach(function (gr) {
           var b = document.createElement('button'); b.className = 'chip click'; b.style.whiteSpace = 'nowrap';
           if (gr.id === st.gradeId) { b.style.background = 'var(--accent)'; b.style.color = '#fff'; b.style.borderColor = 'transparent'; }
           b.textContent = gr.name;
-          b.onclick = function () { st.gradeId = gr.id; st.chapterId = gr.chapters[0].id; drawGrades(); drawChapters(); setTitle(); build(true); };
+          if (lockGrade) { b.style.cursor = 'default'; b.onclick = null; }
+          else b.onclick = function () { st.gradeId = gr.id; st.chapterId = gr.chapters[0].id; drawGrades(); drawChapters(); setTitle(); build(true); };
           g.appendChild(b);
         });
       }
