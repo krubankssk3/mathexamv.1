@@ -231,7 +231,7 @@
       var self = this;
       var HIDE = { worksheet: 1, quiz: 1, exam: 1 };
       var utils = this.meta.filter(function (m) { return self.plugins[m.id] && !HIDE[m.id]; });
-      var UDESC = { vault: 'ชุดข้อสอบที่บันทึกไว้', library: 'คลังข้อสอบสาธารณะ ดาวน์โหลดได้', admin: 'ตั้งค่าและจัดการระบบ', users: 'อนุมัติผู้ใช้ · กำหนดบทบาท' };
+      var UDESC = { vault: 'ชุดข้อสอบที่บันทึกไว้', library: 'คลังข้อสอบสาธารณะ ดาวน์โหลดได้', admin: 'ตั้งค่าและจัดการระบบ', users: 'อนุมัติผู้ใช้ · กำหนดบทบาท', curriculum: 'เพิ่ม/แก้ไข ชั้นและบทเรียน' };
       var grades = (this.curriculum && this.curriculum.grades) || [];
       var gradeCards = grades.map(function (g, i) {
         var nCh = (g.chapters || []).length;
