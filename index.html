@@ -86,6 +86,10 @@
   .feat-card .ic{animation:ic-glow 2.6s ease-in-out infinite}
   .feat-card .font-display{animation:txt-twinkle 3s ease-in-out infinite}
   @media (prefers-reduced-motion:reduce){.feat-card,.feat-card .ic,.feat-card .font-display{animation:none}}
+  .grade-tabs{display:flex;gap:8px;flex-wrap:wrap}
+  .grade-tab{display:inline-flex;align-items:center;gap:6px;padding:.55rem .95rem;border-radius:10px;border:1px solid var(--line);background:var(--panel-solid);color:var(--txt);cursor:pointer;font-family:inherit;font-size:.92rem;transition:.15s}
+  .grade-tab:hover{border-color:var(--accent)}
+  .grade-tab.on{background:var(--accent);color:var(--accent-ink);border-color:transparent;box-shadow:0 0 18px -6px var(--glow)}
   @media (prefers-reduced-motion:reduce){.launch-card,.launch-card .lc-ic,.launch-card .lc-title,.glow-head,.glow-panel{animation:none}}
   .nav-item{display:flex;align-items:center;gap:11px;padding:.62rem .7rem;border-radius:12px;cursor:pointer;color:var(--muted);font-family:'Kanit';transition:.15s;margin-bottom:4px}
   .nav-item:hover{background:var(--bg2);color:var(--txt)}
