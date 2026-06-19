@@ -204,6 +204,7 @@
     curriculum: { subject: 'คณิตศาสตร์', grades: [] },
     store: { saved: [], savedLoaded: false },
     active: null,
+    ctx: { gradeId: null, gradeName: '' },
 
     register: function (p) { this.plugins[p.id] = p; },
 
@@ -213,7 +214,8 @@
         settings: this.settings, user: this.user, curriculum: this.curriculum, store: this.store,
         examSheetHTML: examSheetHTML, printNode: printNode,
         genProblems: genProblems, genQuiz: genQuiz, makeSetId: makeSetId,
-        countUp: countUp, animateCounters: animateCounters, reveal: initReveals
+        countUp: countUp, animateCounters: animateCounters, reveal: initReveals,
+        ctx: this.ctx
       };
     },
 
@@ -223,16 +225,28 @@
 
     showHome: function () {
       this.active = null;
+      this.ctx = { gradeId: null, gradeName: '' };
       $('#hostTitle').textContent = '';
       this.syncTopbar();
       var self = this;
-      var items = this.meta.filter(function (m) { return self.plugins[m.id]; });
-      var DESC = { worksheet: 'สร้าง/สุ่มโจทย์ แล้วพิมพ์ใบงาน', quiz: 'ทำแบบทดสอบออนไลน์ ตรวจให้อัตโนมัติ', vault: 'ชุดข้อสอบที่บันทึกไว้', library: 'คลังข้อสอบสาธารณะ ดาวน์โหลดได้', admin: 'ตั้งค่าและจัดการระบบ' };
-      var cards = items.map(function (m, i) {
+      var HIDE = { worksheet: 1, quiz: 1, exam: 1 };
+      var utils = this.meta.filter(function (m) { return self.plugins[m.id] && !HIDE[m.id]; });
+      var UDESC = { vault: 'ชุดข้อสอบที่บันทึกไว้', library: 'คลังข้อสอบสาธารณะ ดาวน์โหลดได้', admin: 'ตั้งค่าและจัดการระบบ', users: 'อนุมัติผู้ใช้ · กำหนดบทบาท' };
+      var grades = (this.curriculum && this.curriculum.grades) || [];
+      var gradeCards = grades.map(function (g, i) {
+        var nCh = (g.chapters || []).length;
+        return '<button class="launch-card reveal" data-grade="' + g.id + '" data-gname="' + g.name + '" style="transition-delay:' + (i * 0.04) + 's;animation-delay:' + (i * 0.4) + 's">' +
+          '<span class="lc-ic"><i class="ti ti-school"></i></span>' +
+          '<span class="lc-title">คณิต ' + g.name + '</span>' +
+          '<span class="lc-desc">ใบงาน · ทดสอบ · สอบจริง · ' + nCh + ' บท</span>' +
+          '<span class="lc-go"><i class="ti ti-arrow-right"></i></span>' +
+        '</button>';
+      }).join('');
+      var utilCards = utils.map(function (m, i) {
         return '<button class="launch-card reveal" data-id="' + m.id + '" style="transition-delay:' + (i * 0.05) + 's;animation-delay:' + (i * 0.5) + 's">' +
           '<span class="lc-ic"><i class="ti ' + m.icon + '"></i></span>' +
           '<span class="lc-title">' + m.title + '</span>' +
-          '<span class="lc-desc">' + (DESC[m.id] || '') + '</span>' +
+          '<span class="lc-desc">' + (UDESC[m.id] || '') + '</span>' +
           '<span class="lc-go"><i class="ti ti-arrow-right"></i></span>' +
         '</button>';
       }).join('');
@@ -242,11 +256,47 @@
           '<div class="reveal in" style="margin-bottom:20px"><div class="eyebrow">ยินดีต้อนรับ</div>' +
           '<h2 class="font-display" style="font-size:clamp(1.5rem,3vw,2rem);font-weight:800;margin:.25rem 0"><span class="grad-text glow-head">เลือกระบบที่ต้องการใช้งาน</span></h2></div>' +
           '<div id="homeStats"></div>' +
-          '<div class="launch-grid">' + cards + '</div>' +
+          (gradeCards ? '<div class="eyebrow" style="margin:6px 0 10px">ระบบรายชั้น (วิชาคณิตศาสตร์)</div><div class="launch-grid">' + gradeCards + '</div>' : '') +
+          (utilCards ? '<div class="eyebrow" style="margin:22px 0 10px">ระบบส่วนกลาง</div><div class="launch-grid">' + utilCards + '</div>' : '') +
         '</div>';
-      $$('.launch-card', host).forEach(function (b) { b.onclick = function () { self.mount(b.dataset.id); }; });
+      $$('.launch-card[data-grade]', host).forEach(function (b) { b.onclick = function () { self.openGrade(b.dataset.grade, b.dataset.gname); }; });
+      $$('.launch-card[data-id]', host).forEach(function (b) { b.onclick = function () { self.mount(b.dataset.id); }; });
       initReveals(host);
       loadHomeStats();
+    },
+
+    openGrade: function (gid, gname) {
+      this.ctx = { gradeId: gid, gradeName: gname };
+      this.active = 'grade';
+      $('#hostTitle').textContent = 'คณิต ' + gname;
+      this.syncTopbar();
+      var self = this;
+      var pub = this.user && this.user.role === 'public';
+      var tools = [
+        { id: 'worksheet', label: 'ใบงาน', icon: 'ti-file-pencil' },
+        { id: 'quiz', label: 'ทดสอบออนไลน์', icon: 'ti-list-check' }
+      ];
+      if (!pub && this.plugins['exam']) tools.push({ id: 'exam', label: 'สอบจริง', icon: 'ti-clipboard-check' });
+      var tabsHtml = tools.map(function (t, i) {
+        return '<button class="grade-tab' + (i === 0 ? ' on' : '') + '" data-tool="' + t.id + '"><i class="ti ' + t.icon + '"></i> ' + t.label + '</button>';
+      }).join('');
+      var host = $('#host');
+      host.innerHTML =
+        '<div style="max-width:1080px;margin:0 auto">' +
+          '<div class="reveal in" style="margin-bottom:14px"><div class="eyebrow">คณิตศาสตร์ ' + gname + '</div>' +
+          '<h2 class="font-display" style="font-size:clamp(1.3rem,2.6vw,1.7rem);font-weight:800;margin:.2rem 0"><span class="grad-text glow-head">เครื่องมือของ ' + gname + '</span></h2></div>' +
+          '<div class="grade-tabs" id="gradeTabs">' + tabsHtml + '</div>' +
+          '<div id="gradeTool" style="margin-top:18px"></div>' +
+        '</div>';
+      function mountTool(tid) {
+        $$('#gradeTabs .grade-tab', host).forEach(function (b) { b.classList.toggle('on', b.dataset.tool === tid); });
+        var el = $('#gradeTool', host); el.innerHTML = '';
+        var p = self.plugins[tid]; if (p) p.mount(el, self.services(), self);
+      }
+      $$('#gradeTabs .grade-tab', host).forEach(function (b) { b.onclick = function () { mountTool(b.dataset.tool); }; });
+      initReveals(host);
+      if (pub) api('bumpView', { id: 'g-' + gid, title: 'คณิต ' + gname }).catch(function () {});
+      mountTool(tools[0].id);
     },
 
     mount: function (id) {
