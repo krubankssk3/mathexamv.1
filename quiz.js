@@ -7,9 +7,13 @@
     id: 'quiz',
     mount: function (host, svc) {
       var CUR = svc.curriculum;
-      // รวมทุกบทเป็นรายการเดียวให้เลือก
+      var lockGrade = (svc.ctx && svc.ctx.gradeId) || null;
+      // รวมบทให้เลือก (ถ้าล็อกชั้น จะมีเฉพาะบทของชั้นนั้น และไม่ใส่ชื่อชั้นนำหน้า)
       var chapters = [];
-      CUR.grades.forEach(function (g) { g.chapters.forEach(function (c) { chapters.push({ id: c.id, label: g.name + ' · ' + c.name }); }); });
+      CUR.grades.forEach(function (g) {
+        if (lockGrade && g.id !== lockGrade) return;
+        g.chapters.forEach(function (c) { chapters.push({ id: c.id, label: lockGrade ? c.name : (g.name + ' · ' + c.name) }); });
+      });
       var st = { chapterId: chapters[0] && chapters[0].id, chapterLabel: chapters[0] && chapters[0].label, level: 'easy', count: 8, items: [], answers: [], checked: false, busy: false };
       var loggedIn = svc.user && svc.user.role !== 'public';
 
