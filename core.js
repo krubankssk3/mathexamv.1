@@ -90,8 +90,14 @@
     var k = o.problems.map(function (p, i) {
       return '<div class="qitem"><span class="qno">' + (i + 1) + '.</span><span class="qbody"><span class="ans">' + p.a + '</span></span></div>';
     }).join('');
+    // กระจายความสูงต่อข้อให้เต็มหน้า A4 (โดยประมาณ): พื้นที่เนื้อหา ~205มม. / จำนวนแถว
+    var cols = o.cols === 2 ? 2 : 1;
+    var rows = Math.ceil(o.problems.length / cols) || 1;
+    var rowh = 205 / rows;
+    if (rowh > 30) rowh = 30; if (rowh < 8) rowh = 8; // เพดาน/พื้นล่าง กันสูงเกิน/ล้นหน้า
+    rowh = Math.round(rowh * 10) / 10;
     var sheet =
-      '<div class="sheet pop"><div class="exam-head"><img src="' + S.logo + '">' +
+      '<div class="sheet pop" style="--rowh:' + rowh + 'mm"><div class="exam-head"><img src="' + S.logo + '">' +
       '<div style="flex:1"><h1>' + S.org + '</h1><div class="sub">' + S.dept + '</div></div>' +
       '<div style="text-align:right"><div class="mono" style="font-size:11px;color:#888">ชุดที่</div><div class="mono" style="font-weight:700;color:var(--accent)">' + o.setId + '</div></div></div>' +
       '<div style="text-align:center;margin:14px 0 4px"><div class="font-display" style="font-size:18px;font-weight:700">' + o.title + '</div><div class="sub">เรื่อง ' + o.subjectName + ' · ระดับ ' + lv + '</div></div>' +
