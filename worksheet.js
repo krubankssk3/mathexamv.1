@@ -90,7 +90,7 @@
       function build(announce) {
         var g = gradeOf(st.gradeId), ch = chapterOf(st.gradeId, st.chapterId);
         var res = svc.genProblems(ch, st.level, st.count);
-        st.current = { setId: res.setId, subjectName: g.name + ' · ' + ch.name, problems: res.problems, level: st.level, cols: st.cols, title: st.title };
+        st.current = { setId: res.setId, subjectName: g.name + ' · ' + ch.name, problems: res.problems, level: st.level, cols: st.cols, title: st.title, instr: (ch.lv && ch.lv.instruction) || '' };
         st.showKey = false; keyBtn(); render();
         if (announce) svc.toast('success', 'สร้างชุด ' + res.setId);
       }
@@ -99,7 +99,7 @@
         var g = gradeOf(st.gradeId), ch = chapterOf(st.gradeId, st.chapterId);
         $('#stamp', host).textContent = c.setId;
         $('#crumb', host).textContent = CUR.subject + ' › ' + g.name + ' › ' + ch.name;
-        $('#stage', host).innerHTML = svc.examSheetHTML({ title: c.title, subjectName: c.subjectName, level: c.level, setId: c.setId, problems: c.problems, cols: st.cols, withKey: st.showKey });
+        $('#stage', host).innerHTML = svc.examSheetHTML({ title: c.title, subjectName: c.subjectName, level: c.level, setId: c.setId, problems: c.problems, cols: st.cols, withKey: st.showKey, instr: c.instr });
       }
       function keyBtn() { $('#key', host).innerHTML = st.showKey ? '<i class="ti ti-eye-off"></i> ซ่อนเฉลย' : '<i class="ti ti-eye"></i> แสดงเฉลย'; }
 
@@ -124,7 +124,7 @@
         svc.swal.fire(Object.assign({ title: 'พิมพ์ใบงาน', icon: 'question', showCancelButton: true, confirmButtonText: 'พิมพ์พร้อมเฉลย', cancelButtonText: 'เฉพาะใบงาน', confirmButtonColor: '#6366f1', cancelButtonColor: '#334155' }, svc.swalDark))
           .then(function (r) {
             var c = st.current;
-            svc.printNode(svc.examSheetHTML({ title: c.title, subjectName: c.subjectName, level: c.level, setId: c.setId, problems: c.problems, cols: c.cols, withKey: r.isConfirmed }));
+            svc.printNode(svc.examSheetHTML({ title: c.title, subjectName: c.subjectName, level: c.level, setId: c.setId, problems: c.problems, cols: c.cols, withKey: r.isConfirmed, instr: c.instr }));
           });
       };
 
