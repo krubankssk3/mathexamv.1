@@ -115,8 +115,18 @@
       window.removeEventListener('afterprint', cleanup);
     }
     window.addEventListener('afterprint', cleanup);
-    setTimeout(function () { window.print(); }, 150);
     setTimeout(cleanup, 60000); // กันพลาด ถ้า afterprint ไม่ทำงาน
+
+    // รอให้รูป (โลโก้/ไอคอนรูป) โหลดเสร็จก่อน ค่อยสั่งพิมพ์ ไม่งั้นรูปไม่ขึ้นใน PDF
+    var imgs = Array.prototype.slice.call(area.querySelectorAll('img'));
+    var pending = imgs.filter(function (im) { return !(im.complete && im.naturalWidth > 0); });
+    var fired = false;
+    function go() { if (fired) return; fired = true; window.print(); }
+    if (!pending.length) { setTimeout(go, 80); return; }
+    var done = 0;
+    function one() { done++; if (done >= pending.length) go(); }
+    pending.forEach(function (im) { im.addEventListener('load', one); im.addEventListener('error', one); });
+    setTimeout(go, 3000); // กันรูปโหลดช้า/พัง ก็ยังพิมพ์ได้
   }
 
   /* ---------- เครื่องสุ่มโจทย์ฝั่ง client (ลื่น ไม่ต้องรอ GAS) ---------- */
