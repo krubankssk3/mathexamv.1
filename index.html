@@ -124,6 +124,7 @@
   .sheet h1{font-family:'Kanit';font-size:19px;margin:0;font-weight:700}
   .sheet .sub{color:#566;font-size:13px;margin-top:2px}
   .meta-row{display:flex;flex-wrap:wrap;gap:8px 22px;margin:14px 0 6px;font-size:14px}
+  .score-box{border:1.5px solid #15181f;border-radius:8px;padding:2px 12px}
   .blank{display:inline-block;border-bottom:1px dotted #333;min-width:120px}
   .instr{background:#f4f6fb;border-left:4px solid var(--accent);padding:9px 13px;border-radius:4px;font-size:13.5px;margin:10px 0 16px}
   .qcols{column-gap:36px}.qcols.c2{column-count:2}
@@ -186,6 +187,12 @@
     #printArea{margin:0;padding:0}
     .pop{animation:none!important;opacity:1!important;transform:none!important}
     .reveal{opacity:1!important;transform:none!important}
+    /* ให้ใบงานเต็มหน้า A4 มากขึ้น: เพิ่มฟอนต์/ระยะห่างตอนพิมพ์ */
+    #printArea .sheet{font-size:16px;line-height:1.7}
+    #printArea .qitem{margin:0 0 20px;font-size:17px}
+    #printArea .ans-line{min-width:90px}
+    #printArea .instr{font-size:15px;padding:11px 15px}
+    #printArea .exam-head img{width:60px;height:60px}
     body.printing > *:not(#printArea){display:none!important}
     body.printing #printArea{display:block!important}
   }
