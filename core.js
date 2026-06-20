@@ -95,7 +95,7 @@
       '<div style="flex:1"><h1>' + S.org + '</h1><div class="sub">' + S.dept + '</div></div>' +
       '<div style="text-align:right"><div class="mono" style="font-size:11px;color:#888">ชุดที่</div><div class="mono" style="font-weight:700;color:var(--accent)">' + o.setId + '</div></div></div>' +
       '<div style="text-align:center;margin:14px 0 4px"><div class="font-display" style="font-size:18px;font-weight:700">' + o.title + '</div><div class="sub">เรื่อง ' + o.subjectName + ' · ระดับ ' + lv + '</div></div>' +
-      '<div class="meta-row"><span><b>ชื่อ–สกุล</b> <span class="blank" style="min-width:200px"></span></span><span><b>ชั้น</b> <span class="blank" style="min-width:70px"></span></span><span><b>เลขที่</b> <span class="blank" style="min-width:50px"></span></span><span><b>วันที่</b> ' + date + '</span></div>' +
+      '<div class="meta-row"><span><b>ชื่อ–สกุล</b> <span class="blank" style="min-width:180px"></span></span><span><b>ชั้น</b> <span class="blank" style="min-width:60px"></span></span><span><b>เลขที่</b> <span class="blank" style="min-width:45px"></span></span><span><b>วันที่</b> ' + date + '</span><span class="score-box"><b>คะแนนที่ได้</b> <span class="blank" style="min-width:48px"></span> / ' + o.problems.length + '</span></div>' +
       '<div class="instr"><b>คำชี้แจง</b> ' + (o.instr ? o.instr : 'แสดงวิธีทำและเขียนคำตอบลงในช่องว่าง') + ' (' + o.problems.length + ' ข้อ ข้อละ 1 คะแนน)</div>' +
       '<div class="qcols ' + (o.cols === 2 ? 'c2' : '') + '">' + q + '</div>' +
       '<div class="sheet-foot"><span>พัฒนาโดย นายชิติพัทธ์ นิลวรรณ ครู สพป.ศรีสะเกษ เขต 3</span><span class="mono">' + o.setId + '</span></div></div>';
@@ -223,7 +223,7 @@
   };
   function buildProblems(ch, level, count) {
     var fn = GEN[ch.gen]; if (!fn) return [];
-    var cfg = { level: level || 'easy', count: Math.max(4, Math.min(40, Number(count) || 12)) };
+    var cfg = { level: level || 'easy', count: Math.max(4, Math.min(50, Number(count) || 12)) };
     if (ch.ops && ch.ops.length) cfg.ops = ch.ops;
     if (ch.lv) { for (var kk in ch.lv) { if (kk === 'easy' || kk === 'medium' || kk === 'hard') continue; cfg[kk] = ch.lv[kk]; } }
     var ov = ch.lv && ch.lv[cfg.level]; if (ov) for (var k in ov) cfg[k] = ov[k];
@@ -474,29 +474,47 @@
       loading('กำลังโหลด...'); return enterAppFromBootstrap().then(done);
     }).catch(function (e) { done(); alertErr('เข้าสู่ระบบไม่สำเร็จ', String(e.message || e)); });
   };
+  function statsSkeleton() {
+    return '<div class="panel reveal glow-panel" style="margin:0 0 26px;padding:24px">' +
+      '<div class="eyebrow glow-head" style="margin-bottom:16px">สถิติการใช้งาน</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center;margin-bottom:6px">' +
+        '<div><div class="stat-num" style="opacity:.4">···</div><div style="color:var(--muted);font-size:.82rem">ระบบ</div></div>' +
+        '<div><div class="stat-num" style="opacity:.4">···</div><div style="color:var(--muted);font-size:.82rem">ยอดผู้ใช้งาน</div></div>' +
+        '<div><div class="stat-num" style="opacity:.4">···</div><div style="color:var(--muted);font-size:.82rem">จำนวนการดู</div></div>' +
+      '</div>' +
+      '<p style="text-align:center;color:var(--muted);font-size:.8rem">กำลังโหลดสถิติ…</p>' +
+    '</div>';
+  }
+  function renderStats(s) {
+    var box = $('#homeStats'); if (!box) return;
+    var vbs = (s.viewsBySystem || []).filter(function (v) { return v.count > 0; });
+    var totalViews = (s.viewsBySystem || []).reduce(function (a, v) { return a + (v.count || 0); }, 0);
+    window._lastVBS = vbs;
+    box.innerHTML =
+      '<div class="panel reveal glow-panel" style="margin:0 0 26px;padding:24px">' +
+        '<div class="eyebrow glow-head" style="margin-bottom:16px">สถิติการใช้งาน</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center;margin-bottom:20px">' +
+          '<div><div class="stat-num grad-text glow-head">' + s.systems + '</div><div style="color:var(--muted);font-size:.82rem">ระบบ</div></div>' +
+          '<div><div class="stat-num glow-head" style="color:var(--accent2)">' + s.users + '</div><div style="color:var(--muted);font-size:.82rem">ยอดผู้ใช้งาน</div></div>' +
+          '<div><div class="stat-num glow-head" style="color:var(--accent2)">' + totalViews + '</div><div style="color:var(--muted);font-size:.82rem">จำนวนการดู</div></div>' +
+        '</div>' +
+        (vbs.length
+          ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:center" class="grid-main">' +
+              '<div style="max-width:300px;margin:0 auto;width:100%"><div class="eyebrow" style="text-align:center;margin-bottom:8px">สัดส่วนการเข้าดู</div><canvas id="pieViews" class="glow-chart"></canvas></div>' +
+              '<div><div class="eyebrow" style="text-align:center;margin-bottom:8px">การเข้าดูแต่ละระบบ</div><canvas id="barViews" class="glow-chart" height="200"></canvas></div>' +
+            '</div>'
+          : '<p style="text-align:center;color:var(--muted)">ยังไม่มีข้อมูลการเข้าดูระบบ — ลองกดเข้าระบบสักครั้งแล้วกลับมาดู</p>') +
+      '</div>';
+    initReveals($('#host'));
+    if (vbs.length) drawViewCharts(vbs);
+  }
   function loadHomeStats() {
     var box = $('#homeStats'); if (!box) return;
+    var cached = Platform.store && Platform.store._stats;
+    if (cached) renderStats(cached); else box.innerHTML = statsSkeleton(); // ขึ้นทันทีพร้อมหน้า
     api('publicStats').then(function (s) {
-      var vbs = (s.viewsBySystem || []).filter(function (v) { return v.count > 0; });
-      var totalViews = (s.viewsBySystem || []).reduce(function (a, v) { return a + (v.count || 0); }, 0);
-      window._lastVBS = vbs;
-      box.innerHTML =
-        '<div class="panel reveal glow-panel" style="margin:0 0 26px;padding:24px">' +
-          '<div class="eyebrow glow-head" style="margin-bottom:16px">สถิติการใช้งาน</div>' +
-          '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center;margin-bottom:20px">' +
-            '<div><div class="stat-num grad-text glow-head">' + s.systems + '</div><div style="color:var(--muted);font-size:.82rem">ระบบ</div></div>' +
-            '<div><div class="stat-num glow-head" style="color:var(--accent2)">' + s.users + '</div><div style="color:var(--muted);font-size:.82rem">ยอดผู้ใช้งาน</div></div>' +
-            '<div><div class="stat-num glow-head" style="color:var(--accent2)">' + totalViews + '</div><div style="color:var(--muted);font-size:.82rem">จำนวนการดู</div></div>' +
-          '</div>' +
-          (vbs.length
-            ? '<div style="display:grid;grid-template-columns:1fr 1fr;gap:22px;align-items:center" class="grid-main">' +
-                '<div style="max-width:300px;margin:0 auto;width:100%"><div class="eyebrow" style="text-align:center;margin-bottom:8px">สัดส่วนการเข้าดู</div><canvas id="pieViews" class="glow-chart"></canvas></div>' +
-                '<div><div class="eyebrow" style="text-align:center;margin-bottom:8px">การเข้าดูแต่ละระบบ</div><canvas id="barViews" class="glow-chart" height="200"></canvas></div>' +
-              '</div>'
-            : '<p style="text-align:center;color:var(--muted)">ยังไม่มีข้อมูลการเข้าดูระบบ — ลองกดเข้าระบบสักครั้งแล้วกลับมาดู</p>') +
-        '</div>';
-      initReveals($('#host'));
-      if (vbs.length) drawViewCharts(vbs);
+      if (Platform.store) Platform.store._stats = s;
+      renderStats(s); // อัปเดตค่าจริงเมื่อมาถึง
     }).catch(function () {});
   }
   function themeColor(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim() || '#6366f1'; }
