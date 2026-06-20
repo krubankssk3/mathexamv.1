@@ -33,7 +33,7 @@
               '<label class="lbl">ระดับความยาก</label>' +
               '<div class="seg" id="lv" style="margin:5px 0 14px"><button data-l="easy" class="on">ง่าย</button><button data-l="medium">ปานกลาง</button><button data-l="hard">ยาก</button></div>' +
               '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">' +
-                '<div><label class="lbl">จำนวนข้อ</label><input id="cnt" type="number" min="4" max="40" value="12" class="field mono" style="margin-top:5px"></div>' +
+                '<div><label class="lbl">จำนวนข้อ</label><input id="cnt" type="number" min="4" max="50" value="12" class="field mono" style="margin-top:5px"></div>' +
                 '<div><label class="lbl">คอลัมน์</label><div class="seg" id="col" style="margin-top:5px"><button data-c="1">1</button><button data-c="2" class="on">2</button></div></div>' +
               '</div>' +
               '<label class="lbl">ชื่อใบงาน</label>' +
@@ -85,7 +85,7 @@
 
       $$('#lv button', host).forEach(function (b) { b.onclick = function () { $$('#lv button', host).forEach(function (x) { x.classList.remove('on'); }); b.classList.add('on'); st.level = b.dataset.l; build(true); }; });
       $$('#col button', host).forEach(function (b) { b.onclick = function () { $$('#col button', host).forEach(function (x) { x.classList.remove('on'); }); b.classList.add('on'); st.cols = +b.dataset.c; if (st.current) render(); }; });
-      $('#cnt', host).oninput = function (e) { st.count = Math.max(4, Math.min(40, +e.target.value || 12)); };
+      $('#cnt', host).oninput = function (e) { st.count = Math.max(4, Math.min(50, +e.target.value || 12)); };
       $('#ttl', host).oninput = function (e) { st.title = e.target.value; };
 
       function build(announce) {
