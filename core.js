@@ -184,7 +184,12 @@
         var pic = pick(pics), op = pick(ops), a = ri(R[0], R[1]), b = ri(R[0], R[1]), ans, sym;
         if (op === '-') { if (b > a) { var t = a; a = b; b = t; } ans = a - b; sym = '\u2212'; }
         else { ans = a + b; sym = '+'; }
-        var q = '<span class="picq">' + rep(pic, a) + ' \u25a1 ' + sym + ' ' + rep(pic, b) + ' \u25a1 = \u25a1</span>';
+        var q = '<span class="picrow">' +
+          '<span class="picgrp"><span class="pics">' + rep(pic, a) + '</span><span class="pbox"></span></span>' +
+          '<span class="pop">' + sym + '</span>' +
+          '<span class="picgrp"><span class="pics">' + rep(pic, b) + '</span><span class="pbox"></span></span>' +
+          '<span class="pop">=</span>' +
+          '<span class="pbox big"></span></span>';
         out.push({ q: q, a: String(ans), n: ans });
       }
       return out;
