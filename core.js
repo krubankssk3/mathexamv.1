@@ -109,24 +109,28 @@
     if (!area) { area = document.createElement('div'); area.id = 'printArea'; document.body.appendChild(area); }
     area.innerHTML = html;
     document.body.classList.add('printing');
+    var cleaned = false;
     function cleanup() {
-      area.innerHTML = '';
+      if (cleaned) return; cleaned = true;
       document.body.classList.remove('printing');
+      area.innerHTML = '';
       window.removeEventListener('afterprint', cleanup);
     }
-    window.addEventListener('afterprint', cleanup);
-    setTimeout(cleanup, 60000); // กันพลาด ถ้า afterprint ไม่ทำงาน
-
-    // รอให้รูป (โลโก้/ไอคอนรูป) โหลดเสร็จก่อน ค่อยสั่งพิมพ์ ไม่งั้นรูปไม่ขึ้นใน PDF
-    var imgs = Array.prototype.slice.call(area.querySelectorAll('img'));
-    var pending = imgs.filter(function (im) { return !(im.complete && im.naturalWidth > 0); });
     var fired = false;
-    function go() { if (fired) return; fired = true; window.print(); }
-    if (!pending.length) { setTimeout(go, 80); return; }
+    function fire() {
+      if (fired) return; fired = true;
+      window.addEventListener('afterprint', cleanup);
+      window.print();
+      setTimeout(cleanup, 800); // เคลียร์หลังพิมพ์ (กันกรณี afterprint ไม่ทำงาน) — ผูกกับครั้งนี้เท่านั้น
+    }
+    // รอรูป (โลโก้/ไอคอนรูป) โหลดเสร็จก่อนพิมพ์ ไม่งั้นรูปไม่ขึ้น
+    var imgs = [].slice.call(area.querySelectorAll('img'));
+    var pending = imgs.filter(function (im) { return !(im.complete && im.naturalWidth > 0); });
+    if (!pending.length) { setTimeout(fire, 60); return; }
     var done = 0;
-    function one() { done++; if (done >= pending.length) go(); }
+    function one() { if (++done >= pending.length) fire(); }
     pending.forEach(function (im) { im.addEventListener('load', one); im.addEventListener('error', one); });
-    setTimeout(go, 3000); // กันรูปโหลดช้า/พัง ก็ยังพิมพ์ได้
+    setTimeout(fire, 3000); // กันรูปพัง/โหลดช้า
   }
 
   /* ---------- เครื่องสุ่มโจทย์ฝั่ง client (ลื่น ไม่ต้องรอ GAS) ---------- */
