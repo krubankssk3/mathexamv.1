@@ -673,16 +673,22 @@
     bindTheme(); bindLogin();
     loadPlugins().catch(function (e) { console.error(e); });
 
-    // เติมตัวเลขสถิติหน้า public + เริ่มเอฟเฟกต์
-    apiGetPublicStats().then(function (s) {
-      if (s) {
-        var g = $('#stGrades'), sy = $('#stSystems'), us = $('#stUsers');
-        if (g) g.dataset.count = s.grades;
-        if (sy) sy.dataset.count = s.systems;
-        if (us) us.dataset.count = s.visits;
-        renderFeatures(s.systemsList || []);
-      }
+    // เติมตัวเลขสถิติหน้า public + เริ่มเอฟเฟกต์ (ขึ้นทันทีจากแคช แล้วค่อยรีเฟรช)
+    function fillLanding(s) {
+      if (!s) { initReveals(); return; }
+      var g = $('#stGrades'), sy = $('#stSystems'), us = $('#stUsers');
+      if (g) g.dataset.count = s.grades;
+      if (sy) sy.dataset.count = s.systems;
+      if (us) us.dataset.count = s.visits;
+      renderFeatures(s.systemsList || []);
       initReveals();
+    }
+    var cachedLanding = Platform.store && Platform.store._stats;
+    if (cachedLanding) fillLanding(cachedLanding);
+    else { var fg = $('#featGrid'); if (fg) fg.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--muted);font-size:.85rem">กำลังโหลดระบบ…</p>'; }
+    apiGetPublicStats().then(function (s) {
+      if (s && Platform.store) Platform.store._stats = s;
+      fillLanding(s);
     });
 
     // ถ้ามี token เก่า ลองเข้าระบบต่อเลย
