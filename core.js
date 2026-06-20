@@ -85,7 +85,7 @@
     var date = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
     var lv = { easy: 'ง่าย', medium: 'ปานกลาง', hard: 'ยาก' }[o.level] || o.level || '';
     var q = o.problems.map(function (p, i) {
-      return '<div class="qitem"><span class="qno">' + (i + 1) + '.</span><span class="qbody">' + p.q + ' <span class="ans-line"></span></span></div>';
+      return '<div class="qitem"><span class="qno">' + (i + 1) + '.</span><span class="qbody">' + p.q + (p.noline ? '' : ' <span class="ans-line"></span>') + '</span></div>';
     }).join('');
     var k = o.problems.map(function (p, i) {
       return '<div class="qitem"><span class="qno">' + (i + 1) + '.</span><span class="qbody"><span class="ans">' + p.a + '</span></span></div>';
@@ -184,13 +184,15 @@
         var pic = pick(pics), op = pick(ops), a = ri(R[0], R[1]), b = ri(R[0], R[1]), ans, sym;
         if (op === '-') { if (b > a) { var t = a; a = b; b = t; } ans = a - b; sym = '\u2212'; }
         else { ans = a + b; sym = '+'; }
-        var q = '<span class="picrow">' +
-          '<span class="picgrp"><span class="pics">' + rep(pic, a) + '</span><span class="pbox"></span></span>' +
-          '<span class="pico">' + sym + '</span>' +
-          '<span class="picgrp"><span class="pics">' + rep(pic, b) + '</span><span class="pbox"></span></span>' +
+        var q = '<span class="picwrap">' +
+          '<span class="piccap">' +
+            '<span class="picoval"><span class="picell">' + rep(pic, a) + '</span><span class="piccirc"></span></span>' +
+            '<span class="pico">' + sym + '</span>' +
+            '<span class="picoval"><span class="picell">' + rep(pic, b) + '</span><span class="piccirc"></span></span>' +
+          '</span>' +
           '<span class="pico">=</span>' +
-          '<span class="pbox big"></span></span>';
-        out.push({ q: q, a: String(ans), n: ans });
+          '<span class="picbox"></span></span>';
+        out.push({ q: q, a: String(ans), n: ans, noline: true });
       }
       return out;
     }
