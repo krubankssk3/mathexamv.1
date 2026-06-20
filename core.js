@@ -96,7 +96,7 @@
       '<div style="text-align:right"><div class="mono" style="font-size:11px;color:#888">ชุดที่</div><div class="mono" style="font-weight:700;color:var(--accent)">' + o.setId + '</div></div></div>' +
       '<div style="text-align:center;margin:14px 0 4px"><div class="font-display" style="font-size:18px;font-weight:700">' + o.title + '</div><div class="sub">เรื่อง ' + o.subjectName + ' · ระดับ ' + lv + '</div></div>' +
       '<div class="meta-row"><span><b>ชื่อ–สกุล</b> <span class="blank" style="min-width:200px"></span></span><span><b>ชั้น</b> <span class="blank" style="min-width:70px"></span></span><span><b>เลขที่</b> <span class="blank" style="min-width:50px"></span></span><span><b>วันที่</b> ' + date + '</span></div>' +
-      '<div class="instr"><b>คำชี้แจง</b> แสดงวิธีทำและเขียนคำตอบลงในช่องว่าง (' + o.problems.length + ' ข้อ ข้อละ 1 คะแนน)</div>' +
+      '<div class="instr"><b>คำชี้แจง</b> ' + (o.instr ? o.instr : 'แสดงวิธีทำและเขียนคำตอบลงในช่องว่าง') + ' (' + o.problems.length + ' ข้อ ข้อละ 1 คะแนน)</div>' +
       '<div class="qcols ' + (o.cols === 2 ? 'c2' : '') + '">' + q + '</div>' +
       '<div class="sheet-foot"><span>พัฒนาโดย นายชิติพัทธ์ นิลวรรณ ครู สพป.ศรีสะเกษ เขต 3</span><span class="mono">' + o.setId + '</span></div></div>';
     var key = o.withKey ?
@@ -172,12 +172,29 @@
         out.push({ q: q, a: ans + ' ชิ้น', n: ans });
       }
       return out;
+    },
+    picture: function (c) {
+      var pics = (c.pics && c.pics.length) ? c.pics : ['\ud83c\udf4e', '\u2b50', '\u2764\ufe0f', '\ud83c\udf38', '\ud83d\ude97', '\ud83c\udf53'];
+      var ops = (c.ops && c.ops.length) ? c.ops.filter(function (o) { return o === '+' || o === '-'; }) : ['+'];
+      if (!ops.length) ops = ['+'];
+      var R = { easy: [1, 5], medium: [2, 8], hard: [3, 10] }[c.level] || [1, 5];
+      function rep(s, n) { var o = ''; for (var k = 0; k < n; k++) o += s; return o; }
+      var out = [];
+      for (var i = 0; i < c.count; i++) {
+        var pic = pick(pics), op = pick(ops), a = ri(R[0], R[1]), b = ri(R[0], R[1]), ans, sym;
+        if (op === '-') { if (b > a) { var t = a; a = b; b = t; } ans = a - b; sym = '\u2212'; }
+        else { ans = a + b; sym = '+'; }
+        var q = '<span class="picq">' + rep(pic, a) + ' \u25a1 ' + sym + ' ' + rep(pic, b) + ' \u25a1 = \u25a1</span>';
+        out.push({ q: q, a: String(ans), n: ans });
+      }
+      return out;
     }
   };
   function buildProblems(ch, level, count) {
     var fn = GEN[ch.gen]; if (!fn) return [];
     var cfg = { level: level || 'easy', count: Math.max(4, Math.min(40, Number(count) || 12)) };
     if (ch.ops && ch.ops.length) cfg.ops = ch.ops;
+    if (ch.lv) { for (var kk in ch.lv) { if (kk === 'easy' || kk === 'medium' || kk === 'hard') continue; cfg[kk] = ch.lv[kk]; } }
     var ov = ch.lv && ch.lv[cfg.level]; if (ov) for (var k in ov) cfg[k] = ov[k];
     return fn(cfg);
   }
