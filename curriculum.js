@@ -63,7 +63,7 @@
         var rows = g.chapters.map(function (c) {
           var label = (data.genTypes.filter(function (t) { return t.id === c.gen; })[0] || {}).label || c.gen;
           return '<tr>' +
-            '<td><i class="ti ' + esc(c.icon || 'ti-file') + '" style="margin-right:6px;color:var(--accent2)"></i>' + esc(c.name) + (c.ops ? ' <span style="color:var(--muted);font-size:.8rem">[' + esc(c.ops) + ']</span>' : '') + '</td>' +
+            '<td><span style="margin-right:6px;color:var(--accent2)">' + iconHTML_(c.icon, 18) + '</span>' + esc(c.name) + (c.ops ? ' <span style="color:var(--muted);font-size:.8rem">[' + esc(c.ops) + ']</span>' : '') + '</td>' +
             '<td>' + esc(label) + '</td>' +
             '<td style="text-align:center">' + (c.enabled ? '<span style="color:var(--ok)">เปิด</span>' : '<span style="color:var(--muted)">ปิด</span>') + '</td>' +
             '<td style="text-align:center;white-space:nowrap">' +
@@ -107,10 +107,14 @@
 
       /* ---------- dialogs ---------- */
       var PICS_ = ['\ud83c\udf4e','\u2b50','\u2764\ufe0f','\ud83c\udf38','\ud83d\ude97','\ud83c\udf53','\ud83e\uddc1','\u270f\ufe0f','\ud83d\udc30','\u26bd','\ud83c\udf4c','\ud83d\udc31','\ud83c\udf1f','\ud83c\udf88','\ud83c\udf69','\ud83d\udc36'];
+      var ICONS_ = ['ti-plus','ti-minus','ti-x','ti-divide','ti-math-symbols','ti-equal','ti-percentage','ti-ruler-2','ti-clock','ti-coin','ti-shapes','ti-circle','ti-square','ti-triangle','ti-puzzle','ti-abacus','ti-calculator','ti-cards','ti-dice','ti-star','ti-apple','ti-pencil','ti-book','ti-school','ti-bulb','ti-trophy','ti-target','ti-clipboard-check','ti-message-2-question','ti-chart-bar','ti-photo','ti-numbers'];
+      function isImg_(v) { return /^https?:\/\//.test(String(v || '')); }
+      function iconHTML_(v, sz) { sz = sz || 22; return isImg_(v) ? '<img src="' + esc(v) + '" style="width:' + sz + 'px;height:' + sz + 'px;object-fit:contain">' : '<i class="ti ' + esc(v || 'ti-file') + '"></i>'; }
       function chapterDialog(g, c) {
         var editing = !!c;
         var lvObj = {}; if (editing && c.lv) { try { lvObj = JSON.parse(c.lv); } catch (e) {} }
         var selPics = (lvObj.pics && lvObj.pics.slice()) || [];
+        var selIcon = editing ? (c.icon || 'ti-file') : 'ti-file';
         var curGen = editing ? c.gen : (data.genTypes[0] && data.genTypes[0].id);
         var opsArr = (editing && c.ops) ? String(c.ops).split(',').map(function (x) { return x.trim(); }).filter(Boolean) : [];
         var selPicOps = (curGen === 'picture' && opsArr.length) ? opsArr.slice() : ['+'];
@@ -121,6 +125,12 @@
           return list.map(function (o) {
             var on = sel.indexOf(o[0]) >= 0;
             return '<button type="button" class="' + cls + '" data-o="' + o[0] + '" style="padding:6px 12px;border-radius:8px;border:1px solid ' + (on ? '#6366f1' : '#2a3556') + ';background:' + (on ? 'rgba(99,102,241,.25)' : '#0b1120') + ';color:#e6ebf7;cursor:pointer">' + o[1] + '</button>';
+          }).join('');
+        }
+        function iconBtns() {
+          return ICONS_.map(function (ic) {
+            var on = selIcon === ic;
+            return '<button type="button" class="sw_ic" data-i="' + ic + '" style="width:38px;height:38px;border-radius:8px;border:1px solid ' + (on ? '#6366f1' : '#2a3556') + ';background:' + (on ? 'rgba(99,102,241,.25)' : '#0b1120') + ';color:#cdd6f4;font-size:18px;cursor:pointer"><i class="ti ' + ic + '"></i></button>';
           }).join('');
         }
         function picBtns() {
@@ -149,8 +159,10 @@
             '<div style="text-align:left">' +
               '<label style="font-size:.85rem;color:#9aa8c8">ชื่อบทเรียน</label>' +
               '<input id="sw_cn" style="' + INP + '" value="' + esc(editing ? c.name : '') + '" placeholder="เช่น การบวกจำนวนสองหลัก">' +
-              '<label style="font-size:.85rem;color:#9aa8c8">ไอคอน (Tabler เช่น ti-plus)</label>' +
-              '<input id="sw_ci" style="' + INP + '" value="' + esc(editing ? (c.icon || 'ti-file') : 'ti-file') + '">' +
+              '<label style="font-size:.85rem;color:#9aa8c8">ไอคอน</label>' +
+              '<div style="display:flex;align-items:center;gap:10px;margin:.3rem 0 .4rem"><span id="sw_icprev" style="width:40px;height:40px;border-radius:10px;background:rgba(99,102,241,.16);display:inline-flex;align-items:center;justify-content:center;color:#a5b4fc;font-size:22px;flex:none"></span><span style="font-size:.8rem;color:#9aa8c8">กดเลือกไอคอน หรือวางลิงก์รูปของคุณเองด้านล่าง</span></div>' +
+              '<div id="sw_icgrid" style="display:flex;flex-wrap:wrap;gap:6px;max-height:118px;overflow:auto;margin-bottom:.5rem">' + iconBtns() + '</div>' +
+              '<input id="sw_icurl" style="' + INP + '" placeholder="วางลิงก์รูปไอคอนของคุณเอง https://...">' +
               '<label style="font-size:.85rem;color:#9aa8c8">ชนิดโจทย์</label>' +
               '<select id="sw_cg" style="' + INP + '">' + genOptions(curGen) + '</select>' +
               '<div id="sw_arithWrap" style="display:none">' +
@@ -178,6 +190,13 @@
               document.getElementById('sw_noOps').style.display = (v === 'arith' || v === 'picture') ? 'none' : 'block';
             }
             sel.addEventListener('change', toggle); toggle();
+            var icurl = document.getElementById('sw_icurl');
+            if (isImg_(selIcon)) icurl.value = selIcon;
+            function renderPrev() { document.getElementById('sw_icprev').innerHTML = isImg_(selIcon) ? '<img src="' + selIcon + '" style="width:30px;height:30px;object-fit:contain">' : '<i class="ti ' + (selIcon || 'ti-file') + '"></i>'; }
+            function clearGrid() { Array.prototype.forEach.call(document.querySelectorAll('#sw_icgrid .sw_ic'), function (x) { var on = x.getAttribute('data-i') === selIcon; x.style.borderColor = on ? '#6366f1' : '#2a3556'; x.style.background = on ? 'rgba(99,102,241,.25)' : '#0b1120'; }); }
+            renderPrev();
+            document.getElementById('sw_icgrid').addEventListener('click', function (e) { var b = e.target.closest ? e.target.closest('.sw_ic') : null; if (!b) return; selIcon = b.getAttribute('data-i'); icurl.value = ''; clearGrid(); renderPrev(); });
+            icurl.addEventListener('input', function () { var v = this.value.trim(); if (isImg_(v)) { selIcon = v; } else if (!v) { selIcon = 'ti-file'; } clearGrid(); renderPrev(); });
             bindTgl('sw_ar', AR_, selAr);
             bindTgl('sw_pop', POP_, selPicOps);
             document.getElementById('sw_pics').addEventListener('click', function (e) {
@@ -192,7 +211,8 @@
             var name = (document.getElementById('sw_cn').value || '').trim();
             if (!name) { window.Swal.showValidationMessage('กรอกชื่อบทเรียน'); return false; }
             var gen = document.getElementById('sw_cg').value;
-            var icon = (document.getElementById('sw_ci').value || 'ti-file').trim();
+            var icurlv = (document.getElementById('sw_icurl').value || '').trim();
+            var icon = isImg_(icurlv) ? icurlv : (selIcon || 'ti-file');
             if (gen === 'picture') {
               if (!selPics.length) { window.Swal.showValidationMessage('เลือกรูปอย่างน้อย 1 รูป'); return false; }
               if (!selPicOps.length) { window.Swal.showValidationMessage('เลือกการดำเนินการอย่างน้อย 1 อย่าง'); return false; }
