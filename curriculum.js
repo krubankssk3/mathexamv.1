@@ -111,21 +111,35 @@
         var editing = !!c;
         var lvObj = {}; if (editing && c.lv) { try { lvObj = JSON.parse(c.lv); } catch (e) {} }
         var selPics = (lvObj.pics && lvObj.pics.slice()) || [];
-        var selOps = (editing && c.ops) ? String(c.ops).split(',').map(function (x) { return x.trim(); }).filter(Boolean) : ['+'];
-        var instr0 = lvObj.instruction || '';
         var curGen = editing ? c.gen : (data.genTypes[0] && data.genTypes[0].id);
+        var opsArr = (editing && c.ops) ? String(c.ops).split(',').map(function (x) { return x.trim(); }).filter(Boolean) : [];
+        var selPicOps = (curGen === 'picture' && opsArr.length) ? opsArr.slice() : ['+'];
+        var selAr = (curGen === 'arith' && opsArr.length) ? opsArr.slice() : ['+'];
+        var instr0 = lvObj.instruction || '';
 
+        function tglBtns(list, sel, cls) {
+          return list.map(function (o) {
+            var on = sel.indexOf(o[0]) >= 0;
+            return '<button type="button" class="' + cls + '" data-o="' + o[0] + '" style="padding:6px 12px;border-radius:8px;border:1px solid ' + (on ? '#6366f1' : '#2a3556') + ';background:' + (on ? 'rgba(99,102,241,.25)' : '#0b1120') + ';color:#e6ebf7;cursor:pointer">' + o[1] + '</button>';
+          }).join('');
+        }
         function picBtns() {
           return PICS_.map(function (pp) {
             var on = selPics.indexOf(pp) >= 0;
             return '<button type="button" class="sw_pic" data-p="' + pp + '" style="font-size:20px;padding:4px 9px;border-radius:8px;border:1px solid ' + (on ? '#6366f1' : '#2a3556') + ';background:' + (on ? 'rgba(99,102,241,.25)' : '#0b1120') + ';cursor:pointer">' + pp + '</button>';
           }).join('');
         }
-        function opBtns() {
-          return [['+', 'บวก (+)'], ['-', 'ลบ (−)']].map(function (o) {
-            var on = selOps.indexOf(o[0]) >= 0;
-            return '<button type="button" class="sw_op" data-o="' + o[0] + '" style="padding:6px 12px;border-radius:8px;border:1px solid ' + (on ? '#6366f1' : '#2a3556') + ';background:' + (on ? 'rgba(99,102,241,.25)' : '#0b1120') + ';color:#e6ebf7;cursor:pointer">' + o[1] + '</button>';
-          }).join('');
+        var AR_ = [['+', 'บวก (+)'], ['-', 'ลบ (−)'], ['x', 'คูณ (×)'], ['/', 'หาร (÷)']];
+        var POP_ = [['+', 'บวก (+)'], ['-', 'ลบ (−)']];
+
+        function bindTgl(wrapId, list, sel) {
+          document.getElementById(wrapId).addEventListener('click', function (e) {
+            var b = e.target.closest ? e.target.closest('button[data-o]') : null; if (!b) return;
+            var o = b.getAttribute('data-o'); var i = sel.indexOf(o);
+            if (i >= 0) { if (sel.length > 1) sel.splice(i, 1); } else sel.push(o);
+            var on = sel.indexOf(o) >= 0;
+            b.style.borderColor = on ? '#6366f1' : '#2a3556'; b.style.background = on ? 'rgba(99,102,241,.25)' : '#0b1120';
+          });
         }
 
         svc.swal.fire(Object.assign({
@@ -134,46 +148,43 @@
           html:
             '<div style="text-align:left">' +
               '<label style="font-size:.85rem;color:#9aa8c8">ชื่อบทเรียน</label>' +
-              '<input id="sw_cn" style="' + INP + '" value="' + esc(editing ? c.name : '') + '" placeholder="เช่น การนับเพิ่มและการใช้รูปภาพ">' +
-              '<label style="font-size:.85rem;color:#9aa8c8">ไอคอน (Tabler เช่น ti-photo)</label>' +
+              '<input id="sw_cn" style="' + INP + '" value="' + esc(editing ? c.name : '') + '" placeholder="เช่น การบวกจำนวนสองหลัก">' +
+              '<label style="font-size:.85rem;color:#9aa8c8">ไอคอน (Tabler เช่น ti-plus)</label>' +
               '<input id="sw_ci" style="' + INP + '" value="' + esc(editing ? (c.icon || 'ti-file') : 'ti-file') + '">' +
               '<label style="font-size:.85rem;color:#9aa8c8">ชนิดโจทย์</label>' +
               '<select id="sw_cg" style="' + INP + '">' + genOptions(curGen) + '</select>' +
-              '<div id="sw_opsWrap">' +
-                '<label style="font-size:.85rem;color:#9aa8c8">ตัวดำเนินการ (เฉพาะบวกลบคูณหาร เช่น +,-,x,/)</label>' +
-                '<input id="sw_co" style="' + INP + '" value="' + esc(editing ? (c.ops || '') : '') + '" placeholder="เว้นว่างได้ถ้าไม่ใช่บวกลบคูณหาร">' +
+              '<div id="sw_arithWrap" style="display:none">' +
+                '<label style="font-size:.85rem;color:#9aa8c8">การดำเนินการ (เลือกได้หลายอย่าง)</label>' +
+                '<div id="sw_ar" style="display:flex;flex-wrap:wrap;gap:8px;margin:.35rem 0 .4rem">' + tglBtns(AR_, selAr, 'sw_arop') + '</div>' +
               '</div>' +
               '<div id="sw_picWrap" style="display:none">' +
                 '<label style="font-size:.85rem;color:#9aa8c8">เลือกรูปภาพที่จะใช้ (เลือกได้หลายรูป)</label>' +
                 '<div id="sw_pics" style="display:flex;flex-wrap:wrap;gap:6px;margin:.35rem 0 .7rem">' + picBtns() + '</div>' +
                 '<label style="font-size:.85rem;color:#9aa8c8">การดำเนินการ</label>' +
-                '<div id="sw_ops" style="display:flex;gap:8px;margin:.35rem 0 .7rem">' + opBtns() + '</div>' +
+                '<div id="sw_pop" style="display:flex;gap:8px;margin:.35rem 0 .7rem">' + tglBtns(POP_, selPicOps, 'sw_pop_b') + '</div>' +
                 '<label style="font-size:.85rem;color:#9aa8c8">คำชี้แจง</label>' +
                 '<input id="sw_instr" style="' + INP + '" value="' + esc(instr0) + '" placeholder="เช่น นับจำนวนสิ่งของในแต่ละกลุ่ม แล้วหาผลรวม">' +
               '</div>' +
+              '<div id="sw_noOps" style="display:none;font-size:.82rem;color:#9aa8c8;margin-top:.3rem">ชนิดนี้สร้างโจทย์ให้อัตโนมัติ ไม่ต้องตั้งตัวดำเนินการ</div>' +
             '</div>',
           showCancelButton: true, confirmButtonText: editing ? 'บันทึก' : 'เพิ่ม', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#6366f1',
           focusConfirm: false,
           didOpen: function () {
             var sel = document.getElementById('sw_cg');
             function toggle() {
-              var pic = sel.value === 'picture';
-              document.getElementById('sw_picWrap').style.display = pic ? 'block' : 'none';
-              document.getElementById('sw_opsWrap').style.display = pic ? 'none' : 'block';
+              var v = sel.value;
+              document.getElementById('sw_arithWrap').style.display = v === 'arith' ? 'block' : 'none';
+              document.getElementById('sw_picWrap').style.display = v === 'picture' ? 'block' : 'none';
+              document.getElementById('sw_noOps').style.display = (v === 'arith' || v === 'picture') ? 'none' : 'block';
             }
             sel.addEventListener('change', toggle); toggle();
+            bindTgl('sw_ar', AR_, selAr);
+            bindTgl('sw_pop', POP_, selPicOps);
             document.getElementById('sw_pics').addEventListener('click', function (e) {
               var b = e.target.closest ? e.target.closest('.sw_pic') : null; if (!b) return;
               var pp = b.getAttribute('data-p'); var i = selPics.indexOf(pp);
               if (i >= 0) selPics.splice(i, 1); else selPics.push(pp);
               var on = selPics.indexOf(pp) >= 0;
-              b.style.borderColor = on ? '#6366f1' : '#2a3556'; b.style.background = on ? 'rgba(99,102,241,.25)' : '#0b1120';
-            });
-            document.getElementById('sw_ops').addEventListener('click', function (e) {
-              var b = e.target.closest ? e.target.closest('.sw_op') : null; if (!b) return;
-              var o = b.getAttribute('data-o'); var i = selOps.indexOf(o);
-              if (i >= 0) { if (selOps.length > 1) selOps.splice(i, 1); } else selOps.push(o);
-              var on = selOps.indexOf(o) >= 0;
               b.style.borderColor = on ? '#6366f1' : '#2a3556'; b.style.background = on ? 'rgba(99,102,241,.25)' : '#0b1120';
             });
           },
@@ -184,10 +195,14 @@
             var icon = (document.getElementById('sw_ci').value || 'ti-file').trim();
             if (gen === 'picture') {
               if (!selPics.length) { window.Swal.showValidationMessage('เลือกรูปอย่างน้อย 1 รูป'); return false; }
-              if (!selOps.length) { window.Swal.showValidationMessage('เลือกการดำเนินการอย่างน้อย 1 อย่าง'); return false; }
-              return { picture: true, chapterName: name, icon: icon, gen: gen, ops: selOps.join(','), lv: { pics: selPics.slice(), instruction: (document.getElementById('sw_instr').value || '').trim() } };
+              if (!selPicOps.length) { window.Swal.showValidationMessage('เลือกการดำเนินการอย่างน้อย 1 อย่าง'); return false; }
+              return { picture: true, chapterName: name, icon: icon, gen: gen, ops: selPicOps.join(','), lv: { pics: selPics.slice(), instruction: (document.getElementById('sw_instr').value || '').trim() } };
             }
-            return { chapterName: name, icon: icon, gen: gen, ops: (document.getElementById('sw_co').value || '').trim() };
+            if (gen === 'arith') {
+              if (!selAr.length) { window.Swal.showValidationMessage('เลือกการดำเนินการอย่างน้อย 1 อย่าง'); return false; }
+              return { chapterName: name, icon: icon, gen: gen, ops: selAr.join(',') };
+            }
+            return { chapterName: name, icon: icon, gen: gen, ops: '' };
           }
         }, svc.swalDark)).then(function (r) {
           if (!r.isConfirmed) return;
