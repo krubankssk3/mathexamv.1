@@ -124,6 +124,7 @@
         if (!st.current) { svc.toast('warning', 'ยังไม่มีชุด'); return; }
         svc.swal.fire(Object.assign({ title: 'พิมพ์ใบงาน', icon: 'question', showCancelButton: true, confirmButtonText: 'พิมพ์พร้อมเฉลย', cancelButtonText: 'เฉพาะใบงาน', confirmButtonColor: '#6366f1', cancelButtonColor: '#334155' }, svc.swalDark))
           .then(function (r) {
+            if (!r.isConfirmed && r.dismiss !== 'cancel') return; // ปิดด้วย ESC/คลิกพื้นหลัง = ไม่พิมพ์
             var c = st.current;
             svc.printNode(svc.examSheetHTML({ title: c.title, subjectName: c.subjectName, level: c.level, setId: c.setId, problems: c.problems, cols: (c.picture ? 1 : c.cols), withKey: r.isConfirmed, instr: c.instr }));
           });
