@@ -72,7 +72,8 @@
         var c = $('#chapters', host); c.innerHTML = '';
         gradeOf(st.gradeId).chapters.forEach(function (ch) {
           var el = document.createElement('button'); el.className = 'tile' + (ch.id === st.chapterId ? ' on' : '');
-          el.innerHTML = '<div class="ic"><i class="ti ' + ch.icon + '"></i></div><div class="font-display" style="font-weight:600;margin-top:8px;font-size:.92rem;line-height:1.2">' + ch.name + '</div>';
+          var ico = /^https?:\/\//.test(String(ch.icon || '')) ? '<img src="' + ch.icon + '" style="width:24px;height:24px;object-fit:contain">' : '<i class="ti ' + (ch.icon || 'ti-file') + '"></i>';
+          el.innerHTML = '<div class="ic">' + ico + '</div><div class="font-display" style="font-weight:600;margin-top:8px;font-size:.92rem;line-height:1.2">' + ch.name + '</div>';
           el.onclick = function () { st.chapterId = ch.id; drawChapters(); setTitle(); build(true); };
           c.appendChild(el);
         });
