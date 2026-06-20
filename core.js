@@ -186,9 +186,9 @@
         else { ans = a + b; sym = '+'; }
         var q = '<span class="picrow">' +
           '<span class="picgrp"><span class="pics">' + rep(pic, a) + '</span><span class="pbox"></span></span>' +
-          '<span class="pop">' + sym + '</span>' +
+          '<span class="pico">' + sym + '</span>' +
           '<span class="picgrp"><span class="pics">' + rep(pic, b) + '</span><span class="pbox"></span></span>' +
-          '<span class="pop">=</span>' +
+          '<span class="pico">=</span>' +
           '<span class="pbox big"></span></span>';
         out.push({ q: q, a: String(ans), n: ans });
       }
