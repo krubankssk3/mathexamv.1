@@ -105,8 +105,18 @@
     return sheet + key;
   }
   function printNode(html) {
-    var host = $('#host'); var keep = host.innerHTML; host.innerHTML = html;
-    setTimeout(function () { window.print(); host.innerHTML = keep; }, 200);
+    var area = document.getElementById('printArea');
+    if (!area) { area = document.createElement('div'); area.id = 'printArea'; document.body.appendChild(area); }
+    area.innerHTML = html;
+    document.body.classList.add('printing');
+    function cleanup() {
+      area.innerHTML = '';
+      document.body.classList.remove('printing');
+      window.removeEventListener('afterprint', cleanup);
+    }
+    window.addEventListener('afterprint', cleanup);
+    setTimeout(function () { window.print(); }, 150);
+    setTimeout(cleanup, 60000); // กันพลาด ถ้า afterprint ไม่ทำงาน
   }
 
   /* ---------- เครื่องสุ่มโจทย์ฝั่ง client (ลื่น ไม่ต้องรอ GAS) ---------- */
