@@ -181,8 +181,11 @@
     .no-print,.bg-fx,.site-foot,.topbar,.sidebar,.mnav{display:none!important}
     .shell{grid-template-columns:1fr}
     .stage{background:#fff;border:none;padding:0;overflow:visible}
-    .sheet{box-shadow:none;max-width:none;margin:0;padding:0;page-break-after:always}
+    .sheet{box-shadow:none;max-width:none;margin:0;padding:0}
     .key-sheet{page-break-before:always}
+    #printArea{margin:0;padding:0}
+    .pop{animation:none!important;opacity:1!important;transform:none!important}
+    .reveal{opacity:1!important;transform:none!important}
     body.printing > *:not(#printArea){display:none!important}
     body.printing #printArea{display:block!important}
   }
