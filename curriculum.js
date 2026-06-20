@@ -1,167 +1,305 @@
-/*** EduForge — Curriculum.gs ***********************************************
- * อ่านโครงสร้าง วิชา > ชั้น > บท จากชีต Curriculum แล้วประกอบเป็นต้นไม้
- * และสร้างโจทย์ของบทที่เลือกโดยเรียก GEN[gen]
- ***************************************************************************/
+/*** EduForge plugin — จัดการหลักสูตร (admin) — เพิ่ม/แก้ไข/ลบ ชั้นและบทเรียน ***/
+(function () {
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return [].slice.call((r || document).querySelectorAll(s)); };
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+  var INP = 'width:100%;margin:.3rem 0 .2rem;padding:.6rem .7rem;border-radius:8px;background:#0b1120;color:#e6ebf7;border:1px solid #2a3556;font-family:Sarabun,sans-serif;font-size:.95rem;box-sizing:border-box';
 
-function getCurriculumTree_() {
-  var rows = rows_(CFG.SHEETS.CURRICULUM).filter(function (r) {
-    return String(r.enabled).toUpperCase() !== 'FALSE' && r.chapterId;
-  });
-  var byGrade = {};
-  var order = [];
-  rows.forEach(function (r) {
-    if (!byGrade[r.gradeId]) {
-      byGrade[r.gradeId] = { id: r.gradeId, name: r.gradeName, order: Number(r.gradeOrder) || 0, chapters: [] };
-      order.push(r.gradeId);
+  window.Platform.register({
+    id: 'curriculum',
+    mount: function (host, svc, P) {
+      var data = { grades: [], genTypes: [] };
+      var activeGid = null;
+
+      host.innerHTML =
+        '<div class="panel" style="padding:20px">' +
+          '<div style="display:flex;align-items:center;margin-bottom:14px">' +
+            '<div><div class="eyebrow">จัดการหลักสูตร</div>' +
+            '<p style="color:var(--muted);font-size:.86rem;margin:2px 0 0">เพิ่ม/แก้ไข/ลบ ชั้นและบทเรียน — บทใหม่จะขึ้นใน Node รายชั้นทันที</p></div>' +
+            '<button class="btn btn-ghost" id="cReload" style="margin-left:auto;margin-right:8px;padding:.5rem .8rem"><i class="ti ti-refresh"></i></button>' +
+            '<button class="btn btn-accent" id="cAddGrade"><i class="ti ti-plus"></i> เพิ่มชั้นใหม่</button>' +
+          '</div>' +
+          '<div id="cGrades" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px"></div>' +
+          '<div id="cBody"></div>' +
+        '</div>';
+
+      function genOptions(sel) {
+        return data.genTypes.map(function (g) {
+          return '<option value="' + g.id + '"' + (g.id === sel ? ' selected' : '') + '>' + esc(g.label) + '</option>';
+        }).join('');
+      }
+
+      // อัปเดต curriculum ในแอป (เฉพาะบทที่เปิด) เพื่อให้ Node รายชั้นตรงกับของจริงทันที
+      function refreshLocalCurriculum() {
+        var grades = data.grades.map(function (g) {
+          return {
+            id: g.id, name: g.name, order: g.order,
+            chapters: g.chapters.filter(function (c) { return c.enabled; }).map(function (c) {
+              var lv = {}; if (c.lv) { try { lv = JSON.parse(c.lv); } catch (e) {} }
+              return { id: c.id, name: c.name, icon: c.icon || 'ti-file', gen: c.gen, ops: c.ops ? String(c.ops).split(',').map(function (s) { return s.trim(); }) : [], lv: lv };
+            })
+          };
+        }).filter(function (g) { return g.chapters.length; });
+        P.curriculum = { subject: 'คณิตศาสตร์', grades: grades };
+      }
+
+      function renderGradeChips() {
+        var box = $('#cGrades', host); box.innerHTML = '';
+        if (!data.grades.length) { box.innerHTML = '<span style="color:var(--muted)">ยังไม่มีชั้น — กด “เพิ่มชั้นใหม่”</span>'; return; }
+        data.grades.forEach(function (g) {
+          var b = document.createElement('button'); b.className = 'chip click'; b.style.whiteSpace = 'nowrap';
+          if (g.id === activeGid) { b.style.background = 'var(--accent)'; b.style.color = '#fff'; b.style.borderColor = 'transparent'; }
+          b.textContent = g.name + ' (' + g.chapters.length + ')';
+          b.onclick = function () { activeGid = g.id; render(); };
+          box.appendChild(b);
+        });
+      }
+
+      function renderBody() {
+        var body = $('#cBody', host); body.innerHTML = '';
+        var g = data.grades.filter(function (x) { return x.id === activeGid; })[0];
+        if (!g) { body.innerHTML = '<p style="color:var(--muted)">เลือกชั้นด้านบน หรือเพิ่มชั้นใหม่</p>'; return; }
+
+        var rows = g.chapters.map(function (c) {
+          var label = (data.genTypes.filter(function (t) { return t.id === c.gen; })[0] || {}).label || c.gen;
+          return '<tr>' +
+            '<td><i class="ti ' + esc(c.icon || 'ti-file') + '" style="margin-right:6px;color:var(--accent2)"></i>' + esc(c.name) + (c.ops ? ' <span style="color:var(--muted);font-size:.8rem">[' + esc(c.ops) + ']</span>' : '') + '</td>' +
+            '<td>' + esc(label) + '</td>' +
+            '<td style="text-align:center">' + (c.enabled ? '<span style="color:var(--ok)">เปิด</span>' : '<span style="color:var(--muted)">ปิด</span>') + '</td>' +
+            '<td style="text-align:center;white-space:nowrap">' +
+              '<button class="btn btn-ghost cEdit" data-id="' + esc(c.id) + '" style="padding:.35rem .5rem"><i class="ti ti-edit"></i></button> ' +
+              '<button class="btn btn-ghost cToggle" data-id="' + esc(c.id) + '" data-en="' + (c.enabled ? '1' : '0') + '" style="padding:.35rem .5rem"><i class="ti ' + (c.enabled ? 'ti-eye-off' : 'ti-eye') + '"></i></button> ' +
+              '<button class="btn btn-ghost cDel" data-id="' + esc(c.id) + '" data-name="' + esc(c.name) + '" style="padding:.35rem .5rem;color:var(--bad)"><i class="ti ti-trash"></i></button>' +
+            '</td></tr>';
+        }).join('');
+
+        body.innerHTML =
+          '<div style="display:flex;align-items:center;margin-bottom:10px">' +
+            '<div class="font-display" style="font-size:1.15rem;font-weight:700">' + esc(g.name) + '</div>' +
+            '<button class="btn btn-ghost" id="cEditGrade" style="margin-left:12px;padding:.35rem .6rem"><i class="ti ti-edit"></i> แก้ชั้น</button>' +
+            '<button class="btn btn-ghost" id="cDelGrade" style="padding:.35rem .6rem;color:var(--bad)"><i class="ti ti-trash"></i> ลบชั้น</button>' +
+            '<button class="btn btn-accent" id="cAddChapter" style="margin-left:auto"><i class="ti ti-plus"></i> เพิ่มบทเรียน</button>' +
+          '</div>' +
+          '<div style="overflow:auto"><table class="adm"><thead><tr><th>บทเรียน</th><th>ชนิดโจทย์</th><th style="text-align:center">สถานะ</th><th style="text-align:center">จัดการ</th></tr></thead><tbody>' +
+          (rows || '<tr><td colspan="4" style="color:var(--muted)">ยังไม่มีบทเรียนในชั้นนี้</td></tr>') +
+          '</tbody></table></div>';
+
+        $('#cAddChapter', body).onclick = function () { chapterDialog(g, null); };
+        $('#cEditGrade', body).onclick = function () { gradeEditDialog(g); };
+        $('#cDelGrade', body).onclick = function () { delGrade(g); };
+        $$('.cEdit', body).forEach(function (b) { b.onclick = function () { var c = g.chapters.filter(function (x) { return x.id === b.dataset.id; })[0]; chapterDialog(g, c); }; });
+        $$('.cToggle', body).forEach(function (b) { b.onclick = function () { toggleChapter(b.dataset.id, b.dataset.en !== '1'); }; });
+        $$('.cDel', body).forEach(function (b) { b.onclick = function () { delChapter(b.dataset.id, b.dataset.name); }; });
+      }
+
+      function render() { renderGradeChips(); renderBody(); }
+
+      function load() {
+        svc.loading('กำลังโหลดหลักสูตร...');
+        svc.api('adminCurriculum').then(function (res) {
+          svc.done();
+          data = res || { grades: [], genTypes: [] };
+          if (!activeGid || !data.grades.filter(function (g) { return g.id === activeGid; })[0]) activeGid = data.grades[0] && data.grades[0].id;
+          refreshLocalCurriculum();
+          render();
+        }).catch(function (e) { svc.done(); svc.toast(String(e), 'error'); });
+      }
+
+      /* ---------- dialogs ---------- */
+      var PICS_ = ['\ud83c\udf4e','\u2b50','\u2764\ufe0f','\ud83c\udf38','\ud83d\ude97','\ud83c\udf53','\ud83e\uddc1','\u270f\ufe0f','\ud83d\udc30','\u26bd','\ud83c\udf4c','\ud83d\udc31','\ud83c\udf1f','\ud83c\udf88','\ud83c\udf69','\ud83d\udc36'];
+      function chapterDialog(g, c) {
+        var editing = !!c;
+        var lvObj = {}; if (editing && c.lv) { try { lvObj = JSON.parse(c.lv); } catch (e) {} }
+        var selPics = (lvObj.pics && lvObj.pics.slice()) || [];
+        var selOps = (editing && c.ops) ? String(c.ops).split(',').map(function (x) { return x.trim(); }).filter(Boolean) : ['+'];
+        var instr0 = lvObj.instruction || '';
+        var curGen = editing ? c.gen : (data.genTypes[0] && data.genTypes[0].id);
+
+        function picBtns() {
+          return PICS_.map(function (pp) {
+            var on = selPics.indexOf(pp) >= 0;
+            return '<button type="button" class="sw_pic" data-p="' + pp + '" style="font-size:20px;padding:4px 9px;border-radius:8px;border:1px solid ' + (on ? '#6366f1' : '#2a3556') + ';background:' + (on ? 'rgba(99,102,241,.25)' : '#0b1120') + ';cursor:pointer">' + pp + '</button>';
+          }).join('');
+        }
+        function opBtns() {
+          return [['+', 'บวก (+)'], ['-', 'ลบ (−)']].map(function (o) {
+            var on = selOps.indexOf(o[0]) >= 0;
+            return '<button type="button" class="sw_op" data-o="' + o[0] + '" style="padding:6px 12px;border-radius:8px;border:1px solid ' + (on ? '#6366f1' : '#2a3556') + ';background:' + (on ? 'rgba(99,102,241,.25)' : '#0b1120') + ';color:#e6ebf7;cursor:pointer">' + o[1] + '</button>';
+          }).join('');
+        }
+
+        svc.swal.fire(Object.assign({
+          title: editing ? 'แก้ไขบทเรียน' : 'เพิ่มบทเรียน — ' + g.name,
+          width: 560,
+          html:
+            '<div style="text-align:left">' +
+              '<label style="font-size:.85rem;color:#9aa8c8">ชื่อบทเรียน</label>' +
+              '<input id="sw_cn" style="' + INP + '" value="' + esc(editing ? c.name : '') + '" placeholder="เช่น การนับเพิ่มและการใช้รูปภาพ">' +
+              '<label style="font-size:.85rem;color:#9aa8c8">ไอคอน (Tabler เช่น ti-photo)</label>' +
+              '<input id="sw_ci" style="' + INP + '" value="' + esc(editing ? (c.icon || 'ti-file') : 'ti-file') + '">' +
+              '<label style="font-size:.85rem;color:#9aa8c8">ชนิดโจทย์</label>' +
+              '<select id="sw_cg" style="' + INP + '">' + genOptions(curGen) + '</select>' +
+              '<div id="sw_opsWrap">' +
+                '<label style="font-size:.85rem;color:#9aa8c8">ตัวดำเนินการ (เฉพาะบวกลบคูณหาร เช่น +,-,x,/)</label>' +
+                '<input id="sw_co" style="' + INP + '" value="' + esc(editing ? (c.ops || '') : '') + '" placeholder="เว้นว่างได้ถ้าไม่ใช่บวกลบคูณหาร">' +
+              '</div>' +
+              '<div id="sw_picWrap" style="display:none">' +
+                '<label style="font-size:.85rem;color:#9aa8c8">เลือกรูปภาพที่จะใช้ (เลือกได้หลายรูป)</label>' +
+                '<div id="sw_pics" style="display:flex;flex-wrap:wrap;gap:6px;margin:.35rem 0 .7rem">' + picBtns() + '</div>' +
+                '<label style="font-size:.85rem;color:#9aa8c8">การดำเนินการ</label>' +
+                '<div id="sw_ops" style="display:flex;gap:8px;margin:.35rem 0 .7rem">' + opBtns() + '</div>' +
+                '<label style="font-size:.85rem;color:#9aa8c8">คำชี้แจง</label>' +
+                '<input id="sw_instr" style="' + INP + '" value="' + esc(instr0) + '" placeholder="เช่น นับจำนวนสิ่งของในแต่ละกลุ่ม แล้วหาผลรวม">' +
+              '</div>' +
+            '</div>',
+          showCancelButton: true, confirmButtonText: editing ? 'บันทึก' : 'เพิ่ม', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#6366f1',
+          focusConfirm: false,
+          didOpen: function () {
+            var sel = document.getElementById('sw_cg');
+            function toggle() {
+              var pic = sel.value === 'picture';
+              document.getElementById('sw_picWrap').style.display = pic ? 'block' : 'none';
+              document.getElementById('sw_opsWrap').style.display = pic ? 'none' : 'block';
+            }
+            sel.addEventListener('change', toggle); toggle();
+            document.getElementById('sw_pics').addEventListener('click', function (e) {
+              var b = e.target.closest ? e.target.closest('.sw_pic') : null; if (!b) return;
+              var pp = b.getAttribute('data-p'); var i = selPics.indexOf(pp);
+              if (i >= 0) selPics.splice(i, 1); else selPics.push(pp);
+              var on = selPics.indexOf(pp) >= 0;
+              b.style.borderColor = on ? '#6366f1' : '#2a3556'; b.style.background = on ? 'rgba(99,102,241,.25)' : '#0b1120';
+            });
+            document.getElementById('sw_ops').addEventListener('click', function (e) {
+              var b = e.target.closest ? e.target.closest('.sw_op') : null; if (!b) return;
+              var o = b.getAttribute('data-o'); var i = selOps.indexOf(o);
+              if (i >= 0) { if (selOps.length > 1) selOps.splice(i, 1); } else selOps.push(o);
+              var on = selOps.indexOf(o) >= 0;
+              b.style.borderColor = on ? '#6366f1' : '#2a3556'; b.style.background = on ? 'rgba(99,102,241,.25)' : '#0b1120';
+            });
+          },
+          preConfirm: function () {
+            var name = (document.getElementById('sw_cn').value || '').trim();
+            if (!name) { window.Swal.showValidationMessage('กรอกชื่อบทเรียน'); return false; }
+            var gen = document.getElementById('sw_cg').value;
+            var icon = (document.getElementById('sw_ci').value || 'ti-file').trim();
+            if (gen === 'picture') {
+              if (!selPics.length) { window.Swal.showValidationMessage('เลือกรูปอย่างน้อย 1 รูป'); return false; }
+              if (!selOps.length) { window.Swal.showValidationMessage('เลือกการดำเนินการอย่างน้อย 1 อย่าง'); return false; }
+              return { picture: true, chapterName: name, icon: icon, gen: gen, ops: selOps.join(','), lv: { pics: selPics.slice(), instruction: (document.getElementById('sw_instr').value || '').trim() } };
+            }
+            return { chapterName: name, icon: icon, gen: gen, ops: (document.getElementById('sw_co').value || '').trim() };
+          }
+        }, svc.swalDark)).then(function (r) {
+          if (!r.isConfirmed) return;
+          var p = r.value;
+          var payload = editing ? { chapterId: c.id } : { gradeId: g.id };
+          payload.chapterName = p.chapterName; payload.icon = p.icon; payload.gen = p.gen; payload.ops = p.ops;
+          if (p.picture) payload.lv = p.lv;
+          svc.loading('กำลังบันทึก...');
+          svc.api(editing ? 'updateChapter' : 'addChapter', payload)
+            .then(function () { svc.done(); svc.toast(editing ? 'แก้ไขแล้ว' : 'เพิ่มบทเรียนแล้ว', 'success'); load(); })
+            .catch(function (e) { svc.done(); svc.toast(String(e), 'error'); });
+        });
+      }
+
+      function gradeAddDialog() {
+        svc.swal.fire(Object.assign({
+          title: 'เพิ่มชั้นใหม่',
+          html:
+            '<div style="text-align:left">' +
+              '<label style="font-size:.85rem;color:#9aa8c8">รหัสชั้น (อังกฤษ/ตัวเลข เช่น p7, m4)</label>' +
+              '<input id="sw_gid" style="' + INP + '" placeholder="p7">' +
+              '<label style="font-size:.85rem;color:#9aa8c8">ชื่อชั้น (เช่น ป.7)</label>' +
+              '<input id="sw_gname" style="' + INP + '" placeholder="ป.7">' +
+              '<hr style="border:none;border-top:1px solid #2a3556;margin:.7rem 0">' +
+              '<div style="font-size:.8rem;color:#9aa8c8;margin-bottom:.3rem">บทเรียนแรกของชั้นนี้</div>' +
+              '<input id="sw_cn" style="' + INP + '" placeholder="ชื่อบทเรียน เช่น การบวก">' +
+              '<select id="sw_cg" style="' + INP + '">' + genOptions('') + '</select>' +
+              '<input id="sw_co" style="' + INP + '" placeholder="ตัวดำเนินการ เช่น + (เว้นว่างได้)">' +
+            '</div>',
+          showCancelButton: true, confirmButtonText: 'เพิ่มชั้น', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#6366f1',
+          focusConfirm: false,
+          preConfirm: function () {
+            var gid = (document.getElementById('sw_gid').value || '').trim();
+            var gname = (document.getElementById('sw_gname').value || '').trim();
+            var cn = (document.getElementById('sw_cn').value || '').trim();
+            if (!/^[a-zA-Z0-9_]+$/.test(gid)) { window.Swal.showValidationMessage('รหัสชั้นเป็นภาษาอังกฤษ/ตัวเลขเท่านั้น'); return false; }
+            if (!gname) { window.Swal.showValidationMessage('กรอกชื่อชั้น'); return false; }
+            if (!cn) { window.Swal.showValidationMessage('กรอกชื่อบทเรียนแรก'); return false; }
+            return { gradeId: gid, gradeName: gname, chapterName: cn, gen: document.getElementById('sw_cg').value, ops: (document.getElementById('sw_co').value || '').trim() };
+          }
+        }, svc.swalDark)).then(function (r) {
+          if (!r.isConfirmed) return;
+          var p = r.value;
+          svc.loading('กำลังเพิ่มชั้น...');
+          svc.api('addChapter', { gradeId: p.gradeId, gradeName: p.gradeName, chapterName: p.chapterName, gen: p.gen, ops: p.ops, icon: 'ti-file' })
+            .then(function () { svc.done(); svc.toast('เพิ่มชั้นใหม่แล้ว', 'success'); activeGid = p.gradeId; load(); })
+            .catch(function (e) { svc.done(); svc.toast(String(e), 'error'); });
+        });
+      }
+
+      function gradeEditDialog(g) {
+        svc.swal.fire(Object.assign({
+          title: 'แก้ไขชั้น',
+          html:
+            '<div style="text-align:left">' +
+              '<label style="font-size:.85rem;color:#9aa8c8">ชื่อชั้น</label>' +
+              '<input id="sw_gn" style="' + INP + '" value="' + esc(g.name) + '">' +
+              '<label style="font-size:.85rem;color:#9aa8c8">ลำดับ (เลขน้อยขึ้นก่อน)</label>' +
+              '<input id="sw_go" type="number" style="' + INP + '" value="' + esc(g.order) + '">' +
+            '</div>',
+          showCancelButton: true, confirmButtonText: 'บันทึก', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#6366f1',
+          focusConfirm: false,
+          preConfirm: function () {
+            var n = (document.getElementById('sw_gn').value || '').trim();
+            if (!n) { window.Swal.showValidationMessage('กรอกชื่อชั้น'); return false; }
+            return { gradeName: n, gradeOrder: document.getElementById('sw_go').value };
+          }
+        }, svc.swalDark)).then(function (r) {
+          if (!r.isConfirmed) return;
+          svc.loading('กำลังบันทึก...');
+          svc.api('updateGrade', { gradeId: g.id, gradeName: r.value.gradeName, gradeOrder: r.value.gradeOrder })
+            .then(function () { svc.done(); svc.toast('แก้ไขชั้นแล้ว', 'success'); load(); })
+            .catch(function (e) { svc.done(); svc.toast(String(e), 'error'); });
+        });
+      }
+
+      function toggleChapter(id, enable) {
+        svc.loading('กำลังบันทึก...');
+        svc.api('updateChapter', { chapterId: id, enabled: enable })
+          .then(function () { svc.done(); load(); })
+          .catch(function (e) { svc.done(); svc.toast(String(e), 'error'); });
+      }
+
+      function delChapter(id, name) {
+        svc.swal.fire(Object.assign({
+          title: 'ลบบทเรียน?', html: 'ลบ “' + esc(name) + '” ออกจากหลักสูตรถาวร',
+          icon: 'warning', showCancelButton: true, confirmButtonText: 'ลบ', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#fb7185'
+        }, svc.swalDark)).then(function (r) {
+          if (!r.isConfirmed) return;
+          svc.loading('กำลังลบ...');
+          svc.api('deleteChapter', { chapterId: id })
+            .then(function () { svc.done(); svc.toast('ลบแล้ว', 'success'); load(); })
+            .catch(function (e) { svc.done(); svc.toast(String(e), 'error'); });
+        });
+      }
+
+      function delGrade(g) {
+        svc.swal.fire(Object.assign({
+          title: 'ลบทั้งชั้น?', html: 'ลบ “' + esc(g.name) + '” และบทเรียนทั้งหมด (' + g.chapters.length + ' บท) ถาวร',
+          icon: 'warning', showCancelButton: true, confirmButtonText: 'ลบทั้งชั้น', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#fb7185'
+        }, svc.swalDark)).then(function (r) {
+          if (!r.isConfirmed) return;
+          svc.loading('กำลังลบ...');
+          svc.api('deleteGrade', { gradeId: g.id })
+            .then(function () { svc.done(); svc.toast('ลบชั้นแล้ว', 'success'); activeGid = null; load(); })
+            .catch(function (e) { svc.done(); svc.toast(String(e), 'error'); });
+        });
+      }
+
+      $('#cReload', host).onclick = load;
+      $('#cAddGrade', host).onclick = gradeAddDialog;
+      load();
     }
-    var lv = {};
-    if (r.lv) { try { lv = JSON.parse(r.lv); } catch (e) { lv = {}; } }
-    byGrade[r.gradeId].chapters.push({
-      id: r.chapterId, name: r.chapterName, icon: r.icon || 'ti-file',
-      gen: r.gen, ops: r.ops ? String(r.ops).split(',').map(function (s) { return s.trim(); }) : [], lv: lv
-    });
   });
-  var grades = order.map(function (id) { return byGrade[id]; })
-    .sort(function (a, b) { return a.order - b.order; });
-  return { subject: '\u0e04\u0e13\u0e34\u0e15\u0e28\u0e32\u0e2a\u0e15\u0e23\u0e4c', grades: grades };
-}
-
-function findChapterRow_(chapterId) {
-  return rows_(CFG.SHEETS.CURRICULUM).filter(function (r) {
-    return String(r.chapterId) === String(chapterId);
-  })[0];
-}
-
-// ประกอบ cfg จากบท: base ops + ค่า override ต่อระดับ (lv) แล้วเรียก generator
-function buildChapterProblems_(chapterId, level, count) {
-  var row = findChapterRow_(chapterId);
-  if (!row) throw '\u0e44\u0e21\u0e48\u0e1e\u0e1a\u0e1a\u0e17\u0e40\u0e23\u0e35\u0e22\u0e19\u0e19\u0e35\u0e49';
-  var gen = GEN[row.gen];
-  if (!gen) throw '\u0e44\u0e21\u0e48\u0e23\u0e39\u0e49\u0e08\u0e31\u0e01\u0e0a\u0e19\u0e34\u0e14\u0e42\u0e08\u0e17\u0e22\u0e4c: ' + row.gen;
-
-  var cfg = { level: level || 'easy', count: Math.max(4, Math.min(40, Number(count) || 12)) };
-  if (row.ops) cfg.ops = String(row.ops).split(',').map(function (s) { return s.trim(); });
-
-  var lv = {};
-  if (row.lv) { try { lv = JSON.parse(row.lv); } catch (e) { lv = {}; } }
-  var ov = lv[cfg.level];
-  if (ov) for (var k in ov) cfg[k] = ov[k];
-
-  return gen(cfg);
-}
-
-/*** ===== จัดการหลักสูตร (เฉพาะแอดมิน) ===== ***/
-var GEN_TYPES_ = ['arith', 'fraction', 'equation', 'percent', 'measure', 'word', 'picture'];
-var GEN_LABELS_ = {
-  arith: 'บวก-ลบ-คูณ-หาร', fraction: 'เศษส่วน', equation: 'สมการ',
-  percent: 'ร้อยละ', measure: 'หน่วยวัด', word: 'โจทย์ปัญหา', picture: 'นับรูปภาพ (บวก/ลบ)'
-};
-
-function genTypeList_() {
-  return GEN_TYPES_.map(function (id) { return { id: id, label: GEN_LABELS_[id] }; });
-}
-
-// คืนโครงหลักสูตรทั้งหมด (รวมบทที่ปิดอยู่) สำหรับหน้าจัดการ
-function adminCurriculum_(token) {
-  requireAdmin_(token);
-  var rows = rows_(CFG.SHEETS.CURRICULUM).filter(function (r) { return r.chapterId; });
-  var byGrade = {}, order = [];
-  rows.forEach(function (r) {
-    if (!byGrade[r.gradeId]) {
-      byGrade[r.gradeId] = { id: r.gradeId, name: r.gradeName, order: Number(r.gradeOrder) || 0, chapters: [] };
-      order.push(r.gradeId);
-    }
-    byGrade[r.gradeId].chapters.push({
-      id: r.chapterId, name: r.chapterName, icon: r.icon || 'ti-file', gen: r.gen,
-      ops: r.ops ? String(r.ops) : '', lv: r.lv ? String(r.lv) : '',
-      enabled: String(r.enabled).toUpperCase() !== 'FALSE'
-    });
-  });
-  var grades = order.map(function (id) { return byGrade[id]; })
-    .sort(function (a, b) { return a.order - b.order; });
-  return { grades: grades, genTypes: genTypeList_() };
-}
-
-function normOps_(ops) { return Array.isArray(ops) ? ops.join(',') : String(ops || ''); }
-function normLv_(lv) { return (lv && typeof lv === 'object') ? JSON.stringify(lv) : String(lv || ''); }
-
-// เพิ่มบทเรียน (ถ้า gradeId ใหม่ = สร้างชั้นใหม่ให้เลย)
-function addChapter_(token, p) {
-  requireAdmin_(token);
-  var gradeId = String(p.gradeId || '').trim();
-  var chapterName = String(p.chapterName || '').trim();
-  var gen = String(p.gen || '').trim();
-  if (!gradeId) throw 'ต้องระบุชั้น';
-  if (!chapterName) throw 'ต้องระบุชื่อบทเรียน';
-  if (GEN_TYPES_.indexOf(gen) < 0) throw 'ชนิดโจทย์ไม่ถูกต้อง';
-
-  var existing = rows_(CFG.SHEETS.CURRICULUM).filter(function (r) { return String(r.gradeId) === gradeId; });
-  var gradeName, gradeOrder;
-  if (existing.length) { gradeName = existing[0].gradeName; gradeOrder = existing[0].gradeOrder; }
-  else {
-    gradeName = String(p.gradeName || '').trim() || gradeId;
-    if (p.gradeOrder !== undefined && p.gradeOrder !== '') gradeOrder = p.gradeOrder;
-    else {
-      var maxO = 0;
-      rows_(CFG.SHEETS.CURRICULUM).forEach(function (r) { var o = Number(r.gradeOrder) || 0; if (o > maxO) maxO = o; });
-      gradeOrder = maxO + 1;
-    }
-  }
-
-  var chapterId = String(p.chapterId || '').trim() || (gradeId + '-' + Utilities.getUuid().replace(/-/g, '').slice(0, 6));
-  if (findChapterRow_(chapterId)) throw 'รหัสบทเรียนซ้ำ ลองใหม่อีกครั้ง';
-
-  ensureColumn_(CFG.SHEETS.CURRICULUM, 'enabled');
-  appendObj_(CFG.SHEETS.CURRICULUM, {
-    gradeId: gradeId, gradeName: gradeName, gradeOrder: gradeOrder,
-    chapterId: chapterId, chapterName: chapterName, icon: String(p.icon || 'ti-file'),
-    gen: gen, ops: normOps_(p.ops), lv: normLv_(p.lv), enabled: 'TRUE'
-  });
-  return { ok: true, chapterId: chapterId };
-}
-
-function updateChapter_(token, p) {
-  requireAdmin_(token);
-  var cid = String(p.chapterId || '');
-  if (!cid || !findChapterRow_(cid)) throw 'ไม่พบบทเรียน';
-  var patch = {};
-  if (p.chapterName !== undefined) patch.chapterName = String(p.chapterName);
-  if (p.icon !== undefined) patch.icon = String(p.icon);
-  if (p.gen !== undefined) { if (GEN_TYPES_.indexOf(String(p.gen)) < 0) throw 'ชนิดโจทย์ไม่ถูกต้อง'; patch.gen = String(p.gen); }
-  if (p.ops !== undefined) patch.ops = normOps_(p.ops);
-  if (p.lv !== undefined) patch.lv = normLv_(p.lv);
-  if (p.enabled !== undefined) patch.enabled = (p.enabled === true || String(p.enabled).toUpperCase() === 'TRUE') ? 'TRUE' : 'FALSE';
-  updateWhere_(CFG.SHEETS.CURRICULUM, 'chapterId', cid, patch);
-  return { ok: true };
-}
-
-function deleteChapter_(token, p) {
-  requireAdmin_(token);
-  var cid = String(p.chapterId || '');
-  if (!cid) throw 'ไม่พบบทเรียน';
-  deleteWhere_(CFG.SHEETS.CURRICULUM, 'chapterId', cid);
-  return { ok: true };
-}
-
-// แก้ชื่อ/ลำดับชั้น (อัปเดตทุกแถวของชั้นนั้น)
-function updateGrade_(token, p) {
-  requireAdmin_(token);
-  var gid = String(p.gradeId || '');
-  if (!gid) throw 'ไม่พบชั้น';
-  var patch = {};
-  if (p.gradeName !== undefined) patch.gradeName = String(p.gradeName);
-  if (p.gradeOrder !== undefined && p.gradeOrder !== '') patch.gradeOrder = p.gradeOrder;
-  var rs = rows_(CFG.SHEETS.CURRICULUM).filter(function (r) { return String(r.gradeId) === gid; });
-  rs.forEach(function (r) { updateWhere_(CFG.SHEETS.CURRICULUM, 'chapterId', r.chapterId, patch); });
-  return { ok: true, count: rs.length };
-}
-
-// ลบชั้นทั้งหมด (ลบทุกบทของชั้นนั้น)
-function deleteGrade_(token, p) {
-  requireAdmin_(token);
-  var gid = String(p.gradeId || '');
-  if (!gid) throw 'ไม่พบชั้น';
-  var n = 0;
-  while (deleteWhere_(CFG.SHEETS.CURRICULUM, 'gradeId', gid)) n++;
-  return { ok: true, count: n };
-}
+})();
