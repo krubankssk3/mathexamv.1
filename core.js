@@ -126,10 +126,10 @@
       var ops = (c.ops && c.ops.length) ? c.ops : ['+'];
       for (var i = 0; i < c.count; i++) {
         var op = pick(ops), a, b, ans, sym;
-        if (op === '+') { a = ri(addR[0], addR[1]); b = ri(addR[0], addR[1]); ans = a + b; sym = '+'; }
-        else if (op === '-') { a = ri(addR[0], addR[1]); b = ri(addR[0], a); ans = a - b; sym = '\u2212'; }
-        else if (op === 'x') { a = ri(2, mulM); b = ri(2, mulM); ans = a * b; sym = '\u00d7'; }
-        else { b = ri(2, mulM); ans = ri(2, mulM); a = b * ans; sym = '\u00f7'; }
+        if (op === '-') { a = ri(addR[0], addR[1]); b = ri(addR[0], a); ans = a - b; sym = '\u2212'; }
+        else if (op === 'x' || op === 'X' || op === '*' || op === '\u00d7') { a = ri(2, mulM); b = ri(2, mulM); ans = a * b; sym = '\u00d7'; }
+        else if (op === '/' || op === '\u00f7') { b = ri(2, mulM); ans = ri(2, mulM); a = b * ans; sym = '\u00f7'; }
+        else { a = ri(addR[0], addR[1]); b = ri(addR[0], addR[1]); ans = a + b; sym = '+'; }
         out.push({ q: a + ' ' + sym + ' ' + b + ' =', a: String(ans), n: ans });
       }
       return out;
