@@ -140,6 +140,22 @@
   .cmpwrap{display:inline-flex;align-items:center;gap:14px;font-size:21px;font-weight:600;vertical-align:middle}
   .cmpnum{min-width:36px;text-align:center}
   .cmpbox{display:inline-block;width:38px;height:38px;border:1.8px solid #2b2f3a;border-radius:8px}
+  /* แท่งฐานสิบ */
+  .blocks{display:inline-flex;align-items:flex-end;gap:3px}
+  .b-rod{width:10px;height:56px;background:linear-gradient(90deg,#f3c896,#e0a86b);border:1px solid #b07a4a;border-radius:2px}
+  .b-units{display:inline-flex;flex-direction:column-reverse;gap:2px;margin-left:5px}
+  .b-cube{width:10px;height:10px;background:linear-gradient(135deg,#f3c896,#e0a86b);border:1px solid #b07a4a;border-radius:2px}
+  /* ตารางเขียนเลข */
+  .nwtable{border:1.5px solid #2b2f3a;border-radius:8px;overflow:hidden;margin-top:6px}
+  .nwrow{display:flex;border-bottom:1.5px solid #2b2f3a}
+  .nwrow:last-child{border-bottom:none}
+  .nwhead{background:#eef2fb;font-weight:700;text-align:center;font-size:13.5px}
+  .nwc{flex:1;padding:10px 8px;border-right:1.5px solid #2b2f3a;display:flex;flex-direction:column;justify-content:center;gap:14px}
+  .nwc:last-child{border-right:none}
+  .nwpic{flex:0 0 34%;align-items:flex-start;position:relative}
+  .nwhead .nwc{justify-content:center;gap:0}
+  .nwno{position:absolute;top:4px;left:6px;font-family:'IBM Plex Mono';font-weight:600;color:var(--accent)}
+  .nwl{border-bottom:1.5px dotted #999;height:0}
   .ans-line{display:inline-block;border-bottom:1px solid #999;min-width:70px;margin-left:6px}
   .frac{display:inline-flex;flex-direction:column;text-align:center;vertical-align:middle;line-height:1;margin:0 2px}
   .frac span:first-child{border-bottom:1.5px solid currentColor;padding:0 4px}
@@ -200,6 +216,8 @@
     /* ให้ใบงานเต็มหน้า A4 มากขึ้น: เพิ่มฟอนต์/ระยะห่างตอนพิมพ์ */
     #printArea .sheet{font-size:15px;line-height:1.55}
     #printArea .qitem{min-height:var(--rowh,auto);margin:0;font-size:16px;align-items:flex-start}
+    #printArea .nwrow:not(.nwhead){min-height:36mm}
+    #printArea .nwhead{font-size:14px}
     #printArea .ans-line{min-width:90px}
     #printArea .instr{font-size:14px;padding:9px 13px}
     #printArea .exam-head img{width:54px;height:54px}
