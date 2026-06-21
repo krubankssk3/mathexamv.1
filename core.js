@@ -369,7 +369,7 @@
     order: function (c) {
       var R = c.range || ({ easy: [1, 20], medium: [10, 50], hard: [20, 100] }[c.level]) || [1, 20];
       var dir = c.dir || 'asc';
-      var K = 4, max = Math.min(50, c.count);
+      var K = Math.max(3, Math.min(6, c.k || 4)), max = Math.min(50, c.count);
       function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
       var out = [];
       for (var i = 0; i < max; i++) {
