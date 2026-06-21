@@ -392,21 +392,26 @@
       var max = Math.min(20, c.count);
       function pad(x) { return x < 10 ? '0' + x : '' + x; }
       function clockSVG(h, m) {
-        var cx = 50, cy = 50, nums = '', i, a;
+        var cx = 50, cy = 50, nums = '', ticks = '', i, a, k, ta, inR;
+        for (k = 0; k < 60; k++) {
+          ta = k * 6 * Math.PI / 180; inR = (k % 5 === 0) ? 41 : 44.5;
+          ticks += '<line x1="' + (cx + Math.sin(ta) * 47).toFixed(1) + '" y1="' + (cy - Math.cos(ta) * 47).toFixed(1) + '" x2="' + (cx + Math.sin(ta) * inR).toFixed(1) + '" y2="' + (cy - Math.cos(ta) * inR).toFixed(1) + '" stroke="#2b2f3a" stroke-width="' + (k % 5 === 0 ? '1.5' : '0.6') + '"/>';
+        }
         for (i = 1; i <= 12; i++) {
           a = i * 30 * Math.PI / 180;
-          nums += '<text x="' + (cx + Math.sin(a) * 37).toFixed(1) + '" y="' + (cy - Math.cos(a) * 37 + 3).toFixed(1) + '" font-size="8" text-anchor="middle" font-family="Arial" font-weight="700" fill="#2b2f3a">' + i + '</text>';
+          nums += '<text x="' + (cx + Math.sin(a) * 34).toFixed(1) + '" y="' + (cy - Math.cos(a) * 34 + 3).toFixed(1) + '" font-size="8" text-anchor="middle" font-family="Arial" font-weight="700" fill="#2b2f3a">' + i + '</text>';
         }
         var ha = ((h % 12) * 30 + m * 0.5) * Math.PI / 180, ma = (m * 6) * Math.PI / 180;
         return '<svg class="clock" viewBox="0 0 100 100">' +
-          '<circle cx="50" cy="50" r="47" fill="#fff" stroke="#2b2f3a" stroke-width="2.5"/>' + nums +
-          '<line x1="50" y1="50" x2="' + (cx + Math.sin(ha) * 23).toFixed(1) + '" y2="' + (cy - Math.cos(ha) * 23).toFixed(1) + '" stroke="#2b2f3a" stroke-width="3.5" stroke-linecap="round"/>' +
-          '<line x1="50" y1="50" x2="' + (cx + Math.sin(ma) * 33).toFixed(1) + '" y2="' + (cy - Math.cos(ma) * 33).toFixed(1) + '" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round"/>' +
+          '<circle cx="50" cy="50" r="47" fill="#fff" stroke="#2b2f3a" stroke-width="2.5"/>' + ticks + nums +
+          '<line x1="50" y1="50" x2="' + (cx + Math.sin(ha) * 22).toFixed(1) + '" y2="' + (cy - Math.cos(ha) * 22).toFixed(1) + '" stroke="#2b2f3a" stroke-width="3.5" stroke-linecap="round"/>' +
+          '<line x1="50" y1="50" x2="' + (cx + Math.sin(ma) * 32).toFixed(1) + '" y2="' + (cy - Math.cos(ma) * 32).toFixed(1) + '" stroke="#3b82f6" stroke-width="2.3" stroke-linecap="round"/>' +
           '<circle cx="50" cy="50" r="3" fill="#2b2f3a"/></svg>';
       }
       var out = [];
       for (var i = 0; i < max; i++) {
-        var h = ri(1, 12), m = (ri(0, 1) ? 0 : 30);
+        var step = c.step || 5;
+        var h = ri(1, 12), m = step === 30 ? ri(0, 1) * 30 : (step === 1 ? ri(0, 59) : ri(0, 11) * 5);
         var nightH = (h === 12) ? 24 : h + 12;
         var day = pad(h) + ':' + pad(m), night = (nightH === 24 ? '24' : pad(nightH)) + ':' + pad(m);
         var ans, body;
