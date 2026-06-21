@@ -99,8 +99,9 @@
     var total = o.problems.length;
     var isTall = o.problems.some(function (p) { return p.tall; }); // โจทย์รูป/นับ (สูง)
     var isNum = o.problems.length && o.problems[0].numtable;        // ตารางเขียนเลข
+    var isOrd = o.problems.length && o.problems[0].ord;             // เรียงลำดับ (กล่อง อาจ 2 บรรทัด)
     if (isNum) cols = 1;
-    var perCol = isNum ? 3 : (isTall ? 5 : 15);    // numwrite แถวสูง (4 บรรทัด) จำกัด 3/หน้า กันตก
+    var perCol = isNum ? 3 : (isOrd ? 8 : (isTall ? 5 : 15));    // numwrite แถวสูง (4 บรรทัด) จำกัด 3/หน้า กันตก
     var perPage = perCol * cols;
 
     function qitemHTML(p, i) {
@@ -362,6 +363,26 @@
       for (var i = 0; i < max; i++) {
         var n = ri(R[0], R[1]);
         out.push({ q: blocks(n), a: n + ' / ' + thaiNum(n) + ' / ' + thaiWord(n), n: n, numtable: true });
+      }
+      return out;
+    },
+    order: function (c) {
+      var R = c.range || ({ easy: [1, 20], medium: [10, 50], hard: [20, 100] }[c.level]) || [1, 20];
+      var dir = c.dir || 'asc';
+      var K = 4, max = Math.min(50, c.count);
+      function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+      var out = [];
+      for (var i = 0; i < max; i++) {
+        var d = dir === 'mix' ? (ri(0, 1) ? 'asc' : 'desc') : dir;
+        var set = {}, nums = [], guard = 0;
+        while (nums.length < K && guard++ < 300) { var v = ri(R[0], R[1]); if (!set[v]) { set[v] = 1; nums.push(v); } }
+        var given = shuffle(nums.slice());
+        var sorted = nums.slice().sort(function (a, b) { return a - b; });
+        if (d === 'desc') sorted.reverse();
+        var label = d === 'asc' ? 'น้อย→มาก' : 'มาก→น้อย';
+        var boxes = ''; for (var b = 0; b < nums.length; b++) boxes += '<span class="ordbox"></span>';
+        var q = '<span class="ordwrap"><span class="ordnums">' + given.join('&nbsp;&nbsp;') + '</span><span class="ordlbl">' + label + '</span><span class="ordboxes">' + boxes + '</span></span>';
+        out.push({ q: q, a: sorted.join(', '), n: sorted[0], noline: true, ord: true });
       }
       return out;
     }
