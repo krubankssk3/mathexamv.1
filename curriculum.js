@@ -124,6 +124,7 @@
         var selRange = (lvObj.range && lvObj.range.join('-')) || (curGen === 'numwrite' ? '21-100' : '10-20');
         var selColor = lvObj.color || 'orange';
         var selDir = lvObj.dir || 'asc';
+        var selK = lvObj.k || 4;
         var instr0 = lvObj.instruction || '';
 
         function tglBtns(list, sel, cls) {
@@ -212,6 +213,10 @@
                   '<option value="desc"' + (selDir === 'desc' ? ' selected' : '') + '>มาก → น้อย</option>' +
                   '<option value="mix"' + (selDir === 'mix' ? ' selected' : '') + '>คละ (สุ่มทิศแต่ละข้อ)</option>' +
                 '</select>' +
+                '<label style="font-size:.85rem;color:#9aa8c8">จำนวนตัวเลขต่อข้อ</label>' +
+                '<select id="sw_k" style="' + INP + '">' +
+                  [3, 4, 5, 6].map(function (kk) { return '<option value="' + kk + '"' + (selK === kk ? ' selected' : '') + '>' + kk + ' จำนวน</option>'; }).join('') +
+                '</select>' +
               '</div>' +
               '<div id="sw_noOps" style="display:none;font-size:.82rem;color:#9aa8c8;margin-top:.3rem">ชนิดนี้สร้างโจทย์ให้อัตโนมัติ ไม่ต้องตั้งตัวดำเนินการ</div>' +
             '</div>',
@@ -273,6 +278,7 @@
               var orr = (document.getElementById('sw_range').value || '10-20').split('-').map(Number);
               lvObj.range = orr;
               lvObj.dir = document.getElementById('sw_dir').value || 'asc';
+              lvObj.k = +document.getElementById('sw_k').value || 4;
               return { chapterName: name, icon: icon, gen: gen, ops: '', lv: lvObj, hasLv: true };
             }
             return { chapterName: name, icon: icon, gen: gen, ops: '' };
