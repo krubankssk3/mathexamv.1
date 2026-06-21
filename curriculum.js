@@ -120,6 +120,8 @@
         var selPicOps = (curGen === 'picture' && opsArr.length) ? opsArr.slice() : ['+'];
         var selAr = (curGen === 'arith' && opsArr.length) ? opsArr.slice() : ['+'];
         var selCarry = lvObj.carry || 'any';
+        var RANGES_ = [['1-20', '1–20'], ['10-20', '10–20'], ['21-100', '21–100'], ['1-100', '1–100'], ['100-1000', '100–1000']];
+        var selRange = (lvObj.range && lvObj.range.join('-')) || '10-20';
         var instr0 = lvObj.instruction || '';
 
         function tglBtns(list, sel, cls) {
@@ -185,6 +187,10 @@
                 '<label style="font-size:.85rem;color:#9aa8c8">คำชี้แจง</label>' +
                 '<input id="sw_instr" style="' + INP + '" value="' + esc(instr0) + '" placeholder="เช่น นับจำนวนสิ่งของในแต่ละกลุ่ม แล้วหาผลรวม">' +
               '</div>' +
+              '<div id="sw_rangeWrap" style="display:none">' +
+                '<label style="font-size:.85rem;color:#9aa8c8">ช่วงตัวเลขที่ใช้เปรียบเทียบ</label>' +
+                '<select id="sw_range" style="' + INP + '">' + RANGES_.map(function (r) { return '<option value="' + r[0] + '"' + (selRange === r[0] ? ' selected' : '') + '>' + r[1] + '</option>'; }).join('') + '</select>' +
+              '</div>' +
               '<div id="sw_noOps" style="display:none;font-size:.82rem;color:#9aa8c8;margin-top:.3rem">ชนิดนี้สร้างโจทย์ให้อัตโนมัติ ไม่ต้องตั้งตัวดำเนินการ</div>' +
             '</div>',
           showCancelButton: true, confirmButtonText: editing ? 'บันทึก' : 'เพิ่ม', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#6366f1',
@@ -195,7 +201,8 @@
               var v = sel.value;
               document.getElementById('sw_arithWrap').style.display = v === 'arith' ? 'block' : 'none';
               document.getElementById('sw_picWrap').style.display = v === 'picture' ? 'block' : 'none';
-              document.getElementById('sw_noOps').style.display = (v === 'arith' || v === 'picture') ? 'none' : 'block';
+              document.getElementById('sw_rangeWrap').style.display = v === 'compare' ? 'block' : 'none';
+              document.getElementById('sw_noOps').style.display = (v === 'arith' || v === 'picture' || v === 'compare') ? 'none' : 'block';
             }
             sel.addEventListener('change', toggle); toggle();
             var icurl = document.getElementById('sw_icurl');
@@ -231,6 +238,11 @@
               var cv = document.getElementById('sw_carry').value || 'any';
               lvObj.carry = cv;
               return { chapterName: name, icon: icon, gen: gen, ops: selAr.join(','), lv: lvObj, hasLv: true };
+            }
+            if (gen === 'compare') {
+              var rr = (document.getElementById('sw_range').value || '10-20').split('-').map(Number);
+              lvObj.range = rr;
+              return { chapterName: name, icon: icon, gen: gen, ops: '', lv: lvObj, hasLv: true };
             }
             return { chapterName: name, icon: icon, gen: gen, ops: '' };
           }
