@@ -121,7 +121,7 @@
         var selAr = (curGen === 'arith' && opsArr.length) ? opsArr.slice() : ['+'];
         var selCarry = lvObj.carry || 'any';
         var RANGES_ = [['1-20', '1–20'], ['10-20', '10–20'], ['21-100', '21–100'], ['1-100', '1–100'], ['100-1000', '100–1000']];
-        var selRange = (lvObj.range && lvObj.range.join('-')) || '10-20';
+        var selRange = (lvObj.range && lvObj.range.join('-')) || (curGen === 'numwrite' ? '21-100' : '10-20');
         var instr0 = lvObj.instruction || '';
 
         function tglBtns(list, sel, cls) {
@@ -201,8 +201,8 @@
               var v = sel.value;
               document.getElementById('sw_arithWrap').style.display = v === 'arith' ? 'block' : 'none';
               document.getElementById('sw_picWrap').style.display = v === 'picture' ? 'block' : 'none';
-              document.getElementById('sw_rangeWrap').style.display = v === 'compare' ? 'block' : 'none';
-              document.getElementById('sw_noOps').style.display = (v === 'arith' || v === 'picture' || v === 'compare') ? 'none' : 'block';
+              document.getElementById('sw_rangeWrap').style.display = (v === 'compare' || v === 'numwrite') ? 'block' : 'none';
+              document.getElementById('sw_noOps').style.display = (v === 'arith' || v === 'picture' || v === 'compare' || v === 'numwrite') ? 'none' : 'block';
             }
             sel.addEventListener('change', toggle); toggle();
             var icurl = document.getElementById('sw_icurl');
@@ -239,8 +239,8 @@
               lvObj.carry = cv;
               return { chapterName: name, icon: icon, gen: gen, ops: selAr.join(','), lv: lvObj, hasLv: true };
             }
-            if (gen === 'compare') {
-              var rr = (document.getElementById('sw_range').value || '10-20').split('-').map(Number);
+            if (gen === 'compare' || gen === 'numwrite') {
+              var rr = (document.getElementById('sw_range').value || (gen === 'numwrite' ? '21-100' : '10-20')).split('-').map(Number);
               lvObj.range = rr;
               return { chapterName: name, icon: icon, gen: gen, ops: '', lv: lvObj, hasLv: true };
             }
