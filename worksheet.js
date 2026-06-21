@@ -91,7 +91,13 @@
       function build(announce) {
         var g = gradeOf(st.gradeId), ch = chapterOf(st.gradeId, st.chapterId);
         var res = svc.genProblems(ch, st.level, st.count);
-        st.current = { setId: res.setId, subjectName: g.name + ' · ' + ch.name, problems: res.problems, level: st.level, cols: st.cols, title: st.title, instr: (ch.lv && ch.lv.instruction) || '', picture: ch.gen === 'picture' };
+        var DEF_INSTR = {
+          compare: 'เติมเครื่องหมาย > , < หรือ = ลงในช่องว่าง',
+          count: 'นับจำนวนรูปภาพในแต่ละข้อ แล้ววงกลมตัวเลขที่ถูกต้อง',
+          count9: 'นับจำนวนรูปภาพในแต่ละข้อ แล้ววงหรือเขียนจำนวนที่ถูกต้อง'
+        };
+        var instrText = (ch.lv && ch.lv.instruction) || DEF_INSTR[ch.gen] || '';
+        st.current = { setId: res.setId, subjectName: g.name + ' · ' + ch.name, problems: res.problems, level: st.level, cols: st.cols, title: st.title, instr: instrText, picture: ch.gen === 'picture' };
         st.showKey = false; keyBtn(); render();
         if (announce) svc.toast('success', 'สร้างชุด ' + res.setId);
       }
