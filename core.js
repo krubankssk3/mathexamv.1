@@ -87,7 +87,7 @@
     var cols = o.cols === 2 ? 2 : 1;
     var total = o.problems.length;
     var isPic = o.problems.some(function (p) { return p.noline; }); // โจทย์รูปภาพ (สูงกว่า)
-    var perCol = isPic ? 8 : 15;                  // จำนวนข้อต่อคอลัมน์ต่อหน้า
+    var perCol = isPic ? 7 : 15;                  // จำนวนข้อต่อคอลัมน์ต่อหน้า
     var perPage = perCol * cols;
 
     function qitemHTML(p, i) {
@@ -121,8 +121,7 @@
       var items = chunk.map(function (p, idx) { return qitemHTML(p, pi * perPage + idx); }).join('');
       return '<div class="sheet pop' + (pi > 0 ? ' pgb' : '') + '" style="--rowh:' + rowh + 'mm">' +
         (pi === 0 ? headFull() : headCont()) +
-        '<div class="qcols ' + (cols === 2 ? 'c2' : '') + '">' + items + '</div>' +
-        foot() + '</div>';
+        '<div class="qcols ' + (cols === 2 ? 'c2' : '') + '">' + items + '</div></div>';
     }).join('');
 
     var k = o.problems.map(function (p, i) {
