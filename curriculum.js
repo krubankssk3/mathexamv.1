@@ -127,6 +127,7 @@
         var selK = lvObj.k || 4;
         var selTmode = lvObj.mode || 'line';
         var selTstep = lvObj.step || 5;
+        var selDim = lvObj.dim || '2d';
         var instr0 = lvObj.instruction || '';
 
         function tglBtns(list, sel, cls) {
@@ -234,6 +235,14 @@
                   '<option value="1"' + (selTstep === 1 ? ' selected' : '') + '>ทุก 1 นาที</option>' +
                 '</select>' +
               '</div>' +
+              '<div id="sw_geoWrap" style="display:none">' +
+                '<label style="font-size:.85rem;color:#9aa8c8">ชนิดรูปเรขาคณิต</label>' +
+                '<select id="sw_dim" style="' + INP + '">' +
+                  '<option value="2d"' + (selDim === '2d' ? ' selected' : '') + '>2 มิติ (สี่เหลี่ยม สามเหลี่ยม วงกลม วงรี)</option>' +
+                  '<option value="3d"' + (selDim === '3d' ? ' selected' : '') + '>3 มิติ (ทรงสี่เหลี่ยม ทรงกลม ทรงกระบอก กรวย)</option>' +
+                '</select>' +
+                '<div style="font-size:.8rem;color:#9aa8c8;margin-top:.3rem">รูปจะกระจายเต็มหน้า A4 ค่า "จำนวนข้อ" = จำนวนรูปในหน้า</div>' +
+              '</div>' +
               '<div id="sw_noOps" style="display:none;font-size:.82rem;color:#9aa8c8;margin-top:.3rem">ชนิดนี้สร้างโจทย์ให้อัตโนมัติ ไม่ต้องตั้งตัวดำเนินการ</div>' +
             '</div>',
           showCancelButton: true, confirmButtonText: editing ? 'บันทึก' : 'เพิ่ม', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#6366f1',
@@ -248,7 +257,8 @@
               document.getElementById('sw_colorWrap').style.display = v === 'numwrite' ? 'block' : 'none';
               document.getElementById('sw_dirWrap').style.display = v === 'order' ? 'block' : 'none';
               document.getElementById('sw_timeWrap').style.display = v === 'time' ? 'block' : 'none';
-              document.getElementById('sw_noOps').style.display = (v === 'arith' || v === 'picture' || v === 'compare' || v === 'numwrite' || v === 'order' || v === 'time') ? 'none' : 'block';
+              document.getElementById('sw_geoWrap').style.display = v === 'geometry' ? 'block' : 'none';
+              document.getElementById('sw_noOps').style.display = (v === 'arith' || v === 'picture' || v === 'compare' || v === 'numwrite' || v === 'order' || v === 'time' || v === 'geometry') ? 'none' : 'block';
             }
             sel.addEventListener('change', toggle); toggle();
             var icurl = document.getElementById('sw_icurl');
@@ -301,6 +311,10 @@
             if (gen === 'time') {
               lvObj.mode = document.getElementById('sw_tmode').value || 'line';
               lvObj.step = +document.getElementById('sw_tstep').value || 5;
+              return { chapterName: name, icon: icon, gen: gen, ops: '', lv: lvObj, hasLv: true };
+            }
+            if (gen === 'geometry') {
+              lvObj.dim = document.getElementById('sw_dim').value || '2d';
               return { chapterName: name, icon: icon, gen: gen, ops: '', lv: lvObj, hasLv: true };
             }
             return { chapterName: name, icon: icon, gen: gen, ops: '' };
