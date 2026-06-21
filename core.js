@@ -98,7 +98,9 @@
     var cols = o.cols === 2 ? 2 : 1;
     var total = o.problems.length;
     var isTall = o.problems.some(function (p) { return p.tall; }); // โจทย์รูป/นับ (สูง)
-    var perCol = isTall ? 5 : 15;                  // จำนวนข้อต่อคอลัมน์ต่อหน้า
+    var isNum = o.problems.length && o.problems[0].numtable;        // ตารางเขียนเลข
+    if (isNum) cols = 1;
+    var perCol = isNum ? 5 : (isTall ? 5 : 15);    // จำนวนข้อต่อคอลัมน์ต่อหน้า
     var perPage = perCol * cols;
 
     function qitemHTML(p, i) {
@@ -129,10 +131,21 @@
       var rowsOnPage = Math.ceil(chunk.length / cols) || 1;
       var rowh = 185 / rowsOnPage; if (rowh > 24) rowh = 24; if (rowh < 9) rowh = 9;
       rowh = Math.round(rowh * 10) / 10;
-      var items = chunk.map(function (p, idx) { return qitemHTML(p, pi * perPage + idx); }).join('');
+      var content;
+      if (isNum) {
+        var rows = chunk.map(function (p, idx) {
+          return '<div class="nwrow"><div class="nwc nwpic"><span class="nwno">' + (pi * perPage + idx + 1) + ')</span>' + p.q + '</div>' +
+            '<div class="nwc nwblank"><span class="nwl"></span><span class="nwl"></span></div>' +
+            '<div class="nwc nwblank"><span class="nwl"></span><span class="nwl"></span></div>' +
+            '<div class="nwc nwblank"><span class="nwl"></span><span class="nwl"></span></div></div>';
+        }).join('');
+        content = '<div class="nwtable"><div class="nwrow nwhead"><div class="nwc nwpic">ภาพ</div><div class="nwc">ตัวเลขฮินดูอารบิก</div><div class="nwc">ตัวเลขไทย</div><div class="nwc">ตัวหนังสือ</div></div>' + rows + '</div>';
+      } else {
+        var items = chunk.map(function (p, idx) { return qitemHTML(p, pi * perPage + idx); }).join('');
+        content = '<div class="qcols ' + (cols === 2 ? 'c2' : '') + '">' + items + '</div>';
+      }
       return '<div class="sheet pop' + (pi > 0 ? ' pgb' : '') + '" style="--rowh:' + rowh + 'mm">' +
-        (pi === 0 ? headFull() : headCont()) +
-        '<div class="qcols ' + (cols === 2 ? 'c2' : '') + '">' + items + '</div></div>';
+        (pi === 0 ? headFull() : headCont()) + content + '</div>';
     }).join('');
 
     var k = o.problems.map(function (p, i) {
@@ -315,6 +328,34 @@
         var sym = a > b ? '>' : (a < b ? '<' : '=');
         var q = '<span class="cmpwrap"><span class="cmpnum">' + a + '</span><span class="cmpbox"></span><span class="cmpnum">' + b + '</span></span>';
         out.push({ q: q, a: sym, n: (a > b ? 1 : (a < b ? -1 : 0)), noline: true });
+      }
+      return out;
+    },
+    numwrite: function (c) {
+      var R = c.range || [21, 100];
+      var max = Math.min(20, c.count);
+      var TD = '\u0e50\u0e51\u0e52\u0e53\u0e54\u0e55\u0e56\u0e57\u0e58\u0e59';
+      function thaiNum(n) { return String(n).split('').map(function (ch) { return TD[+ch]; }).join(''); }
+      var ones = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
+      var tens = ['', 'สิบ', 'ยี่สิบ', 'สามสิบ', 'สี่สิบ', 'ห้าสิบ', 'หกสิบ', 'เจ็ดสิบ', 'แปดสิบ', 'เก้าสิบ'];
+      function thaiWord(n) {
+        if (n === 0) return 'ศูนย์';
+        if (n === 100) return 'หนึ่งร้อย';
+        var t = Math.floor(n / 10), u = n % 10, s = '';
+        if (t > 0) s += tens[t];
+        if (u > 0) s += (u === 1 && t > 0) ? 'เอ็ด' : ones[u];
+        return s;
+      }
+      function blocks(n) {
+        var t = Math.floor(n / 10), u = n % 10, rods = '', cubes = '', i;
+        for (i = 0; i < t; i++) rods += '<span class="b-rod"></span>';
+        for (i = 0; i < u; i++) cubes += '<span class="b-cube"></span>';
+        return '<span class="blocks">' + rods + (u ? '<span class="b-units">' + cubes + '</span>' : '') + '</span>';
+      }
+      var out = [];
+      for (var i = 0; i < max; i++) {
+        var n = ri(R[0], R[1]);
+        out.push({ q: blocks(n), a: n + ' / ' + thaiNum(n) + ' / ' + thaiWord(n), n: n, numtable: true });
       }
       return out;
     }
