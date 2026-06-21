@@ -93,8 +93,8 @@
     // กระจายความสูงต่อข้อให้เต็มหน้า A4 (โดยประมาณ): พื้นที่เนื้อหา ~205มม. / จำนวนแถว
     var cols = o.cols === 2 ? 2 : 1;
     var rows = Math.ceil(o.problems.length / cols) || 1;
-    var rowh = 205 / rows;
-    if (rowh > 30) rowh = 30; if (rowh < 8) rowh = 8; // เพดาน/พื้นล่าง กันสูงเกิน/ล้นหน้า
+    var rowh = 175 / rows;
+    if (rowh > 24) rowh = 24; if (rowh < 8) rowh = 8; // เพดาน/พื้นล่าง + เผื่อที่ให้ฟุตเตอร์
     rowh = Math.round(rowh * 10) / 10;
     var sheet =
       '<div class="sheet pop" style="--rowh:' + rowh + 'mm"><div class="exam-head"><img src="' + S.logo + '">' +
