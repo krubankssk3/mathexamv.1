@@ -125,6 +125,7 @@
         var selColor = lvObj.color || 'orange';
         var selDir = lvObj.dir || 'asc';
         var selK = lvObj.k || 4;
+        var selTmode = lvObj.mode || 'line';
         var instr0 = lvObj.instruction || '';
 
         function tglBtns(list, sel, cls) {
@@ -218,6 +219,14 @@
                   [3, 4, 5, 6].map(function (kk) { return '<option value="' + kk + '"' + (selK === kk ? ' selected' : '') + '>' + kk + ' จำนวน</option>'; }).join('') +
                 '</select>' +
               '</div>' +
+              '<div id="sw_timeWrap" style="display:none">' +
+                '<label style="font-size:.85rem;color:#9aa8c8">รูปแบบโจทย์เวลา</label>' +
+                '<select id="sw_tmode" style="' + INP + '">' +
+                  '<option value="line"' + (selTmode === 'line' ? ' selected' : '') + '>กลางวัน/กลางคืน (เส้นให้เขียน)</option>' +
+                  '<option value="box"' + (selTmode === 'box' ? ' selected' : '') + '>กลางวัน/กลางคืน (กล่อง ☀️🌙)</option>' +
+                  '<option value="tell"' + (selTmode === 'tell' ? ' selected' : '') + '>บอกเวลาอย่างเดียว</option>' +
+                '</select>' +
+              '</div>' +
               '<div id="sw_noOps" style="display:none;font-size:.82rem;color:#9aa8c8;margin-top:.3rem">ชนิดนี้สร้างโจทย์ให้อัตโนมัติ ไม่ต้องตั้งตัวดำเนินการ</div>' +
             '</div>',
           showCancelButton: true, confirmButtonText: editing ? 'บันทึก' : 'เพิ่ม', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#6366f1',
@@ -231,7 +240,8 @@
               document.getElementById('sw_rangeWrap').style.display = (v === 'compare' || v === 'numwrite' || v === 'order') ? 'block' : 'none';
               document.getElementById('sw_colorWrap').style.display = v === 'numwrite' ? 'block' : 'none';
               document.getElementById('sw_dirWrap').style.display = v === 'order' ? 'block' : 'none';
-              document.getElementById('sw_noOps').style.display = (v === 'arith' || v === 'picture' || v === 'compare' || v === 'numwrite' || v === 'order') ? 'none' : 'block';
+              document.getElementById('sw_timeWrap').style.display = v === 'time' ? 'block' : 'none';
+              document.getElementById('sw_noOps').style.display = (v === 'arith' || v === 'picture' || v === 'compare' || v === 'numwrite' || v === 'order' || v === 'time') ? 'none' : 'block';
             }
             sel.addEventListener('change', toggle); toggle();
             var icurl = document.getElementById('sw_icurl');
@@ -279,6 +289,10 @@
               lvObj.range = orr;
               lvObj.dir = document.getElementById('sw_dir').value || 'asc';
               lvObj.k = +document.getElementById('sw_k').value || 4;
+              return { chapterName: name, icon: icon, gen: gen, ops: '', lv: lvObj, hasLv: true };
+            }
+            if (gen === 'time') {
+              lvObj.mode = document.getElementById('sw_tmode').value || 'line';
               return { chapterName: name, icon: icon, gen: gen, ops: '', lv: lvObj, hasLv: true };
             }
             return { chapterName: name, icon: icon, gen: gen, ops: '' };
