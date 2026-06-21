@@ -123,6 +123,7 @@
         var RANGES_ = [['1-20', '1–20'], ['10-20', '10–20'], ['21-100', '21–100'], ['1-100', '1–100'], ['100-1000', '100–1000']];
         var selRange = (lvObj.range && lvObj.range.join('-')) || (curGen === 'numwrite' ? '21-100' : '10-20');
         var selColor = lvObj.color || 'orange';
+        var selDir = lvObj.dir || 'asc';
         var instr0 = lvObj.instruction || '';
 
         function tglBtns(list, sel, cls) {
@@ -204,6 +205,14 @@
                   '<option value="yellow"' + (selColor === 'yellow' ? ' selected' : '') + '>เหลือง</option>' +
                 '</select>' +
               '</div>' +
+              '<div id="sw_dirWrap" style="display:none">' +
+                '<label style="font-size:.85rem;color:#9aa8c8">ทิศทางการเรียง</label>' +
+                '<select id="sw_dir" style="' + INP + '">' +
+                  '<option value="asc"' + (selDir === 'asc' ? ' selected' : '') + '>น้อย → มาก</option>' +
+                  '<option value="desc"' + (selDir === 'desc' ? ' selected' : '') + '>มาก → น้อย</option>' +
+                  '<option value="mix"' + (selDir === 'mix' ? ' selected' : '') + '>คละ (สุ่มทิศแต่ละข้อ)</option>' +
+                '</select>' +
+              '</div>' +
               '<div id="sw_noOps" style="display:none;font-size:.82rem;color:#9aa8c8;margin-top:.3rem">ชนิดนี้สร้างโจทย์ให้อัตโนมัติ ไม่ต้องตั้งตัวดำเนินการ</div>' +
             '</div>',
           showCancelButton: true, confirmButtonText: editing ? 'บันทึก' : 'เพิ่ม', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#6366f1',
@@ -214,9 +223,10 @@
               var v = sel.value;
               document.getElementById('sw_arithWrap').style.display = v === 'arith' ? 'block' : 'none';
               document.getElementById('sw_picWrap').style.display = v === 'picture' ? 'block' : 'none';
-              document.getElementById('sw_rangeWrap').style.display = (v === 'compare' || v === 'numwrite') ? 'block' : 'none';
+              document.getElementById('sw_rangeWrap').style.display = (v === 'compare' || v === 'numwrite' || v === 'order') ? 'block' : 'none';
               document.getElementById('sw_colorWrap').style.display = v === 'numwrite' ? 'block' : 'none';
-              document.getElementById('sw_noOps').style.display = (v === 'arith' || v === 'picture' || v === 'compare' || v === 'numwrite') ? 'none' : 'block';
+              document.getElementById('sw_dirWrap').style.display = v === 'order' ? 'block' : 'none';
+              document.getElementById('sw_noOps').style.display = (v === 'arith' || v === 'picture' || v === 'compare' || v === 'numwrite' || v === 'order') ? 'none' : 'block';
             }
             sel.addEventListener('change', toggle); toggle();
             var icurl = document.getElementById('sw_icurl');
@@ -257,6 +267,12 @@
               var rr = (document.getElementById('sw_range').value || (gen === 'numwrite' ? '21-100' : '10-20')).split('-').map(Number);
               lvObj.range = rr;
               if (gen === 'numwrite') lvObj.color = document.getElementById('sw_color').value || 'orange';
+              return { chapterName: name, icon: icon, gen: gen, ops: '', lv: lvObj, hasLv: true };
+            }
+            if (gen === 'order') {
+              var orr = (document.getElementById('sw_range').value || '10-20').split('-').map(Number);
+              lvObj.range = orr;
+              lvObj.dir = document.getElementById('sw_dir').value || 'asc';
               return { chapterName: name, icon: icon, gen: gen, ops: '', lv: lvObj, hasLv: true };
             }
             return { chapterName: name, icon: icon, gen: gen, ops: '' };
