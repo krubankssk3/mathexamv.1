@@ -102,7 +102,7 @@
         '<div class="instr"><b>คำชี้แจง</b> ' + (o.instr ? o.instr : 'แสดงวิธีทำและเขียนคำตอบลงในช่องว่าง') + ' (' + total + ' ข้อ ข้อละ 1 คะแนน)</div>';
     }
     function headCont() {
-      return '<div class="exam-head"><img src="' + S.logo + '">' +
+      return '<div class="exam-head" style="margin-bottom:18px"><img src="' + S.logo + '">' +
         '<div style="flex:1"><h1>' + o.title + ' (ต่อ)</h1><div class="sub">เรื่อง ' + o.subjectName + ' · ระดับ ' + lv + '</div></div>' +
         '<div style="text-align:right"><div class="mono" style="font-size:11px;color:#888">ชุดที่</div><div class="mono" style="font-weight:700;color:var(--accent)">' + o.setId + '</div></div></div>';
     }
