@@ -100,7 +100,7 @@
     var isTall = o.problems.some(function (p) { return p.tall; }); // โจทย์รูป/นับ (สูง)
     var isNum = o.problems.length && o.problems[0].numtable;        // ตารางเขียนเลข
     if (isNum) cols = 1;
-    var perCol = isNum ? 5 : (isTall ? 5 : 15);    // จำนวนข้อต่อคอลัมน์ต่อหน้า
+    var perCol = isNum ? 4 : (isTall ? 5 : 15);    // จำนวนข้อต่อคอลัมน์ต่อหน้า
     var perPage = perCol * cols;
 
     function qitemHTML(p, i) {
@@ -137,7 +137,7 @@
           return '<div class="nwrow"><div class="nwc nwpic"><span class="nwno">' + (pi * perPage + idx + 1) + ')</span>' + p.q + '</div>' +
             '<div class="nwc nwblank"><span class="nwl"></span><span class="nwl"></span></div>' +
             '<div class="nwc nwblank"><span class="nwl"></span><span class="nwl"></span></div>' +
-            '<div class="nwc nwblank"><span class="nwl"></span><span class="nwl"></span></div></div>';
+            '<div class="nwc nwblank nwword"><span class="nwl"></span><span class="nwl"></span><span class="nwl"></span><span class="nwl"></span></div></div>';
         }).join('');
         content = '<div class="nwtable"><div class="nwrow nwhead"><div class="nwc nwpic">ภาพ</div><div class="nwc">ตัวเลขฮินดูอารบิก</div><div class="nwc">ตัวเลขไทย</div><div class="nwc">ตัวหนังสือ</div></div>' + rows + '</div>';
       } else {
