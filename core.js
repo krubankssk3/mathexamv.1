@@ -84,27 +84,50 @@
     var S = Platform.settings;
     var date = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric' });
     var lv = { easy: 'ง่าย', medium: 'ปานกลาง', hard: 'ยาก' }[o.level] || o.level || '';
-    var q = o.problems.map(function (p, i) {
+    var cols = o.cols === 2 ? 2 : 1;
+    var total = o.problems.length;
+    var isPic = o.problems.some(function (p) { return p.noline; }); // โจทย์รูปภาพ (สูงกว่า)
+    var perCol = isPic ? 8 : 15;                  // จำนวนข้อต่อคอลัมน์ต่อหน้า
+    var perPage = perCol * cols;
+
+    function qitemHTML(p, i) {
       return '<div class="qitem"><span class="qno">' + (i + 1) + '.</span><span class="qbody">' + p.q + (p.noline ? '' : ' <span class="ans-line"></span>') + '</span></div>';
+    }
+    function headFull() {
+      return '<div class="exam-head"><img src="' + S.logo + '">' +
+        '<div style="flex:1"><h1>' + S.org + '</h1><div class="sub">' + S.dept + '</div></div>' +
+        '<div style="text-align:right"><div class="mono" style="font-size:11px;color:#888">ชุดที่</div><div class="mono" style="font-weight:700;color:var(--accent)">' + o.setId + '</div></div></div>' +
+        '<div style="text-align:center;margin:14px 0 4px"><div class="font-display" style="font-size:18px;font-weight:700">' + o.title + '</div><div class="sub">เรื่อง ' + o.subjectName + ' · ระดับ ' + lv + '</div></div>' +
+        '<div class="meta-row"><span><b>ชื่อ–สกุล</b> <span class="blank" style="min-width:180px"></span></span><span><b>ชั้น</b> <span class="blank" style="min-width:60px"></span></span><span><b>เลขที่</b> <span class="blank" style="min-width:45px"></span></span><span><b>วันที่</b> ' + date + '</span><span class="score-box"><b>คะแนนที่ได้</b> <span class="blank" style="min-width:48px"></span> / ' + total + '</span></div>' +
+        '<div class="instr"><b>คำชี้แจง</b> ' + (o.instr ? o.instr : 'แสดงวิธีทำและเขียนคำตอบลงในช่องว่าง') + ' (' + total + ' ข้อ ข้อละ 1 คะแนน)</div>';
+    }
+    function headCont() {
+      return '<div class="exam-head"><img src="' + S.logo + '">' +
+        '<div style="flex:1"><h1>' + o.title + ' (ต่อ)</h1><div class="sub">เรื่อง ' + o.subjectName + ' · ระดับ ' + lv + '</div></div>' +
+        '<div style="text-align:right"><div class="mono" style="font-size:11px;color:#888">ชุดที่</div><div class="mono" style="font-weight:700;color:var(--accent)">' + o.setId + '</div></div></div>';
+    }
+    function foot() {
+      return '<div class="sheet-foot"><span>พัฒนาโดย นายชิติพัทธ์ นิลวรรณ ครู สพป.ศรีสะเกษ เขต 3</span><span class="mono">' + o.setId + '</span></div>';
+    }
+
+    var pages = [];
+    for (var st = 0; st < total; st += perPage) pages.push(o.problems.slice(st, st + perPage));
+    if (!pages.length) pages.push([]);
+
+    var sheet = pages.map(function (chunk, pi) {
+      var rowsOnPage = Math.ceil(chunk.length / cols) || 1;
+      var rowh = 185 / rowsOnPage; if (rowh > 24) rowh = 24; if (rowh < 9) rowh = 9;
+      rowh = Math.round(rowh * 10) / 10;
+      var items = chunk.map(function (p, idx) { return qitemHTML(p, pi * perPage + idx); }).join('');
+      return '<div class="sheet pop' + (pi > 0 ? ' pgb' : '') + '" style="--rowh:' + rowh + 'mm">' +
+        (pi === 0 ? headFull() : headCont()) +
+        '<div class="qcols ' + (cols === 2 ? 'c2' : '') + '">' + items + '</div>' +
+        foot() + '</div>';
     }).join('');
+
     var k = o.problems.map(function (p, i) {
       return '<div class="qitem"><span class="qno">' + (i + 1) + '.</span><span class="qbody"><span class="ans">' + p.a + '</span></span></div>';
     }).join('');
-    // กระจายความสูงต่อข้อให้เต็มหน้า A4 (โดยประมาณ): พื้นที่เนื้อหา ~205มม. / จำนวนแถว
-    var cols = o.cols === 2 ? 2 : 1;
-    var rows = Math.ceil(o.problems.length / cols) || 1;
-    var rowh = 175 / rows;
-    if (rowh > 24) rowh = 24; if (rowh < 8) rowh = 8; // เพดาน/พื้นล่าง + เผื่อที่ให้ฟุตเตอร์
-    rowh = Math.round(rowh * 10) / 10;
-    var sheet =
-      '<div class="sheet pop" style="--rowh:' + rowh + 'mm"><div class="exam-head"><img src="' + S.logo + '">' +
-      '<div style="flex:1"><h1>' + S.org + '</h1><div class="sub">' + S.dept + '</div></div>' +
-      '<div style="text-align:right"><div class="mono" style="font-size:11px;color:#888">ชุดที่</div><div class="mono" style="font-weight:700;color:var(--accent)">' + o.setId + '</div></div></div>' +
-      '<div style="text-align:center;margin:14px 0 4px"><div class="font-display" style="font-size:18px;font-weight:700">' + o.title + '</div><div class="sub">เรื่อง ' + o.subjectName + ' · ระดับ ' + lv + '</div></div>' +
-      '<div class="meta-row"><span><b>ชื่อ–สกุล</b> <span class="blank" style="min-width:180px"></span></span><span><b>ชั้น</b> <span class="blank" style="min-width:60px"></span></span><span><b>เลขที่</b> <span class="blank" style="min-width:45px"></span></span><span><b>วันที่</b> ' + date + '</span><span class="score-box"><b>คะแนนที่ได้</b> <span class="blank" style="min-width:48px"></span> / ' + o.problems.length + '</span></div>' +
-      '<div class="instr"><b>คำชี้แจง</b> ' + (o.instr ? o.instr : 'แสดงวิธีทำและเขียนคำตอบลงในช่องว่าง') + ' (' + o.problems.length + ' ข้อ ข้อละ 1 คะแนน)</div>' +
-      '<div class="qcols ' + (o.cols === 2 ? 'c2' : '') + '">' + q + '</div>' +
-      '<div class="sheet-foot"><span>พัฒนาโดย นายชิติพัทธ์ นิลวรรณ ครู สพป.ศรีสะเกษ เขต 3</span><span class="mono">' + o.setId + '</span></div></div>';
     var key = o.withKey ?
       '<div class="sheet key-sheet pop"><div class="exam-head" style="border-color:var(--accent)"><img src="' + S.logo + '"><div style="flex:1"><h1>เฉลย — ' + o.title + '</h1><div class="sub">' + o.subjectName + ' · ชุด ' + o.setId + '</div></div><span class="key-tag">ANSWER KEY</span></div>' +
       '<div class="key-grid">' + k + '</div><div class="sheet-foot"><span>เฉลยเฉพาะชุด ' + o.setId + '</span><span class="mono">' + o.setId + '</span></div></div>' : '';
