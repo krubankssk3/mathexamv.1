@@ -98,7 +98,7 @@
     var cols = o.cols === 2 ? 2 : 1;
     var total = o.problems.length;
     var isPic = o.problems.some(function (p) { return p.noline; }); // โจทย์รูปภาพ (สูงกว่า)
-    var perCol = isPic ? 6 : 15;                  // จำนวนข้อต่อคอลัมน์ต่อหน้า
+    var perCol = isPic ? 5 : 15;                  // จำนวนข้อต่อคอลัมน์ต่อหน้า
     var perPage = perCol * cols;
 
     function qitemHTML(p, i) {
