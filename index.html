@@ -105,13 +105,13 @@
 
   /* tiles */
   .tile{position:relative;text-align:left;background:var(--bg2);border:1px solid var(--line);border-radius:16px;padding:15px;cursor:pointer;transition:.18s;color:var(--txt)}
-  .picwrap{display:inline-flex;align-items:center;flex-wrap:wrap;gap:14px;vertical-align:middle}
-  .piccap{display:inline-flex;align-items:center;gap:14px;border:2px solid #2b2f3a;border-radius:48px;padding:10px 20px}
-  .picoval{display:inline-flex;flex-direction:column;align-items:center;gap:4px}
-  .picell{display:inline-flex;align-items:center;justify-content:center;border:2px solid #2b2f3a;border-radius:50%;padding:10px 20px;min-width:96px;min-height:46px;font-size:22px;letter-spacing:3px;line-height:1}
-  .piccirc{width:36px;height:36px;border:2px solid #2b2f3a;border-radius:50%}
-  .pico{font-size:26px;font-weight:700;align-self:center}
-  .picbox{width:58px;height:68px;border:2px solid #2b2f3a;border-radius:14px}
+  .picwrap{display:inline-flex;align-items:center;flex-wrap:nowrap;gap:10px;vertical-align:middle;max-width:100%}
+  .piccap{display:inline-flex;align-items:center;gap:12px;border:2px solid #2b2f3a;border-radius:44px;padding:8px 16px;flex-wrap:nowrap;min-width:0}
+  .picoval{display:inline-flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+  .picell{display:inline-flex;align-items:center;justify-content:center;flex-wrap:wrap;border:2px solid #2b2f3a;border-radius:50%;padding:8px 16px;min-width:64px;min-height:42px;font-size:19px;letter-spacing:2px;line-height:1.15}
+  .piccirc{width:32px;height:32px;border:2px solid #2b2f3a;border-radius:50%;flex:none}
+  .pico{font-size:23px;font-weight:700;align-self:center;flex:none}
+  .picbox{width:54px;height:64px;border:2px solid #2b2f3a;border-radius:13px;flex:none}
   .tile:hover{border-color:var(--accent);transform:translateY(-3px)}
   .tile.on{border-color:var(--accent);box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 40%,transparent) inset}
   .tile .ic{width:42px;height:42px;border-radius:11px;display:grid;place-items:center;font-size:22px;background:color-mix(in srgb,var(--accent) 22%,transparent);color:var(--accent2)}
