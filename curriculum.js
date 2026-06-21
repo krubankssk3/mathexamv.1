@@ -119,6 +119,7 @@
         var opsArr = (editing && c.ops) ? String(c.ops).split(',').map(function (x) { return x.trim(); }).filter(Boolean) : [];
         var selPicOps = (curGen === 'picture' && opsArr.length) ? opsArr.slice() : ['+'];
         var selAr = (curGen === 'arith' && opsArr.length) ? opsArr.slice() : ['+'];
+        var selCarry = lvObj.carry || 'any';
         var instr0 = lvObj.instruction || '';
 
         function tglBtns(list, sel, cls) {
@@ -168,6 +169,13 @@
               '<div id="sw_arithWrap" style="display:none">' +
                 '<label style="font-size:.85rem;color:#9aa8c8">การดำเนินการ (เลือกได้หลายอย่าง)</label>' +
                 '<div id="sw_ar" style="display:flex;flex-wrap:wrap;gap:8px;margin:.35rem 0 .4rem">' + tglBtns(AR_, selAr, 'sw_arop') + '</div>' +
+                '<label style="font-size:.85rem;color:#9aa8c8">การทด / การยืม</label>' +
+                '<select id="sw_carry" style="' + INP + '">' +
+                  '<option value="any"' + (selCarry === 'any' ? ' selected' : '') + '>คละ (มีทั้งทด/ยืม และไม่ทด/ไม่ยืม)</option>' +
+                  '<option value="no"' + (selCarry === 'no' ? ' selected' : '') + '>ไม่ทด / ไม่ยืม</option>' +
+                  '<option value="yes"' + (selCarry === 'yes' ? ' selected' : '') + '>มีทด / มียืม</option>' +
+                '</select>' +
+                '<div style="font-size:.78rem;color:#9aa8c8;margin-top:.2rem">ใช้กับบวก/ลบ (ทด = ผลรวมหลักเกิน 10, ยืม = ตัวตั้งหลักน้อยกว่าตัวลบ)</div>' +
               '</div>' +
               '<div id="sw_picWrap" style="display:none">' +
                 '<label style="font-size:.85rem;color:#9aa8c8">เลือกรูปภาพที่จะใช้ (เลือกได้หลายรูป)</label>' +
@@ -220,7 +228,9 @@
             }
             if (gen === 'arith') {
               if (!selAr.length) { window.Swal.showValidationMessage('เลือกการดำเนินการอย่างน้อย 1 อย่าง'); return false; }
-              return { chapterName: name, icon: icon, gen: gen, ops: selAr.join(',') };
+              var cv = document.getElementById('sw_carry').value || 'any';
+              lvObj.carry = cv;
+              return { chapterName: name, icon: icon, gen: gen, ops: selAr.join(','), lv: lvObj, hasLv: true };
             }
             return { chapterName: name, icon: icon, gen: gen, ops: '' };
           }
@@ -229,7 +239,7 @@
           var p = r.value;
           var payload = editing ? { chapterId: c.id } : { gradeId: g.id };
           payload.chapterName = p.chapterName; payload.icon = p.icon; payload.gen = p.gen; payload.ops = p.ops;
-          if (p.picture) payload.lv = p.lv;
+          if (p.picture || p.hasLv) payload.lv = p.lv;
           svc.loading('กำลังบันทึก...');
           svc.api(editing ? 'updateChapter' : 'addChapter', payload)
             .then(function () { svc.done(); svc.toast(editing ? 'แก้ไขแล้ว' : 'เพิ่มบทเรียนแล้ว', 'success'); load(); })
