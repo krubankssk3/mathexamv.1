@@ -170,6 +170,12 @@
   .cl-ic{font-size:18px;width:24px;text-align:center}
   .cl-line{flex:1;border-bottom:1.5px dotted #999;height:0}
   .cl-box{flex:1;border:1.5px dashed #2b2f3a;border-radius:8px;height:26px}
+  .geowrap{display:flex;flex-direction:column;gap:12px;width:100%}
+  .geolegend{display:flex;flex-wrap:wrap;gap:8px 12px;justify-content:center}
+  .geochip{border:1.6px solid #2b2f3a;border-radius:18px;padding:3px 15px;font-size:14.5px;font-weight:600;white-space:nowrap}
+  .geofield{width:100%;height:auto;display:block}
+  .geosum{border:1.6px solid #2b2f3a;border-radius:12px;padding:13px 18px;display:grid;grid-template-columns:1fr 1fr;gap:11px 26px;font-size:15.5px}
+  .geoblank{display:inline-block;min-width:48px;border-bottom:1.6px dotted #777;margin:0 3px}
   .ans-line{display:inline-block;border-bottom:1px solid #999;min-width:70px;margin-left:6px}
   .frac{display:inline-flex;flex-direction:column;text-align:center;vertical-align:middle;line-height:1;margin:0 2px}
   .frac span:first-child{border-bottom:1.5px solid currentColor;padding:0 4px}
@@ -233,6 +239,9 @@
     #printArea .nwrow:not(.nwhead){min-height:50mm}
     #printArea .nwhead{font-size:14px}
     #printArea .clock{width:30mm;height:30mm}
+    #printArea .geofield{max-height:172mm}
+    #printArea .geochip{font-size:13px;padding:2px 12px}
+    #printArea .geosum{font-size:14px;padding:10px 14px}
     #printArea .ans-line{min-width:90px}
     #printArea .instr{font-size:14px;padding:9px 13px}
     #printArea .exam-head img{width:54px;height:54px}
