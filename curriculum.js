@@ -126,6 +126,7 @@
         var selDir = lvObj.dir || 'asc';
         var selK = lvObj.k || 4;
         var selTmode = lvObj.mode || 'line';
+        var selTstep = lvObj.step || 5;
         var instr0 = lvObj.instruction || '';
 
         function tglBtns(list, sel, cls) {
@@ -226,6 +227,12 @@
                   '<option value="box"' + (selTmode === 'box' ? ' selected' : '') + '>กลางวัน/กลางคืน (กล่อง ☀️🌙)</option>' +
                   '<option value="tell"' + (selTmode === 'tell' ? ' selected' : '') + '>บอกเวลาอย่างเดียว</option>' +
                 '</select>' +
+                '<label style="font-size:.85rem;color:#9aa8c8">ความละเอียดเวลา</label>' +
+                '<select id="sw_tstep" style="' + INP + '">' +
+                  '<option value="30"' + (selTstep === 30 ? ' selected' : '') + '>ชั่วโมง / ครึ่งชั่วโมง</option>' +
+                  '<option value="5"' + (selTstep === 5 ? ' selected' : '') + '>ทุก 5 นาที</option>' +
+                  '<option value="1"' + (selTstep === 1 ? ' selected' : '') + '>ทุก 1 นาที</option>' +
+                '</select>' +
               '</div>' +
               '<div id="sw_noOps" style="display:none;font-size:.82rem;color:#9aa8c8;margin-top:.3rem">ชนิดนี้สร้างโจทย์ให้อัตโนมัติ ไม่ต้องตั้งตัวดำเนินการ</div>' +
             '</div>',
@@ -293,6 +300,7 @@
             }
             if (gen === 'time') {
               lvObj.mode = document.getElementById('sw_tmode').value || 'line';
+              lvObj.step = +document.getElementById('sw_tstep').value || 5;
               return { chapterName: name, icon: icon, gen: gen, ops: '', lv: lvObj, hasLv: true };
             }
             return { chapterName: name, icon: icon, gen: gen, ops: '' };
