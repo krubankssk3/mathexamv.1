@@ -334,6 +334,9 @@
     numwrite: function (c) {
       var R = c.range || [21, 100];
       var max = Math.min(20, c.count);
+      var COLORS = { orange: ['#f3c896', '#e0a86b', '#b07a4a'], blue: ['#bcd8f5', '#7fb2e8', '#4a7fc0'], green: ['#c4e8b8', '#8fd178', '#4f9e3f'], pink: ['#f6c2d4', '#ec90b0', '#c85f86'], purple: ['#d8c6f0', '#b794e0', '#8a5fc0'], yellow: ['#f7e7a0', '#ecd45f', '#c8a925'] };
+      var CKEYS = ['orange', 'blue', 'green', 'pink', 'purple', 'yellow'];
+      var colMode = c.color || 'orange';
       var TD = '\u0e50\u0e51\u0e52\u0e53\u0e54\u0e55\u0e56\u0e57\u0e58\u0e59';
       function thaiNum(n) { return String(n).split('').map(function (ch) { return TD[+ch]; }).join(''); }
       var ones = ['', 'หนึ่ง', 'สอง', 'สาม', 'สี่', 'ห้า', 'หก', 'เจ็ด', 'แปด', 'เก้า'];
@@ -347,10 +350,13 @@
         return s;
       }
       function blocks(n) {
+        var key = colMode === 'mix' ? CKEYS[Math.floor(Math.random() * CKEYS.length)] : (COLORS[colMode] ? colMode : 'orange');
+        var cc = COLORS[key];
+        var sty = '--bl:' + cc[0] + ';--bd:' + cc[1] + ';--bb:' + cc[2];
         var t = Math.floor(n / 10), u = n % 10, rods = '', cubes = '', i;
         for (i = 0; i < t; i++) rods += '<span class="b-rod"></span>';
         for (i = 0; i < u; i++) cubes += '<span class="b-cube"></span>';
-        return '<span class="blocks">' + rods + (u ? '<span class="b-units">' + cubes + '</span>' : '') + '</span>';
+        return '<span class="blocks" style="' + sty + '">' + rods + (u ? '<span class="b-units">' + cubes + '</span>' : '') + '</span>';
       }
       var out = [];
       for (var i = 0; i < max; i++) {
