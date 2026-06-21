@@ -101,8 +101,9 @@
     var isNum = o.problems.length && o.problems[0].numtable;        // ตารางเขียนเลข
     var isOrd = o.problems.length && o.problems[0].ord;             // เรียงลำดับ (กล่อง อาจ 2 บรรทัด)
     var isClock = o.problems.length && o.problems[0].clock;         // นาฬิกา (สูง)
-    if (isNum) cols = 1;
-    var perCol = isNum ? 3 : (isClock ? 4 : (isOrd ? 8 : (isTall ? 5 : 15)));    // numwrite แถวสูง (4 บรรทัด) จำกัด 3/หน้า กันตก
+    var isGeo = o.problems.length && o.problems[0].geo;             // เรขาคณิตเต็มหน้า (ไม่แบ่งข้อ)
+    if (isNum || isGeo) cols = 1;
+    var perCol = isGeo ? 1 : (isNum ? 3 : (isClock ? 4 : (isOrd ? 8 : (isTall ? 5 : 15))));    // numwrite แถวสูง (4 บรรทัด) จำกัด 3/หน้า กันตก
     var perPage = perCol * cols;
 
     function qitemHTML(p, i) {
@@ -134,7 +135,9 @@
       var rowh = 185 / rowsOnPage; if (rowh > 24) rowh = 24; if (rowh < 9) rowh = 9;
       rowh = Math.round(rowh * 10) / 10;
       var content;
-      if (isNum) {
+      if (isGeo) {
+        content = chunk.map(function (p) { return p.q; }).join('');
+      } else if (isNum) {
         var rows = chunk.map(function (p, idx) {
           return '<div class="nwrow"><div class="nwc nwpic"><span class="nwno">' + (pi * perPage + idx + 1) + ')</span>' + p.q + '</div>' +
             '<div class="nwc nwblank"><span class="nwl"></span><span class="nwl"></span></div>' +
@@ -428,6 +431,54 @@
         out.push({ q: '<span class="clockwrap">' + clockSVG(h, m) + '<span class="clockans">' + body + '</span></span>', a: ans, n: h, noline: true, clock: true });
       }
       return out;
+    },
+    geometry: function (c) {
+      var dim = c.dim || '2d', W = 600, H = 560, n = Math.max(8, Math.min(18, c.count));
+      function R(a, b) { return a + Math.random() * (b - a); }
+      function f(x) { return x.toFixed(1); }
+      function s2d(t, s) {
+        if (t === 'rect') { var w = s * R(1.1, 1.9), h = s * R(0.7, 1.05); return '<rect x="' + f(-w / 2) + '" y="' + f(-h / 2) + '" width="' + f(w) + '" height="' + f(h) + '" fill="#fff" stroke="#111" stroke-width="2.2"/>'; }
+        if (t === 'tri') { return '<polygon points="0,' + f(-s) + ' ' + f(s) + ',' + f(s * 0.85) + ' ' + f(-s) + ',' + f(s * 0.85) + '" fill="#fff" stroke="#111" stroke-width="2.2"/>'; }
+        if (t === 'ellipse') { return '<ellipse rx="' + f(s * 1.25) + '" ry="' + f(s * 0.78) + '" fill="#fff" stroke="#111" stroke-width="2.2"/>'; }
+        return '<circle r="' + f(s) + '" fill="#fff" stroke="#111" stroke-width="2.2"/>';
+      }
+      function s3d(t, s) {
+        var st = 'fill="#fff" stroke="#111" stroke-width="2"';
+        if (t === 'cuboid') {
+          var w = s * 1.5, h = s * R(1.0, 1.3), d = s * 0.55;
+          return '<polygon points="' + f(-w / 2) + ',' + f(-h / 2) + ' ' + f(-w / 2 + d) + ',' + f(-h / 2 - d) + ' ' + f(w / 2 + d) + ',' + f(-h / 2 - d) + ' ' + f(w / 2) + ',' + f(-h / 2) + '" ' + st + '/>' +
+            '<polygon points="' + f(w / 2) + ',' + f(-h / 2) + ' ' + f(w / 2 + d) + ',' + f(-h / 2 - d) + ' ' + f(w / 2 + d) + ',' + f(h / 2 - d) + ' ' + f(w / 2) + ',' + f(h / 2) + '" ' + st + '/>' +
+            '<rect x="' + f(-w / 2) + '" y="' + f(-h / 2) + '" width="' + f(w) + '" height="' + f(h) + '" ' + st + '/>';
+        }
+        if (t === 'sphere') { return '<circle r="' + f(s) + '" ' + st + '/><ellipse rx="' + f(s) + '" ry="' + f(s * 0.32) + '" fill="none" stroke="#111" stroke-width="1.4"/>'; }
+        if (t === 'cylinder') {
+          var rw = s, hh = s * 1.5, ry = rw * 0.28;
+          return '<path d="M' + f(-rw) + ',' + f(-hh / 2) + ' L' + f(-rw) + ',' + f(hh / 2) + ' A' + f(rw) + ',' + f(ry) + ' 0 0 0 ' + f(rw) + ',' + f(hh / 2) + ' L' + f(rw) + ',' + f(-hh / 2) + '" ' + st + '/>' +
+            '<ellipse cy="' + f(-hh / 2) + '" rx="' + f(rw) + '" ry="' + f(ry) + '" ' + st + '/>';
+        }
+        var cw = s * 1.1, chh = s * 1.7, cry = cw * 0.28;
+        return '<path d="M0,' + f(-chh / 2) + ' L' + f(-cw) + ',' + f(chh / 2) + ' A' + f(cw) + ',' + f(cry) + ' 0 0 0 ' + f(cw) + ',' + f(chh / 2) + ' Z" ' + st + '/>' +
+          '<path d="M' + f(-cw) + ',' + f(chh / 2) + ' A' + f(cw) + ',' + f(cry) + ' 0 0 1 ' + f(cw) + ',' + f(chh / 2) + '" fill="none" stroke="#111" stroke-width="1.4" stroke-dasharray="3,3"/>';
+      }
+      var types = dim === '3d' ? ['cuboid', 'sphere', 'cylinder', 'cone'] : ['rect', 'tri', 'circle', 'ellipse'];
+      var tally = {}; types.forEach(function (t) { tally[t] = 0; });
+      var cols = 4, rows = Math.ceil(n / cols), cw = W / cols, chh = H / rows, svg = '';
+      for (var i = 0; i < n; i++) {
+        var col = i % cols, row = Math.floor(i / cols);
+        var cx = col * cw + cw / 2 + R(-cw * 0.1, cw * 0.1), cy = row * chh + chh / 2 + R(-chh * 0.1, chh * 0.1);
+        var sz = Math.min(cw, chh) * R(0.30, 0.42);
+        var t = types[Math.floor(Math.random() * types.length)]; tally[t]++;
+        var rot = (dim === '2d' && (t === 'rect' || t === 'tri')) ? R(-28, 28) : 0;
+        svg += '<g transform="translate(' + f(cx) + ',' + f(cy) + ') rotate(' + f(rot) + ')">' + (dim === '3d' ? s3d(t, sz) : s2d(t, sz)) + '</g>';
+      }
+      var L = dim === '3d'
+        ? [['cuboid', 'ทรงสี่เหลี่ยมมุมฉาก', 'สีแดง'], ['sphere', 'ทรงกลม', 'สีเขียว'], ['cylinder', 'ทรงกระบอก', 'สีฟ้า'], ['cone', 'กรวย', 'สีเหลือง']]
+        : [['rect', 'สี่เหลี่ยม', 'สีน้ำเงิน'], ['tri', 'สามเหลี่ยม', 'สีเขียว'], ['ellipse', 'วงรี', 'สีส้ม'], ['circle', 'วงกลม', 'สีชมพู']];
+      var chips = L.map(function (x) { return '<span class="geochip">' + x[1] + ' ' + x[2] + '</span>'; }).join('');
+      var sum = L.map(function (x) { return '<span>มี' + x[1] + ' <span class="geoblank"></span> รูป</span>'; }).join('');
+      var ans = L.map(function (x) { return x[1] + ' ' + tally[x[0]]; }).join(' · ');
+      var q = '<div class="geowrap"><div class="geolegend">' + chips + '</div><svg class="geofield" viewBox="0 0 ' + W + ' ' + H + '">' + svg + '</svg><div class="geosum">' + sum + '</div></div>';
+      return [{ q: q, a: ans, geo: true, noline: true }];
     }
   };
   function buildProblems(ch, level, count) {
