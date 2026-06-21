@@ -100,7 +100,7 @@
     var isTall = o.problems.some(function (p) { return p.tall; }); // โจทย์รูป/นับ (สูง)
     var isNum = o.problems.length && o.problems[0].numtable;        // ตารางเขียนเลข
     if (isNum) cols = 1;
-    var perCol = isNum ? 4 : (isTall ? 5 : 15);    // จำนวนข้อต่อคอลัมน์ต่อหน้า
+    var perCol = isNum ? 3 : (isTall ? 5 : 15);    // numwrite แถวสูง (4 บรรทัด) จำกัด 3/หน้า กันตก
     var perPage = perCol * cols;
 
     function qitemHTML(p, i) {
