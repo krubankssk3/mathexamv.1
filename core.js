@@ -187,12 +187,27 @@
       var out = [], D = { easy: [1, 20, 10], medium: [5, 99, 12], hard: [20, 999, 25] }[c.level];
       var addR = c.addRange || [D[0], D[1]], mulM = c.mulMax || D[2];
       var ops = (c.ops && c.ops.length) ? c.ops : ['+'];
+      var carry = c.carry || 'any'; // no=ไม่ทด/ไม่ยืม, yes=มีทด/มียืม, any=คละ
+      function dig(n) { var a = []; n = Math.abs(n); if (n === 0) return [0]; while (n > 0) { a.push(n % 10); n = Math.floor(n / 10); } return a; }
+      function addCarry(a, b) { var x = dig(a), y = dig(b), m = Math.max(x.length, y.length); for (var i = 0; i < m; i++) { if ((x[i] || 0) + (y[i] || 0) >= 10) return true; } return false; }
+      function subBorrow(a, b) { var x = dig(a), y = dig(b); for (var i = 0; i < x.length; i++) { if ((x[i] || 0) < (y[i] || 0)) return true; } return false; }
+      function okAdd(a, b) { return carry === 'any' || (carry === 'yes') === addCarry(a, b); }
+      function okSub(a, b) { return carry === 'any' || (carry === 'yes') === subBorrow(a, b); }
       for (var i = 0; i < c.count; i++) {
-        var op = pick(ops), a, b, ans, sym;
-        if (op === '-') { a = ri(addR[0], addR[1]); b = ri(addR[0], a); ans = a - b; sym = '\u2212'; }
-        else if (op === 'x' || op === 'X' || op === '*' || op === '\u00d7') { a = ri(2, mulM); b = ri(2, mulM); ans = a * b; sym = '\u00d7'; }
-        else if (op === '/' || op === '\u00f7') { b = ri(2, mulM); ans = ri(2, mulM); a = b * ans; sym = '\u00f7'; }
-        else { a = ri(addR[0], addR[1]); b = ri(addR[0], addR[1]); ans = a + b; sym = '+'; }
+        var op = pick(ops), a, b, ans, sym, t;
+        if (op === '-') {
+          a = ri(addR[0], addR[1]); b = ri(addR[0], a);
+          for (t = 0; t < 60 && !okSub(a, b); t++) { a = ri(addR[0], addR[1]); b = ri(addR[0], a); }
+          ans = a - b; sym = '\u2212';
+        } else if (op === 'x' || op === 'X' || op === '*' || op === '\u00d7') {
+          a = ri(2, mulM); b = ri(2, mulM); ans = a * b; sym = '\u00d7';
+        } else if (op === '/' || op === '\u00f7') {
+          b = ri(2, mulM); ans = ri(2, mulM); a = b * ans; sym = '\u00f7';
+        } else {
+          a = ri(addR[0], addR[1]); b = ri(addR[0], addR[1]);
+          for (t = 0; t < 60 && !okAdd(a, b); t++) { a = ri(addR[0], addR[1]); b = ri(addR[0], addR[1]); }
+          ans = a + b; sym = '+';
+        }
         out.push({ q: a + ' ' + sym + ' ' + b + ' =', a: String(ans), n: ans });
       }
       return out;
