@@ -273,6 +273,19 @@
         out.push({ q: q, a: String(ans), n: ans, noline: true });
       }
       return out;
+    },
+    count: function (c) {
+      var POOL = (c.pics && c.pics.length) ? c.pics : ['\ud83c\udf4e', '\u2b50', '\ud83c\udf88', '\ud83d\udc1f', '\ud83c\udf38', '\ud83e\udd55', '\ud83c\udf6d', '\u270f\ufe0f', '\ud83d\udcd8', '\ud83d\udc31', '\ud83c\udf53', '\u26bd', '\ud83c\udf4c', '\ud83c\udf1f', '\ud83c\udf80', '\ud83d\udc36'];
+      var max = Math.min(20, c.count); // นับจำนวนจำกัด 20 ข้อ
+      function rep(s, n) { var o = ''; for (var k = 0; k < n; k++) o += s; return o; }
+      var out = [];
+      for (var i = 0; i < max; i++) {
+        var em = pick(POOL), n = ri(0, 5), opts = '';
+        for (var o = 0; o <= 5; o++) opts += '<span class="copt">' + o + '</span>';
+        var q = '<span class="countbox"><span class="countpics">' + rep(em, n) + '</span><span class="countopts">' + opts + '</span></span>';
+        out.push({ q: q, a: String(n), n: n, noline: true });
+      }
+      return out;
     }
   };
   function buildProblems(ch, level, count) {
