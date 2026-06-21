@@ -97,8 +97,8 @@
     var lv = { easy: 'ง่าย', medium: 'ปานกลาง', hard: 'ยาก' }[o.level] || o.level || '';
     var cols = o.cols === 2 ? 2 : 1;
     var total = o.problems.length;
-    var isPic = o.problems.some(function (p) { return p.noline; }); // โจทย์รูปภาพ (สูงกว่า)
-    var perCol = isPic ? 5 : 15;                  // จำนวนข้อต่อคอลัมน์ต่อหน้า
+    var isTall = o.problems.some(function (p) { return p.tall; }); // โจทย์รูป/นับ (สูง)
+    var perCol = isTall ? 5 : 15;                  // จำนวนข้อต่อคอลัมน์ต่อหน้า
     var perPage = perCol * cols;
 
     function qitemHTML(p, i) {
@@ -270,7 +270,7 @@
           '</span>' +
           '<span class="pico">=</span>' +
           '<span class="picbox"></span></span>';
-        out.push({ q: q, a: String(ans), n: ans, noline: true });
+        out.push({ q: q, a: String(ans), n: ans, noline: true, tall: true });
       }
       return out;
     },
@@ -283,7 +283,7 @@
         var em = pick(POOL), n = ri(0, 5), opts = '';
         for (var o = 0; o <= 5; o++) opts += '<span class="copt">' + o + '</span>';
         var q = '<span class="countbox"><span class="countpics">' + rep(em, n) + '</span><span class="countopts">' + opts + '</span></span>';
-        out.push({ q: q, a: String(n), n: n, noline: true });
+        out.push({ q: q, a: String(n), n: n, noline: true, tall: true });
       }
       return out;
     },
@@ -301,7 +301,20 @@
         } else { // แบบนับแล้วเขียนจำนวนลงกล่อง
           q = '<span class="countbox"><span class="countpics">' + rep(em, n) + '</span><span class="countans"><span class="cbox"></span></span></span>';
         }
-        out.push({ q: q, a: String(n), n: n, noline: true });
+        out.push({ q: q, a: String(n), n: n, noline: true, tall: true });
+      }
+      return out;
+    },
+    compare: function (c) {
+      var R = c.range || ({ easy: [1, 20], medium: [10, 100], hard: [100, 1000] }[c.level]) || [1, 20];
+      var max = Math.min(50, c.count);
+      var out = [];
+      for (var i = 0; i < max; i++) {
+        var a = ri(R[0], R[1]), b = ri(R[0], R[1]);
+        if (ri(0, 5) === 0) b = a; // บางข้อให้เท่ากัน
+        var sym = a > b ? '>' : (a < b ? '<' : '=');
+        var q = '<span class="cmpwrap"><span class="cmpnum">' + a + '</span><span class="cmpbox"></span><span class="cmpnum">' + b + '</span></span>';
+        out.push({ q: q, a: sym, n: (a > b ? 1 : (a < b ? -1 : 0)), noline: true });
       }
       return out;
     }
