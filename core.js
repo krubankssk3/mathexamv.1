@@ -100,8 +100,9 @@
     var isTall = o.problems.some(function (p) { return p.tall; }); // โจทย์รูป/นับ (สูง)
     var isNum = o.problems.length && o.problems[0].numtable;        // ตารางเขียนเลข
     var isOrd = o.problems.length && o.problems[0].ord;             // เรียงลำดับ (กล่อง อาจ 2 บรรทัด)
+    var isClock = o.problems.length && o.problems[0].clock;         // นาฬิกา (สูง)
     if (isNum) cols = 1;
-    var perCol = isNum ? 3 : (isOrd ? 8 : (isTall ? 5 : 15));    // numwrite แถวสูง (4 บรรทัด) จำกัด 3/หน้า กันตก
+    var perCol = isNum ? 3 : (isClock ? 4 : (isOrd ? 8 : (isTall ? 5 : 15)));    // numwrite แถวสูง (4 บรรทัด) จำกัด 3/หน้า กันตก
     var perPage = perCol * cols;
 
     function qitemHTML(p, i) {
@@ -383,6 +384,43 @@
         var boxes = ''; for (var b = 0; b < nums.length; b++) boxes += '<span class="ordbox"></span>';
         var q = '<span class="ordwrap"><span class="ordnums">' + given.join('&nbsp;&nbsp;') + '</span><span class="ordlbl">' + label + '</span><span class="ordboxes">' + boxes + '</span></span>';
         out.push({ q: q, a: sorted.join(', '), n: sorted[0], noline: true, ord: true });
+      }
+      return out;
+    },
+    time: function (c) {
+      var mode = c.mode || 'line'; // line | box | tell
+      var max = Math.min(20, c.count);
+      function pad(x) { return x < 10 ? '0' + x : '' + x; }
+      function clockSVG(h, m) {
+        var cx = 50, cy = 50, nums = '', i, a;
+        for (i = 1; i <= 12; i++) {
+          a = i * 30 * Math.PI / 180;
+          nums += '<text x="' + (cx + Math.sin(a) * 37).toFixed(1) + '" y="' + (cy - Math.cos(a) * 37 + 3).toFixed(1) + '" font-size="8" text-anchor="middle" font-family="Arial" font-weight="700" fill="#2b2f3a">' + i + '</text>';
+        }
+        var ha = ((h % 12) * 30 + m * 0.5) * Math.PI / 180, ma = (m * 6) * Math.PI / 180;
+        return '<svg class="clock" viewBox="0 0 100 100">' +
+          '<circle cx="50" cy="50" r="47" fill="#fff" stroke="#2b2f3a" stroke-width="2.5"/>' + nums +
+          '<line x1="50" y1="50" x2="' + (cx + Math.sin(ha) * 23).toFixed(1) + '" y2="' + (cy - Math.cos(ha) * 23).toFixed(1) + '" stroke="#2b2f3a" stroke-width="3.5" stroke-linecap="round"/>' +
+          '<line x1="50" y1="50" x2="' + (cx + Math.sin(ma) * 33).toFixed(1) + '" y2="' + (cy - Math.cos(ma) * 33).toFixed(1) + '" stroke="#3b82f6" stroke-width="2.5" stroke-linecap="round"/>' +
+          '<circle cx="50" cy="50" r="3" fill="#2b2f3a"/></svg>';
+      }
+      var out = [];
+      for (var i = 0; i < max; i++) {
+        var h = ri(1, 12), m = (ri(0, 1) ? 0 : 30);
+        var nightH = (h === 12) ? 24 : h + 12;
+        var day = pad(h) + ':' + pad(m), night = (nightH === 24 ? '24' : pad(nightH)) + ':' + pad(m);
+        var ans, body;
+        if (mode === 'tell') {
+          ans = day;
+          body = '<span class="cl-row"><span class="cl-lbl">เวลา</span><span class="cl-line"></span></span>';
+        } else if (mode === 'box') {
+          ans = 'กลางวัน ' + day + ' / กลางคืน ' + night;
+          body = '<span class="cl-row"><span class="cl-ic">\u2600\ufe0f</span><span class="cl-box"></span></span><span class="cl-row"><span class="cl-ic">\ud83c\udf19</span><span class="cl-box"></span></span>';
+        } else {
+          ans = 'กลางวัน ' + day + ' / กลางคืน ' + night;
+          body = '<span class="cl-row"><span class="cl-lbl">กลางวัน</span><span class="cl-line"></span></span><span class="cl-row"><span class="cl-lbl">กลางคืน</span><span class="cl-line"></span></span>';
+        }
+        out.push({ q: '<span class="clockwrap">' + clockSVG(h, m) + '<span class="clockans">' + body + '</span></span>', a: ans, n: h, noline: true, clock: true });
       }
       return out;
     }
