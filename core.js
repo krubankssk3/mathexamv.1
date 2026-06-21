@@ -30,6 +30,17 @@
       .then(function (r) { return r.json(); })
       .then(function (d) { return d.ok ? d.data : null; }).catch(function () { return null; });
   }
+  // แคชสถิติลง localStorage เพื่อให้เปิดหน้ามาแล้วเด้งทันที (ไม่ต้องรอ GAS ทุกครั้ง)
+  var STATS_LS = 'eduforge_stats';
+  function statsCacheGet() {
+    if (Platform.store && Platform.store._stats) return Platform.store._stats;
+    try { var raw = localStorage.getItem(STATS_LS); return raw ? JSON.parse(raw) : null; } catch (e) { return null; }
+  }
+  function statsCacheSet(s) {
+    if (!s) return;
+    if (Platform.store) Platform.store._stats = s;
+    try { localStorage.setItem(STATS_LS, JSON.stringify(s)); } catch (e) {}
+  }
 
   /* ---------- UI helpers (SweetAlert) ---------- */
   var SWAL_DARK = { background: '#121a2e', color: '#e6ebf7' };
@@ -538,10 +549,10 @@
   }
   function loadHomeStats() {
     var box = $('#homeStats'); if (!box) return;
-    var cached = Platform.store && Platform.store._stats;
+    var cached = statsCacheGet();
     if (cached) renderStats(cached); else box.innerHTML = statsSkeleton(); // ขึ้นทันทีพร้อมหน้า
     api('publicStats').then(function (s) {
-      if (Platform.store) Platform.store._stats = s;
+      statsCacheSet(s);
       renderStats(s); // อัปเดตค่าจริงเมื่อมาถึง
     }).catch(function () {});
   }
@@ -711,11 +722,11 @@
       renderFeatures(s.systemsList || []);
       initReveals();
     }
-    var cachedLanding = Platform.store && Platform.store._stats;
+    var cachedLanding = statsCacheGet();
     if (cachedLanding) fillLanding(cachedLanding);
     else { var fg = $('#featGrid'); if (fg) fg.innerHTML = '<p style="grid-column:1/-1;text-align:center;color:var(--muted);font-size:.85rem">กำลังโหลดระบบ…</p>'; }
     apiGetPublicStats().then(function (s) {
-      if (s && Platform.store) Platform.store._stats = s;
+      statsCacheSet(s);
       fillLanding(s);
     });
 
