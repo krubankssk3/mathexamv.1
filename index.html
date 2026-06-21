@@ -162,6 +162,14 @@
   .ordlbl{font-size:12.5px;color:#555;border:1px solid #bbb;border-radius:10px;padding:1px 9px;white-space:nowrap}
   .ordboxes{display:inline-flex;gap:7px}
   .ordbox{width:34px;height:34px;border:1.6px solid #2b2f3a;border-radius:7px}
+  .clockwrap{display:inline-flex;flex-direction:column;align-items:center;gap:8px;width:100%}
+  .clock{width:92px;height:92px}
+  .clockans{width:100%;display:flex;flex-direction:column;gap:9px;font-size:14px}
+  .cl-row{display:flex;align-items:center;gap:8px}
+  .cl-lbl{min-width:56px;font-weight:600}
+  .cl-ic{font-size:18px;width:24px;text-align:center}
+  .cl-line{flex:1;border-bottom:1.5px dotted #999;height:0}
+  .cl-box{flex:1;border:1.5px dashed #2b2f3a;border-radius:8px;height:26px}
   .ans-line{display:inline-block;border-bottom:1px solid #999;min-width:70px;margin-left:6px}
   .frac{display:inline-flex;flex-direction:column;text-align:center;vertical-align:middle;line-height:1;margin:0 2px}
   .frac span:first-child{border-bottom:1.5px solid currentColor;padding:0 4px}
@@ -224,6 +232,7 @@
     #printArea .qitem{min-height:var(--rowh,auto);margin:0;font-size:16px;align-items:flex-start}
     #printArea .nwrow:not(.nwhead){min-height:50mm}
     #printArea .nwhead{font-size:14px}
+    #printArea .clock{width:30mm;height:30mm}
     #printArea .ans-line{min-width:90px}
     #printArea .instr{font-size:14px;padding:9px 13px}
     #printArea .exam-head img{width:54px;height:54px}
