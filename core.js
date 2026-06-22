@@ -105,6 +105,7 @@
     if (isNum || isGeo) cols = 1;
     var perCol = isGeo ? 1 : (isNum ? 3 : (isClock ? 4 : (isOrd ? 8 : (isTall ? 5 : 15))));    // numwrite แถวสูง (4 บรรทัด) จำกัด 3/หน้า กันตก
     var perPage = perCol * cols;
+    var scoreTotal = isGeo ? (o.problems[0].pts || total) : total;   // เรขาคณิต: คะแนนเต็ม = จำนวนรูป
 
     function qitemHTML(p, i) {
       return '<div class="qitem"><span class="qno">' + (i + 1) + '.</span><span class="qbody">' + p.q + (p.noline ? '' : ' <span class="ans-line"></span>') + '</span></div>';
@@ -114,8 +115,8 @@
         '<div style="flex:1"><h1>' + S.org + '</h1><div class="sub">' + S.dept + '</div></div>' +
         '<div style="text-align:right"><div class="mono" style="font-size:11px;color:#888">ชุดที่</div><div class="mono" style="font-weight:700;color:var(--accent)">' + o.setId + '</div></div></div>' +
         '<div style="text-align:center;margin:14px 0 4px"><div class="font-display" style="font-size:18px;font-weight:700">' + o.title + '</div><div class="sub">เรื่อง ' + o.subjectName + ' · ระดับ ' + lv + '</div></div>' +
-        '<div class="meta-row"><span><b>ชื่อ–สกุล</b> <span class="blank" style="min-width:180px"></span></span><span><b>ชั้น</b> <span class="blank" style="min-width:60px"></span></span><span><b>เลขที่</b> <span class="blank" style="min-width:45px"></span></span><span><b>วันที่</b> ' + date + '</span><span class="score-box"><b>คะแนนที่ได้</b> <span class="blank" style="min-width:48px"></span> / ' + total + '</span></div>' +
-        '<div class="instr"><b>คำชี้แจง</b> ' + (o.instr ? o.instr : 'แสดงวิธีทำและเขียนคำตอบลงในช่องว่าง') + ' (' + total + ' ข้อ ข้อละ 1 คะแนน)</div>';
+        '<div class="meta-row"><span><b>ชื่อ–สกุล</b> <span class="blank" style="min-width:180px"></span></span><span><b>ชั้น</b> <span class="blank" style="min-width:60px"></span></span><span><b>เลขที่</b> <span class="blank" style="min-width:45px"></span></span><span><b>วันที่</b> ' + date + '</span><span class="score-box"><b>คะแนนที่ได้</b> <span class="blank" style="min-width:48px"></span> / ' + scoreTotal + '</span></div>' +
+        '<div class="instr"><b>คำชี้แจง</b> ' + (o.instr ? o.instr : 'แสดงวิธีทำและเขียนคำตอบลงในช่องว่าง') + ' (' + (isGeo ? scoreTotal + ' รูป รูปละ 1 คะแนน' : total + ' ข้อ ข้อละ 1 คะแนน') + ')</div>';
     }
     function headCont() {
       return '<div class="exam-head" style="margin-bottom:18px"><img src="' + S.logo + '">' +
@@ -433,43 +434,58 @@
       return out;
     },
     geometry: function (c) {
-      var dim = c.dim || '2d', W = 600, H = 560, n = Math.max(8, Math.min(18, c.count));
+      var dim = c.dim || '2d', W = 600, n = Math.max(6, Math.min(10, c.count || 10));
       function R(a, b) { return a + Math.random() * (b - a); }
+      function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
       function f(x) { return x.toFixed(1); }
       function s2d(t, s) {
-        if (t === 'rect') { var w = s * R(1.1, 1.9), h = s * R(0.7, 1.05); return '<rect x="' + f(-w / 2) + '" y="' + f(-h / 2) + '" width="' + f(w) + '" height="' + f(h) + '" fill="#fff" stroke="#111" stroke-width="2.2"/>'; }
-        if (t === 'tri') { return '<polygon points="0,' + f(-s) + ' ' + f(s) + ',' + f(s * 0.85) + ' ' + f(-s) + ',' + f(s * 0.85) + '" fill="#fff" stroke="#111" stroke-width="2.2"/>'; }
-        if (t === 'ellipse') { return '<ellipse rx="' + f(s * 1.25) + '" ry="' + f(s * 0.78) + '" fill="#fff" stroke="#111" stroke-width="2.2"/>'; }
-        return '<circle r="' + f(s) + '" fill="#fff" stroke="#111" stroke-width="2.2"/>';
+        if (t === 'rect') {
+          var w, h;
+          if (Math.random() < 0.42) { w = h = s * R(1.0, 1.4); }           // จัตุรัส
+          else { w = s * R(1.3, 2.1); h = s * R(0.55, 0.9); }              // ผืนผ้า
+          return '<rect x="' + f(-w / 2) + '" y="' + f(-h / 2) + '" width="' + f(w) + '" height="' + f(h) + '" fill="#fff" stroke="#111" stroke-width="2.2"/>';
+        }
+        if (t === 'tri') {
+          var ax = R(-0.45, 0.45) * s, ay = -s * R(0.85, 1.1);
+          return '<polygon points="' + f(ax) + ',' + f(ay) + ' ' + f(s * R(0.7, 1.05)) + ',' + f(s * R(0.6, 0.95)) + ' ' + f(-s * R(0.7, 1.05)) + ',' + f(s * R(0.6, 0.95)) + '" fill="#fff" stroke="#111" stroke-width="2.2"/>';
+        }
+        if (t === 'ellipse') { return '<ellipse rx="' + f(s * R(1.05, 1.4)) + '" ry="' + f(s * R(0.6, 0.85)) + '" fill="#fff" stroke="#111" stroke-width="2.2"/>'; }
+        return '<circle r="' + f(s * R(0.85, 1.05)) + '" fill="#fff" stroke="#111" stroke-width="2.2"/>';
       }
       function s3d(t, s) {
         var st = 'fill="#fff" stroke="#111" stroke-width="2"';
         if (t === 'cuboid') {
-          var w = s * 1.5, h = s * R(1.0, 1.3), d = s * 0.55;
+          var w = s * R(1.0, 1.7), h = s * R(0.85, 1.5), d = s * R(0.4, 0.62);
           return '<polygon points="' + f(-w / 2) + ',' + f(-h / 2) + ' ' + f(-w / 2 + d) + ',' + f(-h / 2 - d) + ' ' + f(w / 2 + d) + ',' + f(-h / 2 - d) + ' ' + f(w / 2) + ',' + f(-h / 2) + '" ' + st + '/>' +
             '<polygon points="' + f(w / 2) + ',' + f(-h / 2) + ' ' + f(w / 2 + d) + ',' + f(-h / 2 - d) + ' ' + f(w / 2 + d) + ',' + f(h / 2 - d) + ' ' + f(w / 2) + ',' + f(h / 2) + '" ' + st + '/>' +
             '<rect x="' + f(-w / 2) + '" y="' + f(-h / 2) + '" width="' + f(w) + '" height="' + f(h) + '" ' + st + '/>';
         }
-        if (t === 'sphere') { return '<circle r="' + f(s) + '" ' + st + '/><ellipse rx="' + f(s) + '" ry="' + f(s * 0.32) + '" fill="none" stroke="#111" stroke-width="1.4"/>'; }
+        if (t === 'sphere') { return '<circle r="' + f(s * R(0.9, 1.05)) + '" ' + st + '/><ellipse rx="' + f(s) + '" ry="' + f(s * 0.32) + '" fill="none" stroke="#111" stroke-width="1.4"/>'; }
         if (t === 'cylinder') {
-          var rw = s, hh = s * 1.5, ry = rw * 0.28;
+          var rw = s * R(0.7, 1.05), hh = s * R(1.2, 2.0), ry = rw * 0.28;
           return '<path d="M' + f(-rw) + ',' + f(-hh / 2) + ' L' + f(-rw) + ',' + f(hh / 2) + ' A' + f(rw) + ',' + f(ry) + ' 0 0 0 ' + f(rw) + ',' + f(hh / 2) + ' L' + f(rw) + ',' + f(-hh / 2) + '" ' + st + '/>' +
             '<ellipse cy="' + f(-hh / 2) + '" rx="' + f(rw) + '" ry="' + f(ry) + '" ' + st + '/>';
         }
-        var cw = s * 1.1, chh = s * 1.7, cry = cw * 0.28;
+        var cw = s * R(0.85, 1.2), chh = s * R(1.3, 2.0), cry = cw * 0.28;
         return '<path d="M0,' + f(-chh / 2) + ' L' + f(-cw) + ',' + f(chh / 2) + ' A' + f(cw) + ',' + f(cry) + ' 0 0 0 ' + f(cw) + ',' + f(chh / 2) + ' Z" ' + st + '/>' +
           '<path d="M' + f(-cw) + ',' + f(chh / 2) + ' A' + f(cw) + ',' + f(cry) + ' 0 0 1 ' + f(cw) + ',' + f(chh / 2) + '" fill="none" stroke="#111" stroke-width="1.4" stroke-dasharray="3,3"/>';
       }
+      function rotOf(t) {
+        if (dim === '2d') return (t === 'rect' || t === 'tri') ? R(0, 360) : (t === 'ellipse' ? R(0, 180) : 0);
+        if (t === 'cuboid') return R(-14, 14);
+        if (t === 'cylinder') return pick([0, 0, 90, -90]);
+        if (t === 'cone') return pick([0, 0, 90, -90, 180]);
+        return 0;
+      }
       var types = dim === '3d' ? ['cuboid', 'sphere', 'cylinder', 'cone'] : ['rect', 'tri', 'circle', 'ellipse'];
       var tally = {}; types.forEach(function (t) { tally[t] = 0; });
-      var cols = 4, rows = Math.ceil(n / cols), cw = W / cols, chh = H / rows, svg = '';
+      var cols = n < 4 ? n : 4, rows = Math.ceil(n / cols), cw = W / cols, chh = 150, H = rows * chh, svg = '';
       for (var i = 0; i < n; i++) {
         var col = i % cols, row = Math.floor(i / cols);
-        var cx = col * cw + cw / 2 + R(-cw * 0.1, cw * 0.1), cy = row * chh + chh / 2 + R(-chh * 0.1, chh * 0.1);
-        var sz = Math.min(cw, chh) * R(0.30, 0.42);
+        var cx = col * cw + cw / 2 + R(-cw * 0.08, cw * 0.08), cy = row * chh + chh / 2 + R(-chh * 0.08, chh * 0.08);
+        var sz = Math.min(cw, chh) * R(0.28, 0.38);
         var t = types[Math.floor(Math.random() * types.length)]; tally[t]++;
-        var rot = (dim === '2d' && (t === 'rect' || t === 'tri')) ? R(-28, 28) : 0;
-        svg += '<g transform="translate(' + f(cx) + ',' + f(cy) + ') rotate(' + f(rot) + ')">' + (dim === '3d' ? s3d(t, sz) : s2d(t, sz)) + '</g>';
+        svg += '<g transform="translate(' + f(cx) + ',' + f(cy) + ') rotate(' + f(rotOf(t)) + ')">' + (dim === '3d' ? s3d(t, sz) : s2d(t, sz)) + '</g>';
       }
       var L = dim === '3d'
         ? [['cuboid', 'ทรงสี่เหลี่ยมมุมฉาก', 'สีแดง'], ['sphere', 'ทรงกลม', 'สีเขียว'], ['cylinder', 'ทรงกระบอก', 'สีฟ้า'], ['cone', 'กรวย', 'สีเหลือง']]
@@ -478,7 +494,7 @@
       var sum = L.map(function (x) { return '<span>มี' + x[1] + ' <span class="geoblank"></span> รูป</span>'; }).join('');
       var ans = L.map(function (x) { return x[1] + ' ' + tally[x[0]]; }).join(' · ');
       var q = '<div class="geowrap"><div class="geolegend">' + chips + '</div><svg class="geofield" viewBox="0 0 ' + W + ' ' + H + '">' + svg + '</svg><div class="geosum">' + sum + '</div></div>';
-      return [{ q: q, a: ans, geo: true, noline: true }];
+      return [{ q: q, a: ans, geo: true, noline: true, pts: n }];
     }
   };
   function buildProblems(ch, level, count) {
