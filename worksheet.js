@@ -135,7 +135,8 @@
           numwrite: 'นับจำนวนแท่งฐานสิบ แล้วเขียนตัวเลขฮินดูอารบิก ตัวเลขไทย และตัวหนังสือ ลงในตาราง',
           order: 'เรียงจำนวนที่กำหนดให้ ตามทิศที่ระบุในแต่ละข้อ แล้วเขียนลงในช่องว่าง',
           time: 'ดูเข็มนาฬิกาในแต่ละข้อ แล้วเขียนเวลาลงในช่องว่าง',
-          geometry: 'ระบายสีรูปตามข้อกำหนด แล้วนับจำนวนรูปแต่ละชนิด เขียนลงในช่องว่าง'
+          geometry: 'ระบายสีรูปตามข้อกำหนด แล้วนับจำนวนรูปแต่ละชนิด เขียนลงในช่องว่าง',
+          measlen: 'จงวัดความยาวของสิ่งของแต่ละชิ้นโดยใช้ไม้บรรทัด แล้วบอกความยาวเป็นเซนติเมตรและมิลลิเมตร'
         };
         var instrText = (ch.lv && ch.lv.instruction) || DEF_INSTR[ch.gen] || '';
         st.current = { setId: res.setId, subjectName: g.name + ' · ' + ch.name, problems: res.problems, level: st.level, cols: st.cols, title: st.title, instr: instrText, picture: ch.gen === 'picture' };
