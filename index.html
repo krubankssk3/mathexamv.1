@@ -110,6 +110,14 @@
   .pg-btn:hover:not(:disabled){background:var(--accent);color:#fff;border-color:transparent}
   .pg-btn:disabled{opacity:.35;cursor:not-allowed}
   .pg-info{font-size:.85rem;color:var(--muted,#9aa8c8);font-family:'Sarabun',sans-serif;min-width:74px;text-align:center}
+  .ex-list{display:flex;flex-direction:column;gap:14px}
+  .ex-card{background:var(--bg2);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;padding:14px 18px}
+  .ex-no{display:inline-block;font-weight:700;color:var(--accent);font-size:.85rem;margin-bottom:6px;font-family:'Sarabun',sans-serif}
+  .ex-body{line-height:1.85;font-size:1.02rem;color:var(--txt);font-family:'Sarabun',sans-serif;white-space:normal}
+  #printArea .ex-list.print{display:block}
+  #printArea .ex-card{background:#fff;border:1px solid #ccc;border-left:4px solid #333;border-radius:8px;padding:12px 16px;margin-bottom:12px;page-break-inside:avoid;break-inside:avoid;color:#111}
+  #printArea .ex-no{color:#222}
+  #printArea .ex-body{color:#111;font-size:15px;line-height:1.8}
   .picwrap{display:inline-flex;align-items:center;flex-wrap:nowrap;gap:10px;vertical-align:middle;max-width:100%;margin:16px 0}
   .piccap{display:inline-flex;align-items:center;gap:12px;border:2px solid #2b2f3a;border-radius:44px;padding:8px 16px;flex-wrap:nowrap;min-width:0}
   .picoval{display:inline-flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
