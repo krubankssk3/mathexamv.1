@@ -11,6 +11,7 @@
       var store = svc.store;
       if (!store.public) { store.public = []; store.publicLoaded = false; }
       var canManage = svc.user.role !== 'public';
+      var lpPage = 0;
 
       function render(loading) {
         var list = store.public;
@@ -24,15 +25,32 @@
             '<p style="color:var(--muted);font-size:.88rem;margin:0 0 16px">ชุดข้อสอบที่ครูเผยแพร่ไว้ ทุกคนเปิดดูและพิมพ์ได้ (พร้อมเฉลย)</p>' +
             (loading && list.length === 0 ? '<div style="text-align:center;padding:40px;color:var(--muted)">กำลังโหลด...</div>' : '') +
             (!loading && list.length === 0 ? '<div style="text-align:center;padding:40px;color:var(--muted)"><i class="ti ti-books" style="font-size:42px"></i><div style="margin-top:8px">ยังไม่มีชุดข้อสอบที่เผยแพร่</div></div>' : '') +
-            '<div style="display:grid;gap:12px">' + list.map(function (s, i) {
-              return '<div class="qcard" style="display:flex;align-items:center;gap:14px;margin:0">' +
-                '<span class="stamp">' + s.setId + '</span>' +
-                '<div style="flex:1"><div class="font-display" style="font-weight:600">' + s.title + '</div>' +
-                '<div style="color:var(--muted);font-size:.82rem">' + s.subjectName + ' · ' + s.problems.length + ' ข้อ' + (s.publishedBy ? ' · โดย ' + s.publishedBy : '') + '</div></div>' +
-                '<button class="btn btn-ghost" data-print="' + i + '"><i class="ti ti-printer"></i> พิมพ์</button>' +
-                (canManage ? '<button class="btn btn-ghost" data-del="' + i + '" style="color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,transparent)"><i class="ti ti-trash"></i></button>' : '') +
-                '</div>';
-            }).join('') + '</div></div>';
+            '<div style="display:grid;gap:12px">' + (function () {
+              var PER = 10, pages = Math.max(1, Math.ceil(list.length / PER));
+              if (lpPage >= pages) lpPage = pages - 1; if (lpPage < 0) lpPage = 0;
+              var startIdx = lpPage * PER;
+              return list.slice(startIdx, startIdx + PER).map(function (s, j) {
+                var i = startIdx + j;
+                return '<div class="qcard" style="display:flex;align-items:center;gap:14px;margin:0">' +
+                  '<span class="stamp">' + s.setId + '</span>' +
+                  '<div style="flex:1"><div class="font-display" style="font-weight:600">' + s.title + '</div>' +
+                  '<div style="color:var(--muted);font-size:.82rem">' + s.subjectName + ' · ' + s.problems.length + ' ข้อ' + (s.publishedBy ? ' · โดย ' + s.publishedBy : '') + '</div></div>' +
+                  '<button class="btn btn-ghost" data-print="' + i + '"><i class="ti ti-printer"></i> พิมพ์</button>' +
+                  (canManage ? '<button class="btn btn-ghost" data-del="' + i + '" style="color:var(--bad);border-color:color-mix(in srgb,var(--bad) 40%,transparent)"><i class="ti ti-trash"></i></button>' : '') +
+                  '</div>';
+              }).join('');
+            })() + '</div>' +
+            (function () {
+              var PER = 10, pages = Math.max(1, Math.ceil(list.length / PER));
+              return pages > 1 ? '<div class="pager" style="display:flex">' +
+                '<button class="pg-btn lpPrev"' + (lpPage === 0 ? ' disabled' : '') + '><i class="ti ti-chevron-left"></i></button>' +
+                '<span class="pg-info">หน้า ' + (lpPage + 1) + ' / ' + pages + ' (รวม ' + list.length + ' ชุด)</span>' +
+                '<button class="pg-btn lpNext"' + (lpPage === pages - 1 ? ' disabled' : '') + '><i class="ti ti-chevron-right"></i></button></div>' : '';
+            })() + '</div>';
+
+        var lpv = $('.lpPrev', host), lnx = $('.lpNext', host);
+        if (lpv) lpv.onclick = function () { if (lpPage > 0) { lpPage--; render(false); } };
+        if (lnx) lnx.onclick = function () { lpPage++; render(false); };
 
         $('#refresh', host).onclick = function () { store.publicLoaded = false; load(); };
         $$('[data-print]', host).forEach(function (b) {
