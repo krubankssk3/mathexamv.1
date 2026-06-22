@@ -1,213 +1,229 @@
-/*** EduForge plugin — ระบบแบบฝึกหัด (แสดงวิธีทำ) *************************
- * ครูสร้าง Node เนื้อหาเอง: เลือกระดับชั้น + ใส่หัวข้อ + เขียนวิธีทำ
- * คั่นหลายตัวอย่างในชิ้นเดียวด้วยบรรทัด === (สามตัวขึ้นไป)
- * นักเรียน/สาธารณะเปิดดูได้ · ครู/แอดมินเพิ่ม/แก้/ลบ/เปิด-ปิด
+/*** EduForge plugin — แบบฝึกหัด (แสดงวิธีทำ) ****************************
+ * ต่อ Node: เลือกชั้น → เลือกบท → สุ่มโจทย์พร้อม "วิธีทำ" ทีละขั้น
+ * ทำงานฝั่งหน้าเว็บล้วน (ใช้ generator เดียวกับใบงาน) ไม่เรียก backend
+ * รองรับวิธีทำละเอียด: บวก/ลบ/คูณ/หาร, ร้อยละ, หน่วยวัด, สมการ, โจทย์ปัญหา
+ * ชนิดอื่นจะแสดงเฉลยไปก่อน แล้วค่อยเพิ่มวิธีทำทีหลัง
  ***********************************************************************/
 (function () {
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return [].slice.call((r || document).querySelectorAll(s)); };
-  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+  /* ---------- ตัวช่วยสร้างวิธีทำ ---------- */
+  function dig(n) { var a = []; n = Math.abs(n); if (n === 0) return [0]; while (n > 0) { a.push(n % 10); n = Math.floor(n / 10); } return a; }
+  function placeName(i) { return ['หลักหน่วย', 'หลักสิบ', 'หลักร้อย', 'หลักพัน', 'หลักหมื่น'][i] || ('หลักที่ ' + (i + 1)); }
+  function addSteps(a, b) {
+    var x = dig(a), y = dig(b), m = Math.max(x.length, y.length), carry = 0, L = ['• ตั้งเลขให้ตรงหลักกัน แล้วบวกจากหลักหน่วยไปซ้าย'];
+    for (var i = 0; i < m; i++) {
+      var s = (x[i] || 0) + (y[i] || 0) + carry, c2 = s >= 10 ? 1 : 0, d = s % 10;
+      var t = '• ' + placeName(i) + ': ' + (x[i] || 0) + ' + ' + (y[i] || 0) + (carry ? ' + ' + carry + ' (ตัวทด)' : '') + ' = ' + s;
+      if (c2) t += ' → เขียน ' + d + ' ทด ' + c2;
+      L.push(t); carry = c2;
+    }
+    if (carry) L.push('• ทดตัวสุดท้าย เขียน ' + carry + ' ไว้หน้าสุด');
+    L.push('<b>ตอบ ' + (a + b) + '</b>'); return L;
+  }
+  function subSteps(a, b) {
+    var x = dig(a).slice(), y = dig(b), m = x.length, L = ['• ตั้งเลขให้ตรงหลักกัน แล้วลบจากหลักหน่วยไปซ้าย'];
+    for (var i = 0; i < m; i++) {
+      var xi = x[i], yi = y[i] || 0;
+      if (xi < yi) { L.push('• ' + placeName(i) + ': ' + xi + ' − ' + yi + ' ไม่พอลบ ยืม 1 จาก' + placeName(i + 1) + ' → ' + (xi + 10) + ' − ' + yi + ' = ' + (xi + 10 - yi)); x[i + 1] = (x[i + 1] || 0) - 1; }
+      else { L.push('• ' + placeName(i) + ': ' + xi + ' − ' + yi + ' = ' + (xi - yi)); }
+    }
+    L.push('<b>ตอบ ' + (a - b) + '</b>'); return L;
+  }
+  function mulSteps(a, b) {
+    var L = [], big = dig(a).length >= dig(b).length ? a : b, sm = big === a ? b : a, x = dig(big), terms = [];
+    for (var i = x.length - 1; i >= 0; i--) { if (x[i] === 0) continue; terms.push(x[i] * Math.pow(10, i)); }
+    if (terms.length <= 1) { L.push('• ท่องสูตรคูณ: ' + a + ' × ' + b + ' = ' + (a * b)); }
+    else {
+      L.push('• แยก ' + big + ' ตามค่าประจำหลัก แล้วคูณด้วย ' + sm + ':');
+      L.push('• = ' + terms.map(function (pv) { return '(' + pv + ' × ' + sm + ')'; }).join(' + '));
+      L.push('• = ' + terms.map(function (pv) { return pv * sm; }).join(' + '));
+    }
+    L.push('<b>ตอบ ' + (a * b) + '</b>'); return L;
+  }
+  function divSteps(a, b, ans) { return ['• คิดว่า ' + b + ' คูณด้วยจำนวนใดจึงได้ ' + a, '• ' + b + ' × ' + ans + ' = ' + a, '<b>ตอบ ' + ans + '</b>']; }
+  function arithSteps(m) {
+    if (m.op === '+') return addSteps(m.a, m.b);
+    if (m.op === '\u2212') return subSteps(m.a, m.b);
+    if (m.op === '\u00d7') return mulSteps(m.a, m.b);
+    if (m.op === '\u00f7') return divSteps(m.a, m.b, m.ans);
+    return ['<b>ตอบ ' + m.ans + '</b>'];
+  }
+  function percentSteps(m) { return ['• ' + m.p + '% หมายถึง ' + m.p + ' ส่วนในร้อยส่วน', '• ' + m.p + '% ของ ' + m.b + ' = (' + m.p + ' ÷ 100) × ' + m.b + ' = ' + m.v, '<b>ตอบ ' + m.v + '</b>']; }
+  function measureSteps(m) { return ['• เทียบหน่วย: 1 ' + m.unit + ' = ' + m.f + ' ' + m.to, '• ' + m.n + ' ' + m.unit + ' = ' + m.n + ' × ' + m.f + ' = ' + m.ans + ' ' + m.to, '<b>ตอบ ' + m.ans + ' ' + m.to + '</b>']; }
+  function equationSteps(m) {
+    var rhs = m.c - m.b;
+    return ['• ตั้งสมการ: ' + m.a + 'x ' + (m.b < 0 ? '− ' + (-m.b) : '+ ' + m.b) + ' = ' + m.c,
+      '• ย้ายข้าง: ' + m.a + 'x = ' + m.c + ' ' + (m.b < 0 ? '+ ' + (-m.b) : '− ' + m.b) + ' = ' + rhs,
+      '• x = ' + rhs + ' ÷ ' + m.a + ' = ' + m.x, '<b>ตอบ x = ' + m.x + '</b>'];
+  }
+  function wordSteps(m) {
+    if (m.kind === 0) return ['• ตอนแรกมี ' + m.a + ' ชิ้น ซื้อเพิ่มอีก ' + m.b + ' ชิ้น', '• นำมาบวกกัน: ' + m.a + ' + ' + m.b + ' = ' + m.ans, '<b>ตอบ ' + m.ans + ' ชิ้น</b>'];
+    if (m.kind === 1) { var bg = Math.max(m.a, m.b), sm = Math.min(m.a, m.b); return ['• มีอยู่ ' + bg + ' ชิ้น ให้เพื่อนไป ' + sm + ' ชิ้น', '• นำมาลบกัน: ' + bg + ' − ' + sm + ' = ' + m.ans, '<b>ตอบ ' + m.ans + ' ชิ้น</b>']; }
+    return ['• วันละ ' + m.a + ' ชิ้น เป็นเวลา ' + m.b + ' วัน', '• นำมาคูณกัน: ' + m.a + ' × ' + m.b + ' = ' + m.ans, '<b>ตอบ ' + m.ans + ' ชิ้น</b>'];
+  }
+  function buildSolution(item) {
+    var m = item.meta; if (!m) return null;
+    if (m.t === 'arith') return arithSteps(m);
+    if (m.t === 'percent') return percentSteps(m);
+    if (m.t === 'measure') return measureSteps(m);
+    if (m.t === 'equation') return equationSteps(m);
+    if (m.t === 'word') return wordSteps(m);
+    return null;
+  }
 
   window.Platform.register({
     id: 'lesson',
     mount: function (host, svc) {
-      var CUR = svc.curriculum || { grades: [] };
-      var canManage = svc.user && svc.user.role !== 'public';
+      var CUR = svc.curriculum || { grades: [], subject: 'คณิตศาสตร์' };
       var lockGrade = (svc.ctx && svc.ctx.gradeId) || null;
-      var st = { gradeId: lockGrade || 'all', page: 0, lessons: [], loaded: false };
-      var INP = 'width:100%;margin:.3rem 0 .6rem;padding:.6rem .7rem;border-radius:9px;background:#0b1120;color:#e6ebf7;border:1px solid #2a3556;font-family:Sarabun,sans-serif';
+      var firstG = lockGrade ? (CUR.grades.filter(function (g) { return g.id === lockGrade; })[0] || CUR.grades[0]) : CUR.grades[0];
+      var st = {
+        gradeId: firstG && firstG.id,
+        chapterId: firstG && firstG.chapters[0] && firstG.chapters[0].id,
+        level: 'easy', count: 6, chPage: 0, items: [], showSteps: true, busy: false
+      };
+      function gradeOf(id) { return CUR.grades.filter(function (g) { return g.id === id; })[0]; }
+      function chapterOf(gid, cid) { var g = gradeOf(gid); return g && g.chapters.filter(function (c) { return c.id === cid; })[0]; }
 
-      function grades() { return CUR.grades || []; }
-      function gradeName(id) { var g = grades().filter(function (x) { return x.id === id; })[0]; return g ? g.name : '—'; }
+      host.innerHTML =
+        '<div class="grid-main" style="display:grid;gap:22px;grid-template-columns:360px 1fr">' +
+          '<section style="display:flex;flex-direction:column;gap:18px">' +
+            '<div class="panel" style="padding:18px">' +
+              '<div class="eyebrow" style="margin-bottom:10px">เลือกชั้น / บทเรียน</div>' +
+              '<span class="chip" style="margin-bottom:12px"><i class="ti ti-book"></i> ' + CUR.subject + '</span>' +
+              '<label class="lbl">ระดับชั้น</label>' +
+              '<div id="grades" style="display:flex;gap:8px;overflow:auto;padding-bottom:6px;margin:6px 0 14px"></div>' +
+              '<label class="lbl">บทเรียน / เรื่อง</label>' +
+              '<div id="chapters" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px"></div>' +
+              '<div id="chPager" class="pager" style="display:none"></div>' +
+            '</div>' +
+            '<div class="panel" style="padding:18px">' +
+              '<div class="eyebrow" style="margin-bottom:12px">ตั้งค่าแบบฝึกหัด</div>' +
+              '<label class="lbl">ระดับความยาก</label>' +
+              '<div class="seg" id="lv" style="margin:5px 0 14px"><button data-l="easy" class="on">ง่าย</button><button data-l="medium">ปานกลาง</button><button data-l="hard">ยาก</button></div>' +
+              '<label class="lbl">จำนวนข้อ</label>' +
+              '<input id="cnt" type="number" min="1" max="20" value="6" class="field mono" style="margin:5px 0 14px">' +
+              '<button class="btn btn-accent" style="width:100%;justify-content:center" id="gen"><i class="ti ti-sparkles"></i> สุ่มโจทย์พร้อมวิธีทำ</button>' +
+            '</div>' +
+          '</section>' +
+          '<section style="display:flex;flex-direction:column;gap:14px">' +
+            '<div class="panel no-print" style="padding:14px;display:flex;flex-wrap:wrap;gap:10px;align-items:center">' +
+              '<div style="display:flex;flex-direction:column;gap:3px"><span class="mono" id="crumb" style="font-size:.72rem;color:var(--muted)">—</span>' +
+                '<div class="eyebrow">แบบฝึกหัด — แสดงวิธีทำ</div></div>' +
+              '<div style="margin-left:auto;display:flex;flex-wrap:wrap;gap:8px">' +
+                '<button class="btn btn-ghost" id="redo"><i class="ti ti-dice-3"></i> สุ่มใหม่</button>' +
+                '<button class="btn btn-ghost" id="toggle"><i class="ti ti-eye-off"></i> ซ่อนวิธีทำ</button>' +
+                '<button class="btn btn-accent" id="print"><i class="ti ti-printer"></i> พิมพ์/PDF</button>' +
+              '</div></div>' +
+            '<div class="stage" id="stage"></div>' +
+          '</section>' +
+        '</div>';
 
-      /* ---------- แปลงเนื้อหาเป็นการ์ดตัวอย่าง ---------- */
-      function renderContent(content) {
-        var blocks = String(content || '').split(/\n\s*={3,}\s*\n/);
-        var multi = blocks.length > 1;
-        return blocks.map(function (b, i) {
-          var body = b.split('\n').map(function (ln) {
-            var e = esc(ln);
-            if (/^\s*(โจทย์|วิธีทำ|ตอบ|ขั้นที่|ขั้นตอน|วิเคราะห์|สูตร)/.test(ln)) e = '<b>' + e + '</b>';
-            return e;
-          }).join('<br>');
-          return '<div class="ex-card">' + (multi ? '<div class="ex-no">ตัวอย่างที่ ' + (i + 1) + '</div>' : '') + '<div class="ex-body">' + body + '</div></div>';
-        }).join('');
-      }
-
-      /* ---------- โหลดข้อมูล ---------- */
-      function load() {
-        host.innerHTML = '<div class="panel" style="padding:40px;text-align:center;color:var(--muted)">กำลังโหลด...</div>';
-        svc.api('lessonList').then(function (res) {
-          st.lessons = (res && res.ok && res.data) ? res.data : (res.data || res || []);
-          if (!Array.isArray(st.lessons)) st.lessons = [];
-          st.loaded = true; renderList();
-        }).catch(function (e) {
-          host.innerHTML = '<div class="panel" style="padding:30px;text-align:center;color:var(--bad)">โหลดไม่ได้: ' + esc(String(e && e.message || e)) + '</div>';
+      function drawGrades() {
+        var c = $('#grades', host); c.innerHTML = '';
+        (CUR.grades || []).forEach(function (gr) {
+          var b = document.createElement('button'); b.className = 'chip' + (gr.id === st.gradeId ? ' on' : '');
+          b.textContent = gr.name; b.style.whiteSpace = 'nowrap';
+          if (lockGrade && gr.id !== lockGrade) b.disabled = true;
+          else b.onclick = function () { st.gradeId = gr.id; st.chapterId = gr.chapters[0] && gr.chapters[0].id; st.chPage = 0; drawGrades(); drawChapters(); setCrumb(); };
+          c.appendChild(b);
         });
       }
-
-      function filtered() {
-        return st.lessons.filter(function (l) { return st.gradeId === 'all' || l.gradeId === st.gradeId; });
+      function chTiles(all, shown) {
+        var c = $('#chapters', host); c.innerHTML = '';
+        shown.forEach(function (ch) {
+          var el = document.createElement('button'); el.className = 'tile' + (ch.id === st.chapterId ? ' on' : '');
+          var ico = /^https?:\/\//.test(String(ch.icon || '')) ? '<img src="' + ch.icon + '" style="width:24px;height:24px;object-fit:contain">' : '<i class="ti ' + (ch.icon || 'ti-file') + '"></i>';
+          el.innerHTML = '<div class="ic">' + ico + '</div><div class="font-display" style="font-weight:600;margin-top:8px;font-size:.92rem;line-height:1.2">' + ch.name + '</div>';
+          el.onclick = function () { st.chapterId = ch.id; drawChapters(); setCrumb(); };
+          c.appendChild(el);
+        });
+      }
+      function drawChapters(keepPage) {
+        var all = gradeOf(st.gradeId).chapters, PER = 6, pages = Math.max(1, Math.ceil(all.length / PER));
+        if (!keepPage) { var idx = all.map(function (x) { return x.id; }).indexOf(st.chapterId); if (idx >= 0) st.chPage = Math.floor(idx / PER); }
+        if (st.chPage >= pages) st.chPage = pages - 1;
+        chTiles(all, all.slice(st.chPage * PER, st.chPage * PER + PER));
+        var pg = $('#chPager', host);
+        if (pages > 1) {
+          pg.style.display = 'flex';
+          pg.innerHTML = '<button class="pg-btn" data-d="-1"' + (st.chPage === 0 ? ' disabled' : '') + '><i class="ti ti-chevron-left"></i></button>' +
+            '<span class="pg-info">หน้า ' + (st.chPage + 1) + ' / ' + pages + '</span>' +
+            '<button class="pg-btn" data-d="1"' + (st.chPage === pages - 1 ? ' disabled' : '') + '><i class="ti ti-chevron-right"></i></button>';
+          $$('.pg-btn', pg).forEach(function (b) { b.onclick = function () { if (b.disabled) return; st.chPage += (+b.dataset.d); drawChapters(true); }; });
+        } else { pg.style.display = 'none'; pg.innerHTML = ''; }
+      }
+      function setCrumb() {
+        var g = gradeOf(st.gradeId), ch = chapterOf(st.gradeId, st.chapterId);
+        $('#crumb', host).textContent = (g ? g.name : '') + (ch ? ' · ' + ch.name : '');
       }
 
-      /* ---------- หน้ารายการ ---------- */
-      function renderList() {
-        var list = filtered(), PER = 10, pages = Math.max(1, Math.ceil(list.length / PER));
-        if (st.page >= pages) st.page = pages - 1; if (st.page < 0) st.page = 0;
-        var shown = list.slice(st.page * PER, st.page * PER + PER);
+      function build() {
+        var ch = chapterOf(st.gradeId, st.chapterId);
+        if (!ch) { svc.toast('error', 'ยังไม่ได้เลือกบทเรียน'); return; }
+        st.busy = true;
+        var res = svc.genProblems(ch, st.level, st.count);
+        st.items = res.problems || [];
+        st.busy = false;
+        render();
+      }
 
-        var chips = '';
-        if (!lockGrade) {
-          chips = '<div id="lsGrades" style="display:flex;gap:8px;overflow:auto;padding-bottom:6px;margin:6px 0 14px">' +
-            '<button class="chip click' + (st.gradeId === 'all' ? ' on' : '') + '" data-g="all" style="white-space:nowrap">ทั้งหมด</button>' +
-            grades().map(function (g) { return '<button class="chip click' + (st.gradeId === g.id ? ' on' : '') + '" data-g="' + g.id + '" style="white-space:nowrap">' + esc(g.name) + '</button>'; }).join('') +
-            '</div>';
+      function render() {
+        var ch = chapterOf(st.gradeId, st.chapterId);
+        var stage = $('#stage', host);
+        if (!st.items.length) {
+          stage.innerHTML = '<div class="panel" style="padding:48px;text-align:center;color:var(--muted)"><i class="ti ti-notebook" style="font-size:42px"></i><div style="margin-top:10px">เลือกบทเรียนแล้วกด “สุ่มโจทย์พร้อมวิธีทำ”</div></div>';
+          return;
         }
-
-        var cards = shown.map(function (l, j) {
-          var i = st.page * PER + j;
-          return '<div class="qcard" style="display:flex;align-items:center;gap:14px;margin:0">' +
-            '<span class="stamp" style="background:var(--accent2,#f59e0b)"><i class="ti ti-notebook"></i></span>' +
-            '<div style="flex:1;min-width:0"><div class="font-display" style="font-weight:600">' + esc(l.title) +
-              (canManage && !l.enabled ? ' <span style="color:var(--muted);font-size:.75rem">(ปิดอยู่)</span>' : '') + '</div>' +
-            '<div style="color:var(--muted);font-size:.82rem">' + esc(gradeName(l.gradeId)) + (l.by ? ' · โดย ' + esc(l.by) : '') + '</div></div>' +
-            '<button class="btn btn-ghost" data-view="' + i + '"><i class="ti ti-eye"></i> ดูวิธีทำ</button>' +
-            (canManage ? '<button class="btn btn-ghost" data-edit="' + i + '"><i class="ti ti-edit"></i></button>' +
-              '<button class="btn btn-ghost" data-toggle="' + i + '"><i class="ti ' + (l.enabled ? 'ti-eye-off' : 'ti-eye') + '"></i></button>' +
-              '<button class="btn btn-ghost" data-del="' + i + '" style="color:var(--bad)"><i class="ti ti-trash"></i></button>' : '') +
-            '</div>';
+        var cards = st.items.map(function (it, i) {
+          var steps = buildSolution(it);
+          var stepsHTML = steps
+            ? '<div class="sol-steps"><div class="sol-h">วิธีทำ</div>' + steps.join('<br>') + '</div>'
+            : '<div class="sol-steps"><div class="sol-h">เฉลย</div><b>ตอบ ' + (it.a != null ? it.a : '-') + '</b></div>';
+          return '<div class="sol-card">' +
+            '<div class="sol-q"><span class="sol-no">' + (i + 1) + '</span><span class="sol-qt">' + it.q + '</span></div>' +
+            stepsHTML + '</div>';
         }).join('');
-
-        var empty = '<div style="text-align:center;padding:46px;color:var(--muted)"><i class="ti ti-notebook" style="font-size:42px"></i><div style="margin-top:8px">ยังไม่มีแบบฝึกหัดในส่วนนี้</div>' +
-          (canManage ? '<div style="margin-top:6px;font-size:.85rem">กด “เพิ่มแบบฝึกหัด” เพื่อสร้างใหม่</div>' : '') + '</div>';
-
-        var pager = pages > 1 ? '<div class="pager" style="display:flex">' +
-          '<button class="pg-btn lsPrev"' + (st.page === 0 ? ' disabled' : '') + '><i class="ti ti-chevron-left"></i></button>' +
-          '<span class="pg-info">หน้า ' + (st.page + 1) + ' / ' + pages + ' (รวม ' + list.length + ')</span>' +
-          '<button class="pg-btn lsNext"' + (st.page === pages - 1 ? ' disabled' : '') + '><i class="ti ti-chevron-right"></i></button></div>' : '';
-
-        host.innerHTML =
-          '<div class="panel" style="padding:20px">' +
-            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:4px;flex-wrap:wrap">' +
-              '<div class="eyebrow">แบบฝึกหัด</div>' +
-              (canManage ? '<button class="btn btn-accent" id="lsAdd" style="margin-left:auto"><i class="ti ti-plus"></i> เพิ่มแบบฝึกหัด</button>' : '<span style="margin-left:auto"></span>') +
-              '<button class="btn btn-ghost" id="lsRefresh" style="padding:.4rem .7rem"><i class="ti ti-refresh"></i> รีเฟรช</button>' +
-            '</div>' +
-            '<h3 class="font-display" style="margin:0 0 4px;font-weight:600">แบบฝึกหัด — แสดงวิธีทำ</h3>' +
-            '<p style="color:var(--muted);font-size:.88rem;margin:0 0 12px">ตัวอย่างการคิดวิเคราะห์และวิธีทำทีละขั้น เปิดดูและพิมพ์เป็นใบความรู้ได้</p>' +
-            chips +
-            '<div style="display:grid;gap:12px">' + (shown.length ? cards : empty) + '</div>' +
-            pager +
-          '</div>';
-
-        if (canManage) $('#lsAdd', host).onclick = function () { openEdit(null); };
-        $('#lsRefresh', host).onclick = function () { load(); };
-        $$('#lsGrades .chip', host).forEach(function (b) { b.onclick = function () { st.gradeId = b.dataset.g; st.page = 0; renderList(); }; });
-        var pv = $('.lsPrev', host), nx = $('.lsNext', host);
-        if (pv) pv.onclick = function () { if (st.page > 0) { st.page--; renderList(); } };
-        if (nx) nx.onclick = function () { st.page++; renderList(); };
-        $$('[data-view]', host).forEach(function (b) { b.onclick = function () { view(list[+b.dataset.view]); }; });
-        $$('[data-edit]', host).forEach(function (b) { b.onclick = function () { openEdit(list[+b.dataset.edit]); }; });
-        $$('[data-toggle]', host).forEach(function (b) { b.onclick = function () { doToggle(list[+b.dataset.toggle]); }; });
-        $$('[data-del]', host).forEach(function (b) { b.onclick = function () { doDelete(list[+b.dataset.del]); }; });
+        stage.innerHTML = '<div class="panel ' + (st.showSteps ? '' : 'hide-steps') + '" id="solWrap" style="padding:20px">' +
+          '<div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">' +
+            '<div class="font-display" style="font-weight:700;font-size:1.05rem">' + (ch ? ch.name : '') + '</div>' +
+            '<span class="chip" style="margin-left:auto">' + gradeOf(st.gradeId).name + ' · ' + ({ easy: 'ง่าย', medium: 'ปานกลาง', hard: 'ยาก' }[st.level]) + '</span>' +
+          '</div>' +
+          '<div class="sol-list">' + cards + '</div></div>';
+        if (svc.reveal) svc.reveal(stage);
       }
 
-      /* ---------- หน้าดูวิธีทำ ---------- */
-      function view(l) {
-        if (!l) return;
-        host.innerHTML =
-          '<div class="panel" style="padding:22px">' +
-            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap">' +
-              '<button class="btn btn-ghost" id="lsBack"><i class="ti ti-arrow-left"></i> กลับ</button>' +
-              '<button class="btn btn-ghost" id="lsPrint" style="margin-left:auto"><i class="ti ti-printer"></i> พิมพ์เป็นใบความรู้</button>' +
-              (canManage ? '<button class="btn btn-ghost" id="lsEdit"><i class="ti ti-edit"></i> แก้ไข</button>' : '') +
-            '</div>' +
-            '<div class="eyebrow">' + esc(gradeName(l.gradeId)) + '</div>' +
-            '<h2 class="font-display" style="margin:.2rem 0 14px;font-weight:800"><span class="grad-text">' + esc(l.title) + '</span></h2>' +
-            '<div class="ex-list">' + renderContent(l.content) + '</div>' +
-          '</div>';
-        $('#lsBack', host).onclick = function () { renderList(); };
-        $('#lsPrint', host).onclick = function () { printLesson(l); };
-        if (canManage) $('#lsEdit', host).onclick = function () { openEdit(l); };
-        if (svc.reveal) svc.reveal(host);
-      }
-
-      /* ---------- พิมพ์เป็นใบความรู้ ---------- */
-      function printLesson(l) {
-        var S = svc.settings || {};
+      function printAll() {
+        if (!st.items.length) { svc.toast('error', 'ยังไม่มีโจทย์ ให้สุ่มก่อน'); return; }
+        var S = svc.settings || {}, ch = chapterOf(st.gradeId, st.chapterId), g = gradeOf(st.gradeId);
         var head = '<div class="exam-head"><img src="' + (S.logo || '') + '">' +
-          '<div style="flex:1"><h1>' + esc(S.org || 'แบบฝึกหัด') + '</h1><div class="sub">' + esc(S.dept || '') + '</div></div></div>' +
-          '<div style="text-align:center;margin:14px 0 4px"><div class="font-display" style="font-size:18px;font-weight:700">' + esc(l.title) + '</div>' +
-          '<div class="sub">ใบความรู้ · แสดงวิธีทำ · ' + esc(gradeName(l.gradeId)) + '</div></div>';
+          '<div style="flex:1"><h1>' + (S.org || 'แบบฝึกหัด') + '</h1><div class="sub">' + (S.dept || '') + '</div></div></div>' +
+          '<div style="text-align:center;margin:14px 0 6px"><div class="font-display" style="font-size:18px;font-weight:700">แบบฝึกหัด แสดงวิธีทำ — ' + (ch ? ch.name : '') + '</div>' +
+          '<div class="sub">' + (g ? g.name : '') + ' · เรื่อง ' + CUR.subject + '</div></div>';
+        var body = st.items.map(function (it, i) {
+          var steps = buildSolution(it);
+          var sh = steps ? steps.join('<br>') : ('<b>ตอบ ' + (it.a != null ? it.a : '-') + '</b>');
+          return '<div class="ex-card"><div class="ex-no">ข้อ ' + (i + 1) + '</div><div class="ex-body"><div style="font-weight:700;margin-bottom:6px">' + it.q + '</div>' + sh + '</div></div>';
+        }).join('');
         var foot = '<div class="sheet-foot"><span>พัฒนาโดย นายชิติพัทธ์ นิลวรรณ ครู สพป.ศรีสะเกษ เขต 3</span></div>';
-        var html = '<div class="sheet"><div class="exam-body">' + head +
-          '<div class="ex-list print">' + renderContent(l.content) + '</div>' + foot + '</div></div>';
-        svc.printNode(html);
+        svc.printNode('<div class="sheet"><div class="exam-body">' + head + '<div class="ex-list print">' + body + '</div>' + foot + '</div></div>');
       }
 
-      /* ---------- เพิ่ม/แก้ไข ---------- */
-      function openEdit(l) {
-        var editing = !!l;
-        var gOpts = grades().map(function (g) { return '<option value="' + g.id + '"' + ((l && l.gradeId === g.id) ? ' selected' : '') + '>' + esc(g.name) + '</option>'; }).join('');
-        svc.swal.fire(Object.assign({
-          title: editing ? 'แก้ไขแบบฝึกหัด' : 'เพิ่มแบบฝึกหัด',
-          width: 680, focusConfirm: false, showCancelButton: true,
-          confirmButtonText: editing ? 'บันทึก' : 'เพิ่ม', cancelButtonText: 'ยกเลิก',
-          html: '<div style="text-align:left">' +
-            '<label style="font-size:.85rem;color:#9aa8c8">ระดับชั้น</label>' +
-            '<select id="ls_grade" style="' + INP + '">' + (gOpts || '<option value="">— ยังไม่มีชั้น —</option>') + '</select>' +
-            '<label style="font-size:.85rem;color:#9aa8c8">หัวข้อ / เนื้อหา</label>' +
-            '<input id="ls_title" placeholder="เช่น การบวกจำนวนสองหลักแบบมีทด" value="' + (l ? esc(l.title) : '') + '" style="' + INP + '">' +
-            '<label style="font-size:.85rem;color:#9aa8c8">วิธีทำ / รายละเอียด</label>' +
-            '<textarea id="ls_content" rows="11" placeholder="โจทย์: 24 + 18 = ?&#10;วิธีทำ:&#10;1) บวกหลักหน่วย 4 + 8 = 12 เขียน 2 ทด 1&#10;2) บวกหลักสิบ 2 + 1 + 1 = 4&#10;ตอบ 42&#10;&#10;===&#10;(พิมพ์ === ขึ้นบรรทัดใหม่ เพื่อขึ้นตัวอย่างถัดไป)" style="' + INP + ';resize:vertical;line-height:1.6">' + (l ? esc(l.content) : '') + '</textarea>' +
-            '<label style="display:flex;align-items:center;gap:8px;font-size:.9rem;color:#cdd6ea;margin-top:.2rem"><input type="checkbox" id="ls_enabled"' + ((!l || l.enabled) ? ' checked' : '') + '> แสดงให้นักเรียนเห็น</label>' +
-            '<div style="font-size:.78rem;color:#9aa8c8;margin-top:.4rem">เคล็ดลับ: บรรทัดที่ขึ้นต้นด้วย “โจทย์ / วิธีทำ / ตอบ / ขั้นที่” จะถูกเน้นตัวหนาอัตโนมัติ</div>' +
-            '</div>',
-          preConfirm: function () {
-            var title = (document.getElementById('ls_title').value || '').trim();
-            if (!title) { svc.swal.showValidationMessage('กรุณาใส่หัวข้อ'); return false; }
-            return {
-              id: l ? l.id : '',
-              gradeId: document.getElementById('ls_grade').value || '',
-              title: title,
-              content: document.getElementById('ls_content').value || '',
-              enabled: document.getElementById('ls_enabled').checked
-            };
-          }
-        }, svc.swalDark)).then(function (r) {
-          if (!r.isConfirmed || !r.value) return;
-          svc.loading('กำลังบันทึก...');
-          svc.api('lessonSave', r.value).then(function (res) {
-            svc.done();
-            if (res && res.ok === false) { svc.toast('error', res.error || 'บันทึกไม่สำเร็จ'); return; }
-            svc.toast('success', editing ? 'บันทึกแล้ว' : 'เพิ่มแบบฝึกหัดแล้ว');
-            load();
-          }).catch(function (e) { svc.done(); svc.toast('error', 'ผิดพลาด: ' + String(e && e.message || e)); });
-        });
-      }
+      // events
+      $$('#lv button', host).forEach(function (b) { b.onclick = function () { $$('#lv button', host).forEach(function (x) { x.classList.remove('on'); }); b.classList.add('on'); st.level = b.dataset.l; }; });
+      $('#cnt', host).onchange = function () { st.count = Math.max(1, Math.min(20, +this.value || 6)); this.value = st.count; };
+      $('#gen', host).onclick = build;
+      $('#redo', host).onclick = build;
+      $('#toggle', host).onclick = function () {
+        st.showSteps = !st.showSteps;
+        this.innerHTML = st.showSteps ? '<i class="ti ti-eye-off"></i> ซ่อนวิธีทำ' : '<i class="ti ti-eye"></i> แสดงวิธีทำ';
+        var w = $('#solWrap', host); if (w) w.classList.toggle('hide-steps', !st.showSteps);
+      };
+      $('#print', host).onclick = printAll;
 
-      function doToggle(l) {
-        svc.api('lessonToggle', { id: l.id, enabled: !l.enabled }).then(function () {
-          l.enabled = !l.enabled; renderList();
-        }).catch(function (e) { svc.toast('error', String(e && e.message || e)); });
-      }
-
-      function doDelete(l) {
-        svc.swal.fire(Object.assign({
-          title: 'ลบแบบฝึกหัด?', html: 'ลบ “' + esc(l.title) + '” ถาวร',
-          icon: 'warning', showCancelButton: true, confirmButtonText: 'ลบ', cancelButtonText: 'ยกเลิก',
-          confirmButtonColor: '#ef4444'
-        }, svc.swalDark)).then(function (r) {
-          if (!r.isConfirmed) return;
-          svc.loading('กำลังลบ...');
-          svc.api('lessonDelete', { id: l.id }).then(function () {
-            svc.done(); svc.toast('success', 'ลบแล้ว');
-            st.lessons = st.lessons.filter(function (x) { return x.id !== l.id; }); renderList();
-          }).catch(function (e) { svc.done(); svc.toast('error', String(e && e.message || e)); });
-        });
-      }
-
-      load();
+      drawGrades(); drawChapters(); setCrumb(); render();
     }
   });
 })();
