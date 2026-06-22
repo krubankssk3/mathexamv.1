@@ -9,7 +9,7 @@
     id: 'curriculum',
     mount: function (host, svc, P) {
       var data = { grades: [], genTypes: [] };
-      var activeGid = null;
+      var activeGid = null, cPage = 0;
 
       host.innerHTML =
         '<div class="panel" style="padding:20px">' +
@@ -50,7 +50,7 @@
           var b = document.createElement('button'); b.className = 'chip click'; b.style.whiteSpace = 'nowrap';
           if (g.id === activeGid) { b.style.background = 'var(--accent)'; b.style.color = '#fff'; b.style.borderColor = 'transparent'; }
           b.textContent = g.name + ' (' + g.chapters.length + ')';
-          b.onclick = function () { activeGid = g.id; render(); };
+          b.onclick = function () { activeGid = g.id; cPage = 0; render(); };
           box.appendChild(b);
         });
       }
@@ -60,7 +60,11 @@
         var g = data.grades.filter(function (x) { return x.id === activeGid; })[0];
         if (!g) { body.innerHTML = '<p style="color:var(--muted)">เลือกชั้นด้านบน หรือเพิ่มชั้นใหม่</p>'; return; }
 
-        var rows = g.chapters.map(function (c) {
+        var PER = 10, pages = Math.max(1, Math.ceil(g.chapters.length / PER));
+        if (cPage >= pages) cPage = pages - 1; if (cPage < 0) cPage = 0;
+        var startIdx = cPage * PER;
+        var shown = g.chapters.slice(startIdx, startIdx + PER);
+        var rows = shown.map(function (c) {
           var label = (data.genTypes.filter(function (t) { return t.id === c.gen; })[0] || {}).label || c.gen;
           return '<tr>' +
             '<td><span style="margin-right:6px;color:var(--accent2)">' + iconHTML_(c.icon, 18) + '</span>' + esc(c.name) + (c.ops ? ' <span style="color:var(--muted);font-size:.8rem">[' + esc(c.ops) + ']</span>' : '') + '</td>' +
@@ -72,6 +76,10 @@
               '<button class="btn btn-ghost cDel" data-id="' + esc(c.id) + '" data-name="' + esc(c.name) + '" style="padding:.35rem .5rem;color:var(--bad)"><i class="ti ti-trash"></i></button>' +
             '</td></tr>';
         }).join('');
+        var pager = pages > 1 ? '<div class="pager" style="display:flex">' +
+          '<button class="pg-btn cPrev"' + (cPage === 0 ? ' disabled' : '') + '><i class="ti ti-chevron-left"></i></button>' +
+          '<span class="pg-info">หน้า ' + (cPage + 1) + ' / ' + pages + ' (รวม ' + g.chapters.length + ' บท)</span>' +
+          '<button class="pg-btn cNext"' + (cPage === pages - 1 ? ' disabled' : '') + '><i class="ti ti-chevron-right"></i></button></div>' : '';
 
         body.innerHTML =
           '<div style="display:flex;align-items:center;margin-bottom:10px">' +
@@ -82,11 +90,14 @@
           '</div>' +
           '<div style="overflow:auto"><table class="adm"><thead><tr><th>บทเรียน</th><th>ชนิดโจทย์</th><th style="text-align:center">สถานะ</th><th style="text-align:center">จัดการ</th></tr></thead><tbody>' +
           (rows || '<tr><td colspan="4" style="color:var(--muted)">ยังไม่มีบทเรียนในชั้นนี้</td></tr>') +
-          '</tbody></table></div>';
+          '</tbody></table></div>' + pager;
 
         $('#cAddChapter', body).onclick = function () { chapterDialog(g, null); };
         $('#cEditGrade', body).onclick = function () { gradeEditDialog(g); };
         $('#cDelGrade', body).onclick = function () { delGrade(g); };
+        var prev = $('.cPrev', body), next = $('.cNext', body);
+        if (prev) prev.onclick = function () { if (cPage > 0) { cPage--; renderBody(); } };
+        if (next) next.onclick = function () { cPage++; renderBody(); };
         $$('.cEdit', body).forEach(function (b) { b.onclick = function () { var c = g.chapters.filter(function (x) { return x.id === b.dataset.id; })[0]; chapterDialog(g, c); }; });
         $$('.cToggle', body).forEach(function (b) { b.onclick = function () { toggleChapter(b.dataset.id, b.dataset.en !== '1'); }; });
         $$('.cDel', body).forEach(function (b) { b.onclick = function () { delChapter(b.dataset.id, b.dataset.name); }; });
