@@ -181,6 +181,13 @@
   .geofield{width:100%;height:auto;display:block}
   .geosum{border:1.6px solid #2b2f3a;border-radius:12px;padding:13px 18px;display:grid;grid-template-columns:1fr 1fr;gap:11px 26px;font-size:15.5px}
   .geoblank{display:inline-block;min-width:48px;border-bottom:1.6px dotted #777;margin:0 3px}
+  .mlwrap{display:flex;flex-direction:column;gap:14px;width:100%}
+  .mlfield{width:100%;height:auto;display:block}
+  .mlqs{display:flex;flex-direction:column;gap:13px;border:1.6px solid #2b2f3a;border-radius:12px;padding:16px 18px}
+  .mlq{display:flex;align-items:center;gap:7px;font-size:16px;flex-wrap:wrap}
+  .mlno{display:inline-flex;align-items:center;justify-content:center;width:23px;height:23px;border-radius:50%;background:#2b2f3a;color:#fff;font-size:12.5px;font-weight:700;flex:none}
+  .mlname{font-weight:600}
+  .mlblank{display:inline-block;min-width:62px;border-bottom:1.6px dotted #777;margin:0 4px}
   .ans-line{display:inline-block;border-bottom:1px solid #999;min-width:70px;margin-left:6px}
   .frac{display:inline-flex;flex-direction:column;text-align:center;vertical-align:middle;line-height:1;margin:0 2px}
   .frac span:first-child{border-bottom:1.5px solid currentColor;padding:0 4px}
@@ -247,6 +254,9 @@
     #printArea .geofield{max-height:172mm}
     #printArea .geowrap{page-break-inside:avoid;break-inside:avoid}
     #printArea .geosum,#printArea .geolegend{page-break-inside:avoid;break-inside:avoid}
+    #printArea .mlwrap{page-break-inside:avoid;break-inside:avoid}
+    #printArea .mlfield{max-height:120mm}
+    #printArea .mlqs{font-size:15px;padding:13px 16px}
     #printArea .geochip{font-size:13px;padding:2px 12px}
     #printArea .geosum{font-size:14px;padding:10px 14px}
     #printArea .ans-line{min-width:90px}
