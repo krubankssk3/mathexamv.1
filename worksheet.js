@@ -12,7 +12,7 @@
       var st = {
         gradeId: firstG && firstG.id,
         chapterId: firstG && firstG.chapters[0] && firstG.chapters[0].id,
-        level: 'easy', count: 12, cols: 2, title: '', current: null, showKey: false, busy: false
+        level: 'easy', count: 12, cols: 2, title: '', current: null, showKey: false, busy: false, chPage: 0
       };
       function gradeOf(id) { return CUR.grades.filter(function (g) { return g.id === id; })[0]; }
       function chapterOf(gid, cid) { return gradeOf(gid).chapters.filter(function (c) { return c.id === cid; })[0]; }
@@ -27,6 +27,7 @@
               '<div id="grades" style="display:flex;gap:8px;overflow:auto;padding-bottom:6px;margin:6px 0 14px"></div>' +
               '<label class="lbl">บทเรียน / เรื่อง</label>' +
               '<div id="chapters" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:6px"></div>' +
+              '<div id="chPager" class="pager" style="display:none"></div>' +
             '</div>' +
             '<div class="panel" style="padding:18px">' +
               '<div class="eyebrow" style="margin-bottom:12px">ตั้งค่าใบงาน</div>' +
@@ -70,12 +71,48 @@
       }
       function drawChapters() {
         var c = $('#chapters', host); c.innerHTML = '';
-        gradeOf(st.gradeId).chapters.forEach(function (ch) {
+        var all = gradeOf(st.gradeId).chapters, PER = 6, pages = Math.max(1, Math.ceil(all.length / PER));
+        if (st.chPage >= pages) st.chPage = pages - 1;
+        // ให้หน้าแสดงบทที่ถูกเลือกอยู่
+        var selIdx = all.map(function (x) { return x.id; }).indexOf(st.chapterId);
+        if (selIdx >= 0) st.chPage = Math.floor(selIdx / PER);
+        var shown = all.slice(st.chPage * PER, st.chPage * PER + PER);
+        shown.forEach(function (ch) {
           var el = document.createElement('button'); el.className = 'tile' + (ch.id === st.chapterId ? ' on' : '');
           var ico = /^https?:\/\//.test(String(ch.icon || '')) ? '<img src="' + ch.icon + '" style="width:24px;height:24px;object-fit:contain">' : '<i class="ti ' + (ch.icon || 'ti-file') + '"></i>';
           el.innerHTML = '<div class="ic">' + ico + '</div><div class="font-display" style="font-weight:600;margin-top:8px;font-size:.92rem;line-height:1.2">' + ch.name + '</div>';
           el.onclick = function () { st.chapterId = ch.id; drawChapters(); setTitle(); build(true); };
           c.appendChild(el);
+        });
+        var pg = $('#chPager', host);
+        if (pages > 1) {
+          pg.style.display = 'flex';
+          pg.innerHTML = '<button class="pg-btn" data-d="-1"' + (st.chPage === 0 ? ' disabled' : '') + '><i class="ti ti-chevron-left"></i></button>' +
+            '<span class="pg-info">หน้า ' + (st.chPage + 1) + ' / ' + pages + '</span>' +
+            '<button class="pg-btn" data-d="1"' + (st.chPage === pages - 1 ? ' disabled' : '') + '><i class="ti ti-chevron-right"></i></button>';
+          $$('.pg-btn', pg).forEach(function (b) {
+            b.onclick = function () { if (b.disabled) return; st.chPage += (+b.dataset.d); st.chPage = Math.max(0, Math.min(pages - 1, st.chPage)); drawChapterPage(); };
+          });
+        } else { pg.style.display = 'none'; pg.innerHTML = ''; }
+      }
+      // เปลี่ยนหน้าโดยไม่ย้ายบทที่เลือก (ไม่ให้ selIdx ดึงกลับ)
+      function drawChapterPage() {
+        var c = $('#chapters', host); c.innerHTML = '';
+        var all = gradeOf(st.gradeId).chapters, PER = 6, pages = Math.max(1, Math.ceil(all.length / PER));
+        var shown = all.slice(st.chPage * PER, st.chPage * PER + PER);
+        shown.forEach(function (ch) {
+          var el = document.createElement('button'); el.className = 'tile' + (ch.id === st.chapterId ? ' on' : '');
+          var ico = /^https?:\/\//.test(String(ch.icon || '')) ? '<img src="' + ch.icon + '" style="width:24px;height:24px;object-fit:contain">' : '<i class="ti ' + (ch.icon || 'ti-file') + '"></i>';
+          el.innerHTML = '<div class="ic">' + ico + '</div><div class="font-display" style="font-weight:600;margin-top:8px;font-size:.92rem;line-height:1.2">' + ch.name + '</div>';
+          el.onclick = function () { st.chapterId = ch.id; drawChapters(); setTitle(); build(true); };
+          c.appendChild(el);
+        });
+        var pg = $('#chPager', host);
+        pg.innerHTML = '<button class="pg-btn" data-d="-1"' + (st.chPage === 0 ? ' disabled' : '') + '><i class="ti ti-chevron-left"></i></button>' +
+          '<span class="pg-info">หน้า ' + (st.chPage + 1) + ' / ' + pages + '</span>' +
+          '<button class="pg-btn" data-d="1"' + (st.chPage === pages - 1 ? ' disabled' : '') + '><i class="ti ti-chevron-right"></i></button>';
+        $$('.pg-btn', pg).forEach(function (b) {
+          b.onclick = function () { if (b.disabled) return; st.chPage += (+b.dataset.d); st.chPage = Math.max(0, Math.min(pages - 1, st.chPage)); drawChapterPage(); };
         });
       }
       function setTitle() {
