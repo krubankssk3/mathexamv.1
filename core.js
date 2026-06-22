@@ -228,7 +228,7 @@
           for (t = 0; t < 60 && !okAdd(a, b); t++) { a = ri(addR[0], addR[1]); b = ri(addR[0], addR[1]); }
           ans = a + b; sym = '+';
         }
-        out.push({ q: a + ' ' + sym + ' ' + b + ' =', a: String(ans), n: ans });
+        out.push({ q: a + ' ' + sym + ' ' + b + ' =', a: String(ans), n: ans, meta: { t: 'arith', a: a, b: b, op: sym, ans: ans } });
       }
       return out;
     },
@@ -236,13 +236,13 @@
       var P = { easy: [10, 25, 50], medium: [5, 15, 20, 30, 40], hard: [12, 18, 35, 65, 85] };
       var B = { easy: [20, 40, 60, 80, 100], medium: [80, 120, 150, 200], hard: [150, 260, 320, 480] };
       var out = [];
-      for (var i = 0; i < c.count; i++) { var p = pick(P[c.level]), b = pick(B[c.level]); var v = Math.round(p / 100 * b * 100) / 100; out.push({ q: p + '% ของ ' + b + ' เท่ากับเท่าใด', a: String(v), n: v }); }
+      for (var i = 0; i < c.count; i++) { var p = pick(P[c.level]), b = pick(B[c.level]); var v = Math.round(p / 100 * b * 100) / 100; out.push({ q: p + '% ของ ' + b + ' เท่ากับเท่าใด', a: String(v), n: v, meta: { t: 'percent', p: p, b: b, v: v } }); }
       return out;
     },
     measure: function (c) {
       var u = [{ q: 'เมตร', to: 'ซม.', f: 100 }, { q: 'กก.', to: 'กรัม', f: 1000 }, { q: 'กม.', to: 'เมตร', f: 1000 }, { q: 'ลิตร', to: 'มล.', f: 1000 }];
       var N = c.range || ({ easy: [1, 9], medium: [2, 25], hard: [5, 99] }[c.level]); var out = [];
-      for (var i = 0; i < c.count; i++) { var x = pick(u), n = ri(N[0], N[1]); out.push({ q: n + ' ' + x.q + ' = _____ ' + x.to, a: (n * x.f) + ' ' + x.to, n: n * x.f }); }
+      for (var i = 0; i < c.count; i++) { var x = pick(u), n = ri(N[0], N[1]); out.push({ q: n + ' ' + x.q + ' = _____ ' + x.to, a: (n * x.f) + ' ' + x.to, n: n * x.f, meta: { t: 'measure', n: n, unit: x.q, to: x.to, f: x.f, ans: n * x.f } }); }
       return out;
     },
     fraction: function (c) {
@@ -256,7 +256,7 @@
     },
     equation: function (c) {
       var R = { easy: [1, 5, 1, 10], medium: [2, 9, -9, 20], hard: [2, 15, -30, 60] }[c.level]; var out = [];
-      for (var i = 0; i < c.count; i++) { var a = ri(R[0], R[1]), x = ri(R[2], R[3]), b = ri(R[2] < 0 ? -12 : 1, 12), cc = a * x + b; out.push({ q: a + 'x ' + (b < 0 ? '\u2212 ' + (-b) : '+ ' + b) + ' = ' + cc, a: 'x = ' + x, n: x }); }
+      for (var i = 0; i < c.count; i++) { var a = ri(R[0], R[1]), x = ri(R[2], R[3]), b = ri(R[2] < 0 ? -12 : 1, 12), cc = a * x + b; out.push({ q: a + 'x ' + (b < 0 ? '\u2212 ' + (-b) : '+ ' + b) + ' = ' + cc, a: 'x = ' + x, n: x, meta: { t: 'equation', a: a, b: b, c: cc, x: x } }); }
       return out;
     },
     word: function (c) {
@@ -267,7 +267,7 @@
         if (t === 0) { q = nm + 'มี' + it + ' ' + a + ' ชิ้น ซื้อเพิ่มอีก ' + b + ' ชิ้น มีทั้งหมดกี่ชิ้น'; ans = a + b; }
         else if (t === 1) { var bg = Math.max(a, b), sm = Math.min(a, b); q = nm + 'มี' + it + ' ' + bg + ' ชิ้น ให้เพื่อน ' + sm + ' ชิ้น เหลือกี่ชิ้น'; ans = bg - sm; }
         else { q = nm + 'ซื้อ' + it + 'วันละ ' + a + ' ชิ้น เป็นเวลา ' + b + ' วัน รวมกี่ชิ้น'; ans = a * b; }
-        out.push({ q: q, a: ans + ' ชิ้น', n: ans });
+        out.push({ q: q, a: ans + ' ชิ้น', n: ans, meta: { t: 'word', kind: t, nm: nm, it: it, a: a, b: b, ans: ans } });
       }
       return out;
     },
