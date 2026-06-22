@@ -102,10 +102,11 @@
     var isOrd = o.problems.length && o.problems[0].ord;             // เรียงลำดับ (กล่อง อาจ 2 บรรทัด)
     var isClock = o.problems.length && o.problems[0].clock;         // นาฬิกา (สูง)
     var isGeo = o.problems.length && o.problems[0].geo;             // เรขาคณิตเต็มหน้า (ไม่แบ่งข้อ)
-    if (isNum || isGeo) cols = 1;
-    var perCol = isGeo ? 1 : (isNum ? 3 : (isClock ? 4 : (isOrd ? 8 : (isTall ? 5 : 15))));    // numwrite แถวสูง (4 บรรทัด) จำกัด 3/หน้า กันตก
+    var isFull = o.problems.length && (o.problems[0].geo || o.problems[0].full); // ใบงานเต็มหน้า (เรขา/วัดความยาว)
+    if (isNum || isFull) cols = 1;
+    var perCol = isFull ? 1 : (isNum ? 3 : (isClock ? 4 : (isOrd ? 8 : (isTall ? 5 : 15))));    // numwrite แถวสูง (4 บรรทัด) จำกัด 3/หน้า กันตก
     var perPage = perCol * cols;
-    var scoreTotal = isGeo ? (o.problems[0].pts || total) : total;   // เรขาคณิต: คะแนนเต็ม = จำนวนรูป
+    var scoreTotal = isFull ? (o.problems[0].pts || total) : total;   // เต็มหน้า: คะแนนเต็ม = จำนวนรูป/ข้อ
 
     function qitemHTML(p, i) {
       return '<div class="qitem"><span class="qno">' + (i + 1) + '.</span><span class="qbody">' + p.q + (p.noline ? '' : ' <span class="ans-line"></span>') + '</span></div>';
@@ -116,7 +117,7 @@
         '<div style="text-align:right"><div class="mono" style="font-size:11px;color:#888">ชุดที่</div><div class="mono" style="font-weight:700;color:var(--accent)">' + o.setId + '</div></div></div>' +
         '<div style="text-align:center;margin:14px 0 4px"><div class="font-display" style="font-size:18px;font-weight:700">' + o.title + '</div><div class="sub">เรื่อง ' + o.subjectName + ' · ระดับ ' + lv + '</div></div>' +
         '<div class="meta-row"><span><b>ชื่อ–สกุล</b> <span class="blank" style="min-width:180px"></span></span><span><b>ชั้น</b> <span class="blank" style="min-width:60px"></span></span><span><b>เลขที่</b> <span class="blank" style="min-width:45px"></span></span><span><b>วันที่</b> ' + date + '</span><span class="score-box"><b>คะแนนที่ได้</b> <span class="blank" style="min-width:48px"></span> / ' + scoreTotal + '</span></div>' +
-        '<div class="instr"><b>คำชี้แจง</b> ' + (o.instr ? o.instr : 'แสดงวิธีทำและเขียนคำตอบลงในช่องว่าง') + ' (' + (isGeo ? scoreTotal + ' รูป รูปละ 1 คะแนน' : total + ' ข้อ ข้อละ 1 คะแนน') + ')</div>';
+        '<div class="instr"><b>คำชี้แจง</b> ' + (o.instr ? o.instr : 'แสดงวิธีทำและเขียนคำตอบลงในช่องว่าง') + ' (' + (isGeo ? scoreTotal + ' รูป รูปละ 1 คะแนน' : scoreTotal + ' ข้อ ข้อละ 1 คะแนน') + ')</div>';
     }
     function headCont() {
       return '<div class="exam-head" style="margin-bottom:18px"><img src="' + S.logo + '">' +
@@ -136,7 +137,7 @@
       var rowh = 185 / rowsOnPage; if (rowh > 24) rowh = 24; if (rowh < 9) rowh = 9;
       rowh = Math.round(rowh * 10) / 10;
       var content;
-      if (isGeo) {
+      if (isFull) {
         content = chunk.map(function (p) { return p.q; }).join('');
       } else if (isNum) {
         var rows = chunk.map(function (p, idx) {
@@ -494,7 +495,54 @@
       var sum = L.map(function (x) { return '<span>มี' + x[1] + ' <span class="geoblank"></span> รูป</span>'; }).join('');
       var ans = L.map(function (x) { return x[1] + ' ' + tally[x[0]]; }).join(' · ');
       var q = '<div class="geowrap"><div class="geolegend">' + chips + '</div><svg class="geofield" viewBox="0 0 ' + W + ' ' + H + '">' + svg + '</svg><div class="geosum">' + sum + '</div></div>';
-      return [{ q: q, a: ans, geo: true, noline: true, pts: n }];
+      return [{ q: q, a: ans, geo: true, full: true, noline: true, pts: n }];
+    },
+    measlen: function (c) {
+      var prec = c.prec || 'half', maxCm = 15, W = 700, x0 = 46, pad = 18;
+      var pxCm = (W - x0 - pad) / maxCm;
+      function f(x) { return x.toFixed(1); }
+      function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
+      var ST = 'fill="#fff" stroke="#111" stroke-width="2"', ST2 = 'fill="none" stroke="#111" stroke-width="1.6"';
+      function rrect(x, y, w, h, r) { return '<rect x="' + f(x) + '" y="' + f(y) + '" width="' + f(w) + '" height="' + f(h) + '" rx="' + r + '" ' + ST + '/>'; }
+      var DRAW = {
+        pencil: function (x, y, L) { var h = 16, tip = 15, b = L - tip; return rrect(x, y - h / 2, b, h, 2) + '<polygon points="' + f(x + b) + ',' + f(y - h / 2) + ' ' + f(x + L) + ',' + f(y) + ' ' + f(x + b) + ',' + f(y + h / 2) + '" ' + ST + '/>' + '<line x1="' + f(x + 7) + '" y1="' + f(y - h / 2) + '" x2="' + f(x + 7) + '" y2="' + f(y + h / 2) + '" stroke="#111" stroke-width="1.2"/>'; },
+        spoon: function (x, y, L) { var bw = 30, hl = L - bw, hh = 8; return rrect(x, y - hh / 2, hl, hh, 4) + '<ellipse cx="' + f(x + hl + bw / 2) + '" cy="' + f(y) + '" rx="' + f(bw / 2) + '" ry="15" ' + ST + '/>'; },
+        fork: function (x, y, L) { var hl = L * 0.55, hh = 8, baseX = x + hl, s = ''; s += rrect(x, y - hh / 2, hl, hh, 4); s += rrect(baseX, y - 11, 7, 22, 2); var tx = baseX + 7, tipX = x + L; for (var p = 0; p < 4; p++) { var ty = y - 11 + p * (22 / 3); s += '<line x1="' + f(tx) + '" y1="' + f(ty) + '" x2="' + f(tipX) + '" y2="' + f(ty) + '" stroke="#111" stroke-width="2.6"/>'; } return s; },
+        knife: function (x, y, L) { var hl = L * 0.34; return rrect(x, y - 8, hl, 16, 3) + '<polygon points="' + f(x + hl) + ',' + f(y - 7) + ' ' + f(x + L) + ',' + f(y - 1) + ' ' + f(x + L - 4) + ',' + f(y + 9) + ' ' + f(x + hl) + ',' + f(y + 7) + '" ' + ST + '/>'; },
+        straw: function (x, y, L) { return rrect(x, y - 7, L, 14, 6) + '<line x1="' + f(x + L * 0.35) + '" y1="' + f(y - 7) + '" x2="' + f(x + L * 0.35) + '" y2="' + f(y + 7) + '" stroke="#111" stroke-width="1.2"/><line x1="' + f(x + L * 0.65) + '" y1="' + f(y - 7) + '" x2="' + f(x + L * 0.65) + '" y2="' + f(y + 7) + '" stroke="#111" stroke-width="1.2"/>'; },
+        nail: function (x, y, L) { return rrect(x, y - 9, 8, 18, 1) + rrect(x + 8, y - 3, L - 18, 6, 1) + '<polygon points="' + f(x + L - 10) + ',' + f(y - 3) + ' ' + f(x + L) + ',' + f(y) + ' ' + f(x + L - 10) + ',' + f(y + 3) + '" ' + ST + '/>'; },
+        candle: function (x, y, L) { var b = L - 16; return rrect(x, y - 11, b, 22, 3) + '<line x1="' + f(x + b) + '" y1="' + f(y) + '" x2="' + f(x + b + 6) + '" y2="' + f(y) + '" stroke="#111" stroke-width="1.4"/><path d="M' + f(x + b + 6) + ',' + f(y - 10) + ' Q' + f(x + L) + ',' + f(y) + ' ' + f(x + b + 6) + ',' + f(y + 10) + ' Q' + f(x + b + 2) + ',' + f(y) + ' ' + f(x + b + 6) + ',' + f(y - 10) + ' Z" ' + ST + '/>'; },
+        crayon: function (x, y, L) { var tip = 12, b = L - tip, h = 16; return rrect(x, y - h / 2, b, h, 2) + '<polygon points="' + f(x + b) + ',' + f(y - h / 2 + 3) + ' ' + f(x + L) + ',' + f(y) + ' ' + f(x + b) + ',' + f(y + h / 2 - 3) + '" ' + ST + '/><line x1="' + f(x + b * 0.4) + '" y1="' + f(y - h / 2) + '" x2="' + f(x + b * 0.4) + '" y2="' + f(y + h / 2) + '" stroke="#111" stroke-width="1.2"/><line x1="' + f(x + b * 0.62) + '" y1="' + f(y - h / 2) + '" x2="' + f(x + b * 0.62) + '" y2="' + f(y + h / 2) + '" stroke="#111" stroke-width="1.2"/>'; }
+      };
+      var pool = [['pencil', 'ดินสอ'], ['spoon', 'ช้อน'], ['fork', 'ส้อม'], ['knife', 'มีด'], ['straw', 'หลอด'], ['nail', 'ตะปู'], ['candle', 'เทียน'], ['crayon', 'สีเทียน']];
+      shuffle(pool);
+      var chosen = pool.slice(0, 5), used = {}, items = [];
+      chosen.forEach(function (o) {
+        var cm, mm, val, guard = 0;
+        do { cm = ri(4, 13); mm = prec === 'mm' ? ri(0, 9) : (ri(0, 1) ? 0 : 5); val = cm * 10 + mm; guard++; } while (used[val] && guard < 60);
+        used[val] = 1; items.push({ k: o[0], name: o[1], cm: cm, mm: mm, len: cm + mm / 10 });
+      });
+      var bandH = 66, top = 16, rulerH = 44, H = top + items.length * bandH + rulerH + 18, svg = '';
+      var rulerTop = top + items.length * bandH + 6;
+      items.forEach(function (it, idx) {
+        var yc = top + idx * bandH + bandH / 2 - 6, Lpx = it.len * pxCm;
+        svg += DRAW[it.k](x0, yc, Lpx);
+        svg += '<line x1="' + f(x0 + Lpx) + '" y1="' + f(yc + 18) + '" x2="' + f(x0 + Lpx) + '" y2="' + f(rulerTop) + '" stroke="#999" stroke-width="1" stroke-dasharray="3,3"/>';
+      });
+      svg += '<rect x="' + f(x0 - 6) + '" y="' + f(rulerTop) + '" width="' + f(maxCm * pxCm + 12) + '" height="' + rulerH + '" rx="4" fill="#fff" stroke="#111" stroke-width="2"/>';
+      for (var cm = 0; cm <= maxCm; cm++) {
+        var xx = x0 + cm * pxCm;
+        svg += '<line x1="' + f(xx) + '" y1="' + f(rulerTop) + '" x2="' + f(xx) + '" y2="' + f(rulerTop + 16) + '" stroke="#111" stroke-width="1.4"/>';
+        svg += '<text x="' + f(xx) + '" y="' + f(rulerTop + 31) + '" font-size="12" text-anchor="middle" font-family="Arial" fill="#111">' + cm + '</text>';
+        if (cm < maxCm) for (var mm2 = 1; mm2 < 10; mm2++) { var xm = xx + mm2 * pxCm / 10, th = mm2 === 5 ? 10 : 6; svg += '<line x1="' + f(xm) + '" y1="' + f(rulerTop) + '" x2="' + f(xm) + '" y2="' + f(rulerTop + th) + '" stroke="#111" stroke-width="0.8"/>'; }
+      }
+      var qorder = items.slice(); shuffle(qorder);
+      var qs = qorder.map(function (it, i) {
+        return '<div class="mlq"><span class="mlno">' + (i + 1) + '</span><span class="mlname">' + it.name + 'ยาว</span> <span class="mlblank"></span> เซนติเมตร <span class="mlblank"></span> มิลลิเมตร</div>';
+      }).join('');
+      var ans = qorder.map(function (it, i) { return (i + 1) + ') ' + it.name + ' ' + it.cm + ' ซม ' + it.mm + ' มม'; }).join('  ·  ');
+      var q = '<div class="mlwrap"><svg class="mlfield" viewBox="0 0 ' + W + ' ' + H + '">' + svg + '</svg><div class="mlqs">' + qs + '</div></div>';
+      return [{ q: q, a: ans, full: true, noline: true, pts: items.length }];
     }
   };
   function buildProblems(ch, level, count) {
