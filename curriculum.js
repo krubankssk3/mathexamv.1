@@ -139,6 +139,7 @@
         var selTmode = lvObj.mode || 'line';
         var selTstep = lvObj.step || 5;
         var selDim = lvObj.dim || '2d';
+        var selPrec = lvObj.prec || 'half';
         var instr0 = lvObj.instruction || '';
 
         function tglBtns(list, sel, cls) {
@@ -254,6 +255,14 @@
                 '</select>' +
                 '<div style="font-size:.8rem;color:#9aa8c8;margin-top:.3rem">รูปจะกระจายเต็มหน้า A4 ค่า "จำนวนข้อ" = จำนวนรูปในหน้า</div>' +
               '</div>' +
+              '<div id="sw_mlWrap" style="display:none">' +
+                '<label style="font-size:.85rem;color:#9aa8c8">ความละเอียดความยาว</label>' +
+                '<select id="sw_prec" style="' + INP + '">' +
+                  '<option value="half"' + (selPrec === 'half' ? ' selected' : '') + '>ลงตัวครึ่งเซนติเมตร (มม. 0 หรือ 5)</option>' +
+                  '<option value="mm"' + (selPrec === 'mm' ? ' selected' : '') + '>ละเอียดทุกมิลลิเมตร (มม. 0–9)</option>' +
+                '</select>' +
+                '<div style="font-size:.8rem;color:#9aa8c8;margin-top:.3rem">ใบงานเต็มหน้า มีไม้บรรทัด + ของวัด 5 ชิ้น</div>' +
+              '</div>' +
               '<div id="sw_noOps" style="display:none;font-size:.82rem;color:#9aa8c8;margin-top:.3rem">ชนิดนี้สร้างโจทย์ให้อัตโนมัติ ไม่ต้องตั้งตัวดำเนินการ</div>' +
             '</div>',
           showCancelButton: true, confirmButtonText: editing ? 'บันทึก' : 'เพิ่ม', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#6366f1',
@@ -269,7 +278,8 @@
               document.getElementById('sw_dirWrap').style.display = v === 'order' ? 'block' : 'none';
               document.getElementById('sw_timeWrap').style.display = v === 'time' ? 'block' : 'none';
               document.getElementById('sw_geoWrap').style.display = v === 'geometry' ? 'block' : 'none';
-              document.getElementById('sw_noOps').style.display = (v === 'arith' || v === 'picture' || v === 'compare' || v === 'numwrite' || v === 'order' || v === 'time' || v === 'geometry') ? 'none' : 'block';
+              document.getElementById('sw_mlWrap').style.display = v === 'measlen' ? 'block' : 'none';
+              document.getElementById('sw_noOps').style.display = (v === 'arith' || v === 'picture' || v === 'compare' || v === 'numwrite' || v === 'order' || v === 'time' || v === 'geometry' || v === 'measlen') ? 'none' : 'block';
             }
             sel.addEventListener('change', toggle); toggle();
             var icurl = document.getElementById('sw_icurl');
@@ -326,6 +336,10 @@
             }
             if (gen === 'geometry') {
               lvObj.dim = document.getElementById('sw_dim').value || '2d';
+              return { chapterName: name, icon: icon, gen: gen, ops: '', lv: lvObj, hasLv: true };
+            }
+            if (gen === 'measlen') {
+              lvObj.prec = document.getElementById('sw_prec').value || 'half';
               return { chapterName: name, icon: icon, gen: gen, ops: '', lv: lvObj, hasLv: true };
             }
             return { chapterName: name, icon: icon, gen: gen, ops: '' };
