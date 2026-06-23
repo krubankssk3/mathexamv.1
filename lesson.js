@@ -99,7 +99,7 @@
     var widthCap = (perProb - 14) / maxGC;                // หัก label+op+ระยะกันชน
     var cell = Math.min(15, widthCap);                    // ขยายช่องให้ใหญ่ เติมเต็มหน้า A4
     cell = Math.max(6.5, Math.round(cell * 10) / 10);
-    var fpx = Math.max(13, Math.round(cell * 1.6));
+    var fpx = Math.max(16, Math.round(cell * 2.3));
     var dyn = '.agrid td{width:' + cell + 'mm;height:' + cell + 'mm;line-height:' + cell + 'mm;font-size:' + fpx + 'px}'
       + '.agrid td.op{font-size:' + (fpx + 3) + 'px}'
       + '.prob .no{font-size:' + Math.max(14, fpx - 2) + 'px}';
