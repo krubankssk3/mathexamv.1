@@ -53,7 +53,11 @@
       + '.qr img{width:80px;height:80px;display:block}'
       + '.qr .cap{font-size:9px;color:#888;margin-top:1px}'
       + '.dot{border-bottom:1px dotted #555;display:inline-block;min-width:60px}'
-      + '.grid{display:grid;gap:6px 12px}'
+      + '.page{position:relative}'
+      + '.page.brk{page-break-before:always}'
+      + '.conthd{border-bottom:2px solid #c0392b;color:#c0392b;font-weight:700;font-size:18px;padding-bottom:6px;margin-bottom:12px}'
+      + '.conthd span{font-weight:400;font-size:13px;color:#999}'
+      + '.grid{display:grid;gap:8px 14px}'
       + '.prob{break-inside:avoid;page-break-inside:avoid;padding:6px 4px 8px;display:flex;gap:8px;align-items:flex-start}'
       + '.prob .no{font-weight:700;color:#c0392b;font-size:15px;min-width:26px}'
       + '.agrid{border-collapse:collapse;margin-top:2px}'
@@ -83,14 +87,41 @@
   }
 
   function addSheet(o, withKey) {
-    var cells = '', i;
-    for (i = 0; i < o.probs.length; i++) cells += '<div class="prob"><span class="no">' + (i + 1) + ')</span>' + addGrid(o.probs[i], withKey) + '</div>';
-    var keyTag = withKey ? '<div style="text-align:center;color:#c0392b;font-weight:700;margin-bottom:6px">★ ฉบับเฉลย ★</div>' : '';
+    var PER = 10;                 // 10 ข้อ/หน้า A4 พอดี
+    var numCols = o.cols, i, j;
+    var maxGC = 1;
+    for (i = 0; i < o.probs.length; i++) maxGC = Math.max(maxGC, o.probs[i].cols);
+    // คำนวณขนาดช่องให้ใหญ่ที่สุดเท่าที่ไม่ล้นความกว้าง A4 (พิมพ์เต็มที่ ~192mm)
+    var perProb = (192 - 12 * (numCols - 1)) / numCols;   // ความกว้างต่อ 1 ข้อ (mm)
+    var widthCap = (perProb - 14) / maxGC;                // หัก label+op+ระยะกันชน
+    var cell = Math.min(12, widthCap);                    // เพดานความสูง (5 แถว + หัวกระดาษ ใน 1 หน้า)
+    cell = Math.max(6.5, Math.round(cell * 10) / 10);
+    var fpx = Math.max(13, Math.round(cell * 1.6));
+    var dyn = '.agrid td{width:' + cell + 'mm;height:' + cell + 'mm;line-height:' + cell + 'mm;font-size:' + fpx + 'px}'
+      + '.agrid td.op{font-size:' + (fpx + 3) + 'px}'
+      + '.prob .no{font-size:' + Math.max(14, fpx - 2) + 'px}';
+
+    var keyTag = withKey ? '<div style="text-align:center;color:#c0392b;font-weight:700;margin:2px 0 6px">★ ฉบับเฉลย ★</div>' : '';
+    var pages = [];
+    for (i = 0; i < o.probs.length; i += PER) pages.push(o.probs.slice(i, i + PER));
+    var totalPages = pages.length;
+
+    var body = pages.map(function (chunk, pi) {
+      var cells = chunk.map(function (p, j) {
+        var no = pi * PER + j + 1;
+        return '<div class="prob"><span class="no">' + no + ')</span>' + addGrid(p, withKey) + '</div>';
+      }).join('');
+      var grid = '<div class="grid" style="grid-template-columns:repeat(' + numCols + ',1fr)">' + cells + '</div>';
+      var header = pi === 0
+        ? addHead(o) + keyTag
+        : '<div class="conthd">' + esc(o.title) + ' <span>· ชุด ' + esc(o.setId) + ' · หน้า ' + (pi + 1) + '/' + totalPages + '</span></div>';
+      var foot = (pi === totalPages - 1) ? '<div class="foot">' + FOOTER + '</div>' : '';
+      return '<div class="page' + (pi > 0 ? ' brk' : '') + '">' + header + grid + foot + '</div>';
+    }).join('');
+
     return '<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-      + '<title>' + esc(o.title) + '</title><style>' + addPrintCSS() + '</style></head><body>'
-      + addHead(o) + keyTag
-      + '<div class="grid" style="grid-template-columns:repeat(' + o.cols + ',1fr)">' + cells + '</div>'
-      + '<div class="foot">' + FOOTER + '</div></body></html>';
+      + '<title>' + esc(o.title) + '</title><style>' + addPrintCSS() + dyn + '</style></head><body>'
+      + body + '</body></html>';
   }
 
   /* พิมพ์ผ่าน iframe (กันป๊อปอัปถูกบล็อก + คุมเลย์เอาต์เองทั้งหมด) */
@@ -189,7 +220,7 @@
       /* ============================================================
          โหมด: สร้างแบบฝึกการบวก (ตั้งบวก)
          ============================================================ */
-      var ast = { dTop: 3, dBot: 3, count: 15, cols: 3, title: '', setId: '', showKey: false, mixed: false, probs: [] };
+      var ast = { dTop: 3, dBot: 3, count: 10, cols: 2, title: '', setId: '', showKey: false, mixed: false, probs: [] };
 
       function newSetId() {
         var d = new Date();
@@ -244,7 +275,7 @@
               '<div class="efadd-field"><label>จำนวนหลักของตัวตั้ง</label><select id="ad-dtop">' + digOpts(ast.dTop) + '</select></div>' +
               '<div class="efadd-field"><label>จำนวนหลักของตัวบวก</label><select id="ad-dbot">' + digOpts(ast.dBot) + '</select></div>' +
               '<div class="efadd-field"><label>จำนวนข้อ</label><select id="ad-count">' +
-                [6, 9, 12, 15, 18, 20, 24, 30].map(function (n) { return opt(n, n + ' ข้อ', ast.count); }).join('') + '</select></div>' +
+                [10, 20, 30, 40, 50].map(function (n) { return opt(n, n + ' ข้อ', ast.count); }).join('') + '</select></div>' +
               '<div class="efadd-field"><label>คอลัมน์ต่อหน้า</label><select id="ad-cols">' +
                 opt(2, '2 คอลัมน์', ast.cols) + opt(3, '3 คอลัมน์', ast.cols) + opt(4, '4 คอลัมน์', ast.cols) + '</select></div>' +
               '<div class="efadd-field"><label>ชื่อชุด (เว้นว่างได้)</label><input id="ad-title" value="' + esc(ast.title) + '" placeholder="เช่น การบวก 3 หลัก ชุดที่ 1"></div>' +
