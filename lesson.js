@@ -19,12 +19,13 @@
   function pad2(n) { return (n < 10 ? '0' : '') + n; }
 
   /* ตารางช่องตัวเลขของหนึ่งข้อ (ใช้ทั้งพรีวิวและพิมพ์) */
-  function addGrid(p, showAns) {
+  function addGrid(p, showAns, op) {
+    op = op || '+';
     var rows = '', i, j, n = p.nums.length;
     for (i = 0; i < n; i++) {
       var s = String(p.nums[i]), pad = p.cols - s.length, tds = '';
       for (j = 0; j < p.cols; j++) tds += '<td>' + (j < pad ? '' : esc(s.charAt(j - pad))) + '</td>';
-      if (i === 0) tds += '<td class="op" rowspan="' + n + '">+</td>';   // + กึ่งกลางแนวตั้งของตัวตั้ง+ตัวบวก
+      if (i === 0) tds += '<td class="op" rowspan="' + n + '">' + op + '</td>';   // เครื่องหมายกึ่งกลางแนวตั้ง
       rows += '<tr>' + tds + '</tr>';
     }
     var as = showAns ? String(p.ans) : '', apad = p.cols - as.length, atds = '';
@@ -37,52 +38,54 @@
   }
 
   /* CSS เอกสารพิมพ์ (ฝังในเอกสารพิมพ์เอง — ไม่ชนกับ CSS ของระบบ) */
-  function addPrintCSS() {
+  function addPrintCSS(ac) {
+    ac = ac || '#c0392b';
     return ''
       + '@page{size:A4 portrait;margin:9mm}'
       + '*{box-sizing:border-box}'
       + "body{font-family:'TH Sarabun New','Sarabun',sans-serif;color:#1a1a1a;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}"
-      + '.hd{border:2px solid #c0392b;border-radius:10px;padding:8px 12px;position:relative;margin-bottom:10px;background:linear-gradient(180deg,#fff,#fff7f5)}'
+      + '.hd{border:2px solid ' + ac + ';border-radius:10px;padding:8px 12px;position:relative;margin-bottom:10px;background:linear-gradient(180deg,#fff,color-mix(in srgb,' + ac + ' 8%,#fff))}'
       + '.hd .top{display:flex;align-items:center;gap:10px;padding-right:96px}'
       + '.hd .logo{width:42px;height:42px;object-fit:contain;flex:0 0 auto}'
-      + '.hd .ttl{font-size:24px;font-weight:700;color:#c0392b;line-height:1.1}'
+      + '.hd .ttl{font-size:24px;font-weight:700;color:' + ac + ';line-height:1.1}'
       + '.hd .nm{font-size:21px;margin-top:9px;padding-right:96px}'
       + '.hd .meta{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:20px;margin-top:9px;align-items:center}'
-      + '.hd .meta .box{border:1px solid #c0392b;border-radius:6px;padding:3px 12px;text-align:center;color:#c0392b;font-weight:600}'
+      + '.hd .meta .box{border:1px solid ' + ac + ';border-radius:6px;padding:3px 12px;text-align:center;color:' + ac + ';font-weight:600}'
       + '.qr{position:absolute;top:8px;right:12px;width:80px;text-align:center}'
       + '.qr img{width:80px;height:80px;display:block}'
       + '.qr .cap{font-size:9px;color:#888;margin-top:1px}'
       + '.dot{border-bottom:1px dotted #555;display:inline-block;min-width:60px}'
       + '.page{position:relative;display:flex;flex-direction:column;min-height:272mm}'
       + '.page.brk{page-break-before:always}'
-      + '.conthd{border-bottom:2px solid #c0392b;color:#c0392b;font-weight:700;font-size:18px;padding-bottom:6px;margin-bottom:12px}'
+      + '.conthd{border-bottom:2px solid ' + ac + ';color:' + ac + ';font-weight:700;font-size:18px;padding-bottom:6px;margin-bottom:12px}'
       + '.conthd span{font-weight:400;font-size:13px;color:#999}'
       + '.grid{display:grid;gap:8px 14px;flex:1;align-content:space-evenly}'
       + '.prob{break-inside:avoid;page-break-inside:avoid;padding:6px 4px 8px;display:flex;gap:8px;align-items:flex-start}'
-      + '.prob .no{font-weight:700;color:#c0392b;font-size:15px;min-width:26px}'
+      + '.prob .no{font-weight:700;color:' + ac + ';font-size:15px;min-width:26px}'
       + '.agrid{border-collapse:collapse;margin-top:2px}'
       + '.agrid td{width:8.5mm;height:8.5mm;border:1px solid #333;text-align:center;font-size:16px;font-weight:600;padding:0;line-height:8.5mm}'
       + '.agrid td.op{border:0;width:6mm;font-size:18px;font-weight:700;color:#111;vertical-align:middle}'
       + '.agrid tr.sum td{border-top:2px solid #111}'
       + '.agrid tr.sum td.op{border-top:0}'
-      + '.agrid td.k{color:#c0392b}'
+      + '.agrid td.k{color:' + ac + '}'
       + '.foot{margin-top:12px;text-align:center;font-size:11px;color:#777;border-top:1px solid #eee;padding-top:6px}';
   }
 
   function addHead(o) {
+    var ac = o.accent || '#c0392b';
     var qr = o.qrImg ? '<div class="qr"><img src="' + o.qrImg + '" alt="QR เฉลย"><div class="cap">สแกนดูเฉลย</div></div>' : '';
     return ''
       + '<div class="hd">' + qr
       + '<div class="top">'
       + '<img class="logo" src="' + (o.logo || LOGO) + '" alt="logo">'
       + '<div><div class="ttl">' + esc(o.title) + '</div>'
-      + '<div style="font-size:12px;color:#c0392b">' + esc(o.org || '') + (o.org ? ' &middot; ' : '') + 'ชุดที่ ' + esc(o.setId) + ' &middot; ' + esc(o.sub) + '</div></div>'
+      + '<div style="font-size:12px;color:' + ac + '">' + esc(o.org || '') + (o.org ? ' &middot; ' : '') + 'ชุดที่ ' + esc(o.setId) + ' &middot; ' + esc(o.sub) + '</div></div>'
       + '</div>'
       + '<div class="nm">ชื่อ <span class="dot" style="min-width:200px"></span> ชั้น <span class="dot" style="min-width:50px"></span> เลขที่ <span class="dot" style="min-width:40px"></span></div>'
       + '<div class="meta">'
       + '<span>วันที่ <span class="dot" style="min-width:40px"></span> เดือน <span class="dot" style="min-width:80px"></span> พ.ศ. <span class="dot" style="min-width:50px"></span></span>'
-      + '<span class="box">เวลาที่ใช้ทำ <span class="dot" style="min-width:50px;border-color:#c0392b"></span> นาที</span>'
-      + '<span class="box">คะแนนที่ได้ <span class="dot" style="min-width:55px;border-color:#c0392b"></span></span>'
+      + '<span class="box">เวลาที่ใช้ทำ <span class="dot" style="min-width:50px;border-color:' + ac + '"></span> นาที</span>'
+      + '<span class="box">คะแนนที่ได้ <span class="dot" style="min-width:55px;border-color:' + ac + '"></span></span>'
       + '</div></div>';
   }
 
@@ -101,7 +104,8 @@
       + '.agrid td.op{font-size:' + (fpx + 3) + 'px}'
       + '.prob .no{font-size:' + Math.max(14, fpx - 2) + 'px}';
 
-    var keyTag = withKey ? '<div style="text-align:center;color:#c0392b;font-weight:700;margin:2px 0 6px">★ ฉบับเฉลย ★</div>' : '';
+    var ac = o.accent || '#c0392b';
+    var keyTag = withKey ? '<div style="text-align:center;color:' + ac + ';font-weight:700;margin:2px 0 6px">★ ฉบับเฉลย ★</div>' : '';
     var pages = [];
     for (i = 0; i < o.probs.length; i += PER) pages.push(o.probs.slice(i, i + PER));
     var totalPages = pages.length;
@@ -109,7 +113,7 @@
     var body = pages.map(function (chunk, pi) {
       var cells = chunk.map(function (p, j) {
         var no = pi * PER + j + 1;
-        return '<div class="prob"><span class="no">' + no + ')</span>' + addGrid(p, withKey) + '</div>';
+        return '<div class="prob"><span class="no">' + no + ')</span>' + addGrid(p, withKey, o.op) + '</div>';
       }).join('');
       var grid = '<div class="grid" style="grid-template-columns:repeat(' + numCols + ',1fr)">' + cells + '</div>';
       var header = pi === 0
@@ -120,7 +124,7 @@
     }).join('');
 
     return '<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-      + '<title>' + esc(o.title) + '</title><style>' + addPrintCSS() + dyn + '</style></head><body>'
+      + '<title>' + esc(o.title) + '</title><style>' + addPrintCSS(ac) + dyn + '</style></head><body>'
       + body + '</body></html>';
   }
 
@@ -200,15 +204,16 @@
       + '.efadd-field{display:flex;flex-direction:column;gap:5px}'
       + '.efadd-field label{font-size:13px;color:var(--muted)}'
       + '.efadd-field select,.efadd-field input{padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt);font:inherit}'
-      + '.efadd-tile{position:relative;border:0;cursor:pointer;color:#fff;border-radius:24px;'
-      + 'background:linear-gradient(150deg,var(--accent),color-mix(in srgb,var(--accent) 55%,#000));'
+      + '.efadd-tile{--tile:var(--accent);position:relative;border:0;cursor:pointer;color:#fff;border-radius:24px;'
+      + 'background:linear-gradient(150deg,var(--tile),color-mix(in srgb,var(--tile) 55%,#000));'
       + 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;'
-      + 'width:220px;height:220px;animation:efBreathe 2.6s ease-in-out infinite}'
+      + 'width:200px;height:200px;animation:efBreathe 2.6s ease-in-out infinite}'
+      + '.efadd-tile.sub{--tile:#16a34a}'
       + '.efadd-tile:hover{filter:brightness(1.08)}'
       + '.efadd-tile:active{transform:scale(.97)}'
       + '@keyframes efBreathe{'
-      + '0%,100%{box-shadow:0 8px 22px color-mix(in srgb,var(--accent) 30%,transparent),0 0 0 0 color-mix(in srgb,var(--accent) 45%,transparent);transform:scale(1)}'
-      + '50%{box-shadow:0 10px 30px color-mix(in srgb,var(--accent) 45%,transparent),0 0 44px 8px color-mix(in srgb,var(--accent) 60%,transparent);transform:scale(1.035)}}'
+      + '0%,100%{box-shadow:0 8px 22px color-mix(in srgb,var(--tile) 30%,transparent),0 0 0 0 color-mix(in srgb,var(--tile) 45%,transparent);transform:scale(1)}'
+      + '50%{box-shadow:0 10px 30px color-mix(in srgb,var(--tile) 45%,transparent),0 0 44px 8px color-mix(in srgb,var(--tile) 60%,transparent);transform:scale(1.035)}}'
       + '@media (prefers-reduced-motion:reduce){.efadd-tile{animation:none}}';
     document.head.appendChild(s);
   }
@@ -218,67 +223,84 @@
     mount: function (host, svc) {
 
       /* ============================================================
-         โหมด: สร้างแบบฝึกการบวก (ตั้งบวก)
+         โหมด: สร้างแบบฝึก การบวก/การลบ (ตั้งบวก/ตั้งลบ)
          ============================================================ */
-      var ast = { dTop: 3, dBot: 3, count: 10, cols: 2, title: '', setId: '', showKey: false, mixed: false, probs: [] };
+      var KINDS = {
+        add: { op: '+', accent: '#c0392b', word: 'การบวก', t2: 'ตัวบวก', verb: 'ตั้งบวก' },
+        sub: { op: '−', accent: '#16a34a', word: 'การลบ', t2: 'ตัวลบ', verb: 'ตั้งลบ' }
+      };
+      var ast = { kind: 'add', dTop: 3, dBot: 3, count: 10, cols: 2, title: '', setId: '', showKey: false, mixed: false, probs: [] };
 
       function newSetId() {
         var d = new Date();
-        return 'A' + String(d.getFullYear()).slice(2) + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + rndI(100, 999);
+        return (ast.kind === 'sub' ? 'S' : 'A') + String(d.getFullYear()).slice(2) + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + rndI(100, 999);
       }
-      function buildAddSet() {
-        var probs = [], i;
-        for (i = 0; i < ast.count; i++) {
-          var top = numDg(ast.dTop), bot = numDg(ast.dBot), ans = top + bot;
-          probs.push({ nums: [top, bot], ans: ans, cols: Math.max(ast.dTop, ast.dBot, String(ans).length) });
+      // สุ่มคู่จำนวนตามชนิด — การลบ: ตัวตั้งมีค่ามากกว่าตัวลบเสมอ
+      function genPair(dt, db) {
+        var top, bot, ans;
+        if (ast.kind === 'sub') {
+          var d2 = Math.min(db, dt);                       // ตัวลบหลักไม่เกินตัวตั้ง
+          if (dt > d2) { bot = numDg(d2); top = numDg(dt); }  // ตัวตั้งหลักมากกว่า → ค่ามากกว่าเสมอ
+          else {                                            // หลักเท่ากัน → คุมให้ตัวตั้ง > ตัวลบ
+            var lo = (dt === 1) ? 1 : Math.pow(10, dt - 1), hi = Math.pow(10, dt) - 1;
+            bot = rndI(lo, hi - 1); top = rndI(bot + 1, hi);
+          }
+          ans = top - bot;
+        } else {
+          top = numDg(dt); bot = numDg(db); ans = top + bot;
         }
-        return probs;
+        return { nums: [top, bot], ans: ans, cols: Math.max(String(top).length, String(bot).length, String(ans).length) };
       }
-      function buildAutoSet() {
-        var probs = [], i;
-        for (i = 0; i < ast.count; i++) {
-          var dt = rndI(1, 8), db = rndI(1, 8);
-          var top = numDg(dt), bot = numDg(db), ans = top + bot;
-          probs.push({ nums: [top, bot], ans: ans, cols: Math.max(dt, db, String(ans).length) });
-        }
-        return probs;
-      }
+      function buildAddSet() { var p = [], i; for (i = 0; i < ast.count; i++) p.push(genPair(ast.dTop, ast.dBot)); return p; }
+      function buildAutoSet() { var p = [], i; for (i = 0; i < ast.count; i++) p.push(genPair(rndI(1, 8), rndI(1, 8))); return p; }
+
+      function effDb() { return ast.kind === 'sub' ? Math.min(ast.dBot, ast.dTop) : ast.dBot; }
       function opt(v, label, cur) { return '<option value="' + v + '"' + (v == cur ? ' selected' : '') + '>' + label + '</option>'; }
       function digOpts(cur) { var o = '', n; for (n = 1; n <= 8; n++) o += opt(n, n + ' หลัก', cur); return o; }
       function defTitle() {
         if (ast.title) return ast.title;
-        return ast.mixed ? 'แบบฝึกการบวก (คละจำนวนหลัก)' : ('แบบฝึกการบวก ' + ast.dTop + ' หลัก + ' + ast.dBot + ' หลัก');
+        var K = KINDS[ast.kind];
+        return ast.mixed ? ('แบบฝึก' + K.word + ' (คละจำนวนหลัก)') : ('แบบฝึก' + K.word + ' ' + ast.dTop + ' หลัก ' + K.op + ' ' + effDb() + ' หลัก');
       }
 
-      /* ---------- หน้าแรก: ปุ่มสี่เหลี่ยมเรืองแสงเข้า-ออก ---------- */
+      /* ---------- หน้าแรก: ปุ่มเรืองแสงเข้า-ออก (บวก/ลบ) ---------- */
+      function tileBtn(kind, icon, label) {
+        return '<button class="efadd-tile' + (kind === 'sub' ? ' sub' : '') + '" data-kind="' + kind + '">' +
+          '<i class="ti ' + icon + '" style="font-size:56px;line-height:1"></i>' +
+          '<span style="font-size:1.1rem;font-weight:700;line-height:1.25;text-align:center">' + label + '</span></button>';
+      }
       function renderHome() {
         ensureAddCSS();
         host.innerHTML =
-          '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:48px 16px;min-height:340px">' +
-            '<div class="eyebrow" style="text-align:center">แบบฝึกหัด</div>' +
-            '<button class="efadd-tile" id="ad-open">' +
-              '<i class="ti ti-square-rounded-plus" style="font-size:60px;line-height:1"></i>' +
-              '<span style="font-size:1.15rem;font-weight:700;line-height:1.25;text-align:center">สร้างแบบฝึก<br>การบวก</span>' +
-            '</button>' +
-            '<div style="color:var(--muted);font-size:.86rem;text-align:center">กดเพื่อสร้างใบงานการบวก (ตั้งบวก)</div>' +
+          '<div style="display:flex;flex-direction:column;align-items:center;gap:20px;padding:40px 16px;min-height:340px">' +
+            '<div class="eyebrow" style="text-align:center">แบบฝึกหัด — เลือกประเภท</div>' +
+            '<div style="display:flex;gap:24px;flex-wrap:wrap;justify-content:center">' +
+              tileBtn('add', 'ti-square-rounded-plus', 'สร้างแบบฝึก<br>การบวก') +
+              tileBtn('sub', 'ti-square-rounded-minus', 'สร้างแบบฝึก<br>การลบ') +
+            '</div>' +
+            '<div style="color:var(--muted);font-size:.86rem;text-align:center">กดเลือกประเภทเพื่อสร้างใบงาน (ตั้งบวก / ตั้งลบ)</div>' +
           '</div>';
-        $('#ad-open', host).onclick = function () { renderAdd(); };
+        $$('.efadd-tile', host).forEach(function (b) {
+          b.onclick = function () { ast.kind = b.dataset.kind; ast.mixed = false; ast.probs = []; renderAdd(); };
+        });
       }
 
       function renderAdd() {
         ensureAddCSS();
+        var K = KINDS[ast.kind];
+        var subNote = ast.kind === 'sub' ? '<div style="font-size:12px;color:var(--muted);margin-top:-6px">* ตัวตั้งจะถูกสุ่มให้มีค่ามากกว่าตัวลบเสมอ (ผลลบไม่ติดลบ)</div>' : '';
         host.innerHTML =
           '<div style="margin-bottom:16px"><button class="btn btn-ghost" id="ad-back"><i class="ti ti-arrow-left"></i> กลับ</button></div>' +
           '<div class="grid-main" style="display:grid;gap:22px;grid-template-columns:340px 1fr">' +
             '<section><div class="panel" style="padding:18px;display:flex;flex-direction:column;gap:14px">' +
-              '<div class="eyebrow">ตั้งค่าชุดแบบฝึก</div>' +
+              '<div class="eyebrow">ตั้งค่าชุดแบบฝึก' + K.word + '</div>' +
               '<div class="efadd-field"><label>จำนวนหลักของตัวตั้ง</label><select id="ad-dtop">' + digOpts(ast.dTop) + '</select></div>' +
-              '<div class="efadd-field"><label>จำนวนหลักของตัวบวก</label><select id="ad-dbot">' + digOpts(ast.dBot) + '</select></div>' +
+              '<div class="efadd-field"><label>จำนวนหลักของ' + K.t2 + '</label><select id="ad-dbot">' + digOpts(ast.dBot) + '</select></div>' + subNote +
               '<div class="efadd-field"><label>จำนวนข้อ</label><select id="ad-count">' +
                 [10, 20, 30, 40, 50].map(function (n) { return opt(n, n + ' ข้อ', ast.count); }).join('') + '</select></div>' +
               '<div class="efadd-field"><label>คอลัมน์ต่อหน้า</label><select id="ad-cols">' +
                 opt(2, '2 คอลัมน์', ast.cols) + opt(3, '3 คอลัมน์', ast.cols) + opt(4, '4 คอลัมน์', ast.cols) + '</select></div>' +
-              '<div class="efadd-field"><label>ชื่อชุด (เว้นว่างได้)</label><input id="ad-title" value="' + esc(ast.title) + '" placeholder="เช่น การบวก 3 หลัก ชุดที่ 1"></div>' +
+              '<div class="efadd-field"><label>ชื่อชุด (เว้นว่างได้)</label><input id="ad-title" value="' + esc(ast.title) + '" placeholder="เช่น ' + K.word + ' 3 หลัก ชุดที่ 1"></div>' +
               '<button class="btn btn-accent" id="ad-gen"><i class="ti ti-refresh"></i> สร้างชุดแบบฝึก</button>' +
               '<button class="btn btn-ghost" id="ad-auto"><i class="ti ti-arrows-shuffle"></i> สุ่มอัตโนมัติ (คละหลัก)</button>' +
               '<button class="btn btn-ghost" id="ad-timer"><i class="ti ti-clock"></i> จับเวลาเต็มจอ</button>' +
@@ -315,7 +337,7 @@
           return;
         }
         var cells = ast.probs.map(function (p, i) {
-          return '<div class="efadd-prob"><span class="no">' + (i + 1) + ')</span>' + addGrid(p, ast.showKey) + '</div>';
+          return '<div class="efadd-prob"><span class="no">' + (i + 1) + ')</span>' + addGrid(p, ast.showKey, KINDS[ast.kind].op) + '</div>';
         }).join('');
         out.innerHTML =
           '<div class="panel" style="padding:18px">' +
@@ -334,10 +356,13 @@
       }
 
       function doAddPrint(withKey) {
-        var S = svc.settings || {};
+        var S = svc.settings || {}, K = KINDS[ast.kind];
+        var subTxt = ast.mixed
+          ? (K.verb + ' คละจำนวนหลัก (สุ่ม 1–8 หลัก)')
+          : (K.verb + ' ' + ast.dTop + ' หลัก ' + K.op + ' ' + effDb() + ' หลัก');
         var o = {
-          title: defTitle(), setId: ast.setId,
-          sub: ast.mixed ? 'ตั้งบวก คละจำนวนหลัก (สุ่ม 1–8 หลัก)' : ('ตั้งบวก ' + ast.dTop + ' หลัก + ' + ast.dBot + ' หลัก'),
+          title: defTitle(), setId: ast.setId, sub: subTxt,
+          op: K.op, accent: K.accent,
           org: S.org || '', logo: S.logo || LOGO,
           probs: ast.probs, cols: ast.cols, qrImg: ''
         };
