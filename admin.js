@@ -26,7 +26,13 @@
           '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px" class="grid-main">' +
             '<div><label class="lbl">ชื่อหน่วยงาน</label><input class="field" id="org" style="margin-top:5px" value="' + esc(P.settings.org || '') + '"></div>' +
             '<div><label class="lbl">สังกัด</label><input class="field" id="dept" style="margin-top:5px" value="' + esc(P.settings.dept || '') + '"></div>' +
-          '</div><button class="btn btn-accent" id="savecfg" style="margin-top:14px"><i class="ti ti-device-floppy"></i> บันทึก</button>' +
+          '</div>' +
+          '<div style="margin-top:14px"><label class="lbl">URL โลโก้ (หัวกระดาษ + หน้าเว็บ)</label>' +
+            '<div style="display:flex;gap:12px;align-items:center;margin-top:5px">' +
+              '<img id="logoPrev" src="' + esc(P.settings.logo || '') + '" style="width:46px;height:46px;object-fit:contain;background:#fff;border-radius:8px;border:1px solid var(--line)">' +
+              '<input class="field" id="logo" style="flex:1" value="' + esc(P.settings.logo || '') + '" placeholder="https://...">' +
+            '</div></div>' +
+          '<button class="btn btn-accent" id="savecfg" style="margin-top:14px"><i class="ti ti-device-floppy"></i> บันทึก</button>' +
         '</div>';
 
       function syncMeta(all) {
@@ -125,9 +131,12 @@
             '<pre style="text-align:left;background:#0b1120;color:#9fb3ff;padding:12px;border-radius:10px;font-size:12px;margin-top:12px;overflow:auto">// plugins/flashcard.js\nPlatform.register({\n  id:\'flashcard\',\n  mount:function(host,svc){\n    host.innerHTML = \'...UI...\';\n  }\n});</pre>'
         }, svc.swalDark));
       };
+      var logoIn = $('#logo', host);
+      if (logoIn) logoIn.oninput = function () { var pv = $('#logoPrev', host); if (pv) pv.src = this.value; };
       $('#savecfg', host).onclick = function () {
-        svc.api('saveSettings', { org: $('#org', host).value, dept: $('#dept', host).value })
-          .then(function () { P.settings.org = $('#org', host).value; P.settings.dept = $('#dept', host).value; svc.toast('success', 'บันทึกแล้ว'); })
+        var org = $('#org', host).value, dept = $('#dept', host).value, logo = $('#logo', host).value;
+        svc.api('saveSettings', { org: org, dept: dept, logo: logo })
+          .then(function () { P.settings.org = org; P.settings.dept = dept; P.settings.logo = logo; svc.toast('success', 'บันทึกแล้ว'); })
           .catch(function (e) { svc.toast('error', String(e.message || e)); });
       };
 
