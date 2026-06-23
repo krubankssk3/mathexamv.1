@@ -90,6 +90,39 @@
   }, { threshold: 0.18 });
   function initReveals(scope) { $$('.reveal', scope || document).forEach(function (el) { revObserver.observe(el); }); }
 
+  /* ---------- base64 (utf-8 ปลอดภัย) สำหรับ QR เฉลย ---------- */
+  function b64e(str) { return btoa(unescape(encodeURIComponent(str))); }
+  function b64d(str) { return decodeURIComponent(escape(atob(str))); }
+  function keyURL(title, setId, answers) {
+    var o = { t: title, s: setId, a: answers };
+    return location.origin + location.pathname + '#k=' + encodeURIComponent(b64e(JSON.stringify(o)));
+  }
+  function makeQR(text) {
+    return new Promise(function (res) {
+      if (!window.QRCode) { res(''); return; }
+      try { window.QRCode.toDataURL(text, { width: 240, margin: 1, errorCorrectionLevel: 'M' }, function (e, u) { res(e ? '' : u); }); }
+      catch (_) { res(''); }
+    });
+  }
+  // ถ้าเปิดด้วยลิงก์ QR (#k=...) ให้แสดงหน้าเฉลยแล้วหยุด
+  function showKeyFromHash() {
+    var h = location.hash || '';
+    if (h.indexOf('#k=') !== 0) return false;
+    try {
+      var obj = JSON.parse(b64d(decodeURIComponent(h.slice(3))));
+      var ans = (obj.a || []).map(function (a, i) { return '<div class="qitem"><span class="qno">' + (i + 1) + '.</span><span class="qbody"><span class="ans">' + a + '</span></span></div>'; }).join('');
+      document.body.innerHTML = '<div style="max-width:760px;margin:28px auto;padding:0 16px">' +
+        '<div class="panel" style="padding:24px">' +
+        '<div class="eyebrow">เฉลย</div>' +
+        '<h2 class="font-display" style="margin:.2rem 0 4px;font-weight:800"><span class="grad-text">' + (obj.t || 'เฉลย') + '</span></h2>' +
+        '<div class="sub" style="color:var(--muted);margin-bottom:16px">ชุด ' + (obj.s || '') + '</div>' +
+        '<div class="key-grid">' + ans + '</div>' +
+        '<div style="text-align:center;margin-top:20px"><a href="' + location.pathname + '" class="btn btn-accent">ไปหน้าหลัก</a></div>' +
+        '</div></div>';
+      return true;
+    } catch (e) { return false; }
+  }
+
   /* ---------- ตัวสร้างกระดาษข้อสอบ (ใช้ร่วมกันหลายปลั๊กอิน) ---------- */
   function examSheetHTML(o) {
     var S = Platform.settings;
@@ -104,7 +137,10 @@
     var isGeo = o.problems.length && o.problems[0].geo;             // เรขาคณิตเต็มหน้า (ไม่แบ่งข้อ)
     var isFull = o.problems.length && (o.problems[0].geo || o.problems[0].full); // ใบงานเต็มหน้า (เรขา/วัดความยาว)
     if (isNum || isFull) cols = 1;
+    var fs = o.fontSize || 'normal';
+    var fsFactor = fs === 'xl' ? 0.6 : (fs === 'lg' ? 0.78 : 1);
     var perCol = isFull ? 1 : (isNum ? 3 : (isClock ? 4 : (isOrd ? 8 : (isTall ? 5 : 15))));    // numwrite แถวสูง (4 บรรทัด) จำกัด 3/หน้า กันตก
+    if (!isFull) perCol = Math.max(2, Math.round(perCol * fsFactor));   // ฟอนต์ใหญ่ = ข้อต่อหน้าน้อยลง กันตก
     var perPage = perCol * cols;
     var scoreTotal = isFull ? (o.problems[0].pts || total) : total;   // เต็มหน้า: คะแนนเต็ม = จำนวนรูป/ข้อ
 
@@ -114,9 +150,9 @@
     function headFull() {
       return '<div class="exam-head"><img src="' + S.logo + '">' +
         '<div style="flex:1"><h1>' + S.org + '</h1><div class="sub">' + S.dept + '</div></div>' +
-        '<div style="text-align:right"><div class="mono" style="font-size:11px;color:#888">ชุดที่</div><div class="mono" style="font-weight:700;color:var(--accent)">' + o.setId + '</div></div></div>' +
-        '<div style="text-align:center;margin:14px 0 4px"><div class="font-display" style="font-size:18px;font-weight:700">' + o.title + '</div><div class="sub">เรื่อง ' + o.subjectName + ' · ระดับ ' + lv + '</div></div>' +
-        '<div class="meta-row"><span><b>ชื่อ–สกุล</b> <span class="blank" style="min-width:180px"></span></span><span><b>ชั้น</b> <span class="blank" style="min-width:60px"></span></span><span><b>เลขที่</b> <span class="blank" style="min-width:45px"></span></span><span><b>วันที่</b> ' + date + '</span><span class="score-box"><b>คะแนนที่ได้</b> <span class="blank" style="min-width:48px"></span> / ' + scoreTotal + '</span></div>' +
+        '<div style="text-align:right">' + (o.qr ? '<img class="qr-key" src="' + o.qr + '"><div class="qr-cap">สแกนดูเฉลย</div>' : '<div class="mono" style="font-size:11px;color:#888">ชุดที่</div><div class="mono" style="font-weight:700;color:var(--accent)">' + o.setId + '</div>') + '</div></div>' +
+        '<div style="text-align:center;margin:14px 0 4px"><div class="font-display" style="font-size:18px;font-weight:700">' + o.title + '</div><div class="sub">เรื่อง ' + o.subjectName + ' · ระดับ ' + lv + (o.term ? ' · ภาคเรียนที่ ' + o.term : '') + (o.year ? ' · ปีการศึกษา ' + o.year : '') + '</div></div>' +
+        '<div class="meta-row"><span><b>ชื่อ–สกุล</b> <span class="blank" style="min-width:170px"></span></span><span><b>ชั้น</b> <span class="blank" style="min-width:55px"></span></span><span><b>เลขที่</b> <span class="blank" style="min-width:42px"></span></span><span><b>วันที่</b> ' + date + '</span><span class="score-box"><b>คะแนนที่ได้</b> <span class="blank" style="min-width:46px"></span> / ' + scoreTotal + '</span></div>' +
         '<div class="instr"><b>คำชี้แจง</b> ' + (o.instr ? o.instr : 'แสดงวิธีทำและเขียนคำตอบลงในช่องว่าง') + ' (' + (isGeo ? scoreTotal + ' รูป รูปละ 1 คะแนน' : scoreTotal + ' ข้อ ข้อละ 1 คะแนน') + ')</div>';
     }
     function headCont() {
@@ -151,7 +187,7 @@
         var items = chunk.map(function (p, idx) { return qitemHTML(p, pi * perPage + idx); }).join('');
         content = '<div class="qcols ' + (cols === 2 ? 'c2' : '') + '">' + items + '</div>';
       }
-      return '<div class="sheet pop' + (pi > 0 ? ' pgb' : '') + '" style="--rowh:' + rowh + 'mm">' +
+      return '<div class="sheet pop' + (pi > 0 ? ' pgb' : '') + (fs !== 'normal' ? ' fs-' + fs : '') + '" style="--rowh:' + rowh + 'mm">' +
         (pi === 0 ? headFull() : headCont()) + content + '</div>';
     }).join('');
 
@@ -586,6 +622,7 @@
         settings: this.settings, user: this.user, curriculum: this.curriculum, store: this.store,
         examSheetHTML: examSheetHTML, printNode: printNode,
         genProblems: genProblems, genQuiz: genQuiz, makeSetId: makeSetId,
+        makeQR: makeQR, keyURL: keyURL,
         countUp: countUp, animateCounters: animateCounters, reveal: initReveals,
         ctx: this.ctx
       };
@@ -987,6 +1024,7 @@
 
   /* ---------- BOOT ---------- */
   function boot() {
+    if (showKeyFromHash()) return;   // เปิดจากลิงก์ QR เฉลย
     if (!API || API.indexOf('/exec') < 0) {
       // ยังไม่ได้ตั้งค่า API_URL
       $$('.reveal').forEach(function (e) { e.classList.add('in'); });
