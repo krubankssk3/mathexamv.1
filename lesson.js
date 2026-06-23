@@ -19,21 +19,34 @@
   function pad2(n) { return (n < 10 ? '0' : '') + n; }
 
   /* ตารางช่องตัวเลขของหนึ่งข้อ (ใช้ทั้งพรีวิวและพิมพ์) */
+  // จำนวนบรรทัดคำตอบ/ทำงาน: บวก-ลบ = 1 · คูณ = ตามหลักตัวคูณ (1หลัก→1, 2หลัก→3, 3หลัก→4)
+  function ansRowCount(p, op) {
+    if (op !== '×') return 1;
+    var md = String(p.nums[1]).length;
+    return md <= 1 ? 1 : md + 1;
+  }
   function addGrid(p, showAns, op) {
     op = op || '+';
-    var rows = '', i, j, n = p.nums.length;
+    var ansRows = ansRowCount(p, op);
+    var rows = '', i, j, r, n = p.nums.length;
     for (i = 0; i < n; i++) {
       var s = String(p.nums[i]), pad = p.cols - s.length, tds = '';
       for (j = 0; j < p.cols; j++) tds += '<td>' + (j < pad ? '' : esc(s.charAt(j - pad))) + '</td>';
       if (i === 0) tds += '<td class="op" rowspan="' + n + '">' + op + '</td>';   // เครื่องหมายกึ่งกลางแนวตั้ง
       rows += '<tr>' + tds + '</tr>';
     }
-    var as = showAns ? String(p.ans) : '', apad = p.cols - as.length, atds = '';
-    for (j = 0; j < p.cols; j++) {
-      var ch = (showAns && j >= apad) ? esc(as.charAt(j - apad)) : '';
-      atds += '<td class="ans' + (showAns ? ' k' : '') + '">' + ch + '</td>';
+    for (r = 0; r < ansRows; r++) {
+      var isLast = (r === ansRows - 1);
+      var cl = [];
+      if (r === 0) cl.push('sum');                       // เส้นใต้ตัวล่าง (ใต้ตัวคูณ/ตัวบวก)
+      if (isLast && ansRows > 1) cl.push('sumf');         // เส้นเหนือผลรวมสุดท้าย (คูณหลายหลัก)
+      var as = (showAns && isLast) ? String(p.ans) : '', apad = p.cols - as.length, atds = '';
+      for (j = 0; j < p.cols; j++) {
+        var ch = (as && j >= apad) ? esc(as.charAt(j - apad)) : '';
+        atds += '<td class="ans' + (as ? ' k' : '') + '">' + ch + '</td>';
+      }
+      rows += '<tr class="' + cl.join(' ') + '">' + atds + '<td class="op"></td></tr>';
     }
-    rows += '<tr class="sum">' + atds + '<td class="op"></td></tr>';
     return '<table class="agrid">' + rows + '</table>';
   }
 
@@ -66,7 +79,8 @@
       + '.agrid td{width:8.5mm;height:8.5mm;border:1px solid #333;text-align:center;font-size:16px;font-weight:600;padding:0;line-height:8.5mm}'
       + '.agrid td.op{border:0;width:6mm;font-size:18px;font-weight:700;color:#111;vertical-align:middle}'
       + '.agrid tr.sum td{border-top:2px solid #111}'
-      + '.agrid tr.sum td.op{border-top:0}'
+      + '.agrid tr.sumf td{border-top:2px solid #111}'
+      + '.agrid tr.sum td.op,.agrid tr.sumf td.op{border-top:0}'
       + '.agrid td.k{color:' + ac + '}'
       + '.foot{margin-top:12px;text-align:center;font-size:11px;color:#777;border-top:1px solid #eee;padding-top:6px}';
   }
@@ -92,14 +106,20 @@
   function addSheet(o, withKey) {
     var PER = 10;                 // 10 ข้อ/หน้า A4 พอดี
     var numCols = o.cols, i, j;
-    var maxGC = 1;
-    for (i = 0; i < o.probs.length; i++) maxGC = Math.max(maxGC, o.probs[i].cols);
-    // คำนวณขนาดช่องให้ใหญ่ที่สุดเท่าที่ไม่ล้นความกว้าง A4 (พิมพ์เต็มที่ ~192mm)
-    var perProb = (192 - 12 * (numCols - 1)) / numCols;   // ความกว้างต่อ 1 ข้อ (mm)
-    var widthCap = (perProb - 14) / maxGC;                // หัก label+op+ระยะกันชน
-    var cell = Math.min(15, widthCap);                    // ขยายช่องให้ใหญ่ เติมเต็มหน้า A4
-    cell = Math.max(6.5, Math.round(cell * 10) / 10);
-    var fpx = Math.max(16, Math.round(cell * 2.3));
+    var maxGC = 1, maxRows = 1;
+    for (i = 0; i < o.probs.length; i++) {
+      maxGC = Math.max(maxGC, o.probs[i].cols);
+      maxRows = Math.max(maxRows, o.probs[i].nums.length + ansRowCount(o.probs[i], o.op));  // แถวตัวเลข + แถวคำตอบ/ทำงาน
+    }
+    // ความกว้าง: ไม่ให้ล้นขอบกระดาษ (~192mm)
+    var perProb = (192 - 12 * (numCols - 1)) / numCols;
+    var widthCap = (perProb - 14) / maxGC;
+    // ความสูง: ให้รวมทุกแถวเท่ากับพื้นที่ที่เคยพอดี (≈ 5 แถวโจทย์ × 3 บรรทัด × 15mm)
+    var rowsPerPage = Math.ceil(PER / numCols);
+    var heightCap = 225 / (rowsPerPage * maxRows);
+    var cell = Math.min(15, widthCap, heightCap);
+    cell = Math.max(6, Math.round(cell * 10) / 10);
+    var fpx = Math.max(15, Math.round(cell * 2.3));
     var dyn = '.agrid td{width:' + cell + 'mm;height:' + cell + 'mm;line-height:' + cell + 'mm;font-size:' + fpx + 'px}'
       + '.agrid td.op{font-size:' + (fpx + 3) + 'px}'
       + '.prob .no{font-size:' + Math.max(14, fpx - 2) + 'px}';
@@ -199,7 +219,8 @@
       + '.efadd-prob td{width:30px;height:30px;border:1px solid var(--line);text-align:center;font-weight:600;color:var(--txt)}'
       + '.efadd-prob td.op{border:0;width:22px;color:var(--txt);font-weight:700;vertical-align:middle}'
       + '.efadd-prob tr.sum td{border-top:2px solid var(--txt)}'
-      + '.efadd-prob tr.sum td.op{border-top:0}'
+      + '.efadd-prob tr.sumf td{border-top:2px solid var(--txt)}'
+      + '.efadd-prob tr.sum td.op,.efadd-prob tr.sumf td.op{border-top:0}'
       + '.efadd-prob td.k{color:var(--accent)}'
       + '.efadd-field{display:flex;flex-direction:column;gap:5px}'
       + '.efadd-field label{font-size:13px;color:var(--muted)}'
