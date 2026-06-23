@@ -209,6 +209,7 @@
       + 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;'
       + 'width:200px;height:200px;animation:efBreathe 2.6s ease-in-out infinite}'
       + '.efadd-tile.sub{--tile:#16a34a}'
+      + '.efadd-tile.mul{--tile:#db2777}'
       + '.efadd-tile:hover{filter:brightness(1.08)}'
       + '.efadd-tile:active{transform:scale(.97)}'
       + '@keyframes efBreathe{'
@@ -226,16 +227,17 @@
          โหมด: สร้างแบบฝึก การบวก/การลบ (ตั้งบวก/ตั้งลบ)
          ============================================================ */
       var KINDS = {
-        add: { op: '+', accent: '#c0392b', word: 'การบวก', t2: 'ตัวบวก', verb: 'ตั้งบวก' },
-        sub: { op: '−', accent: '#16a34a', word: 'การลบ', t2: 'ตัวลบ', verb: 'ตั้งลบ' }
+        add: { op: '+', accent: '#c0392b', word: 'การบวก', t2: 'ตัวบวก', verb: 'ตั้งบวก', pre: 'A', dMaxTop: 8, dMaxBot: 8 },
+        sub: { op: '−', accent: '#16a34a', word: 'การลบ', t2: 'ตัวลบ', verb: 'ตั้งลบ', pre: 'S', dMaxTop: 8, dMaxBot: 8 },
+        mul: { op: '×', accent: '#db2777', word: 'การคูณ', t2: 'ตัวคูณ', verb: 'ตั้งคูณ', pre: 'M', dMaxTop: 4, dMaxBot: 3 }
       };
       var ast = { kind: 'add', dTop: 3, dBot: 3, count: 10, cols: 2, title: '', setId: '', showKey: false, mixed: false, probs: [] };
 
       function newSetId() {
         var d = new Date();
-        return (ast.kind === 'sub' ? 'S' : 'A') + String(d.getFullYear()).slice(2) + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + rndI(100, 999);
+        return KINDS[ast.kind].pre + String(d.getFullYear()).slice(2) + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + rndI(100, 999);
       }
-      // สุ่มคู่จำนวนตามชนิด — การลบ: ตัวตั้งมีค่ามากกว่าตัวลบเสมอ
+      // สุ่มคู่จำนวนตามชนิด — ลบ: ตัวตั้ง>ตัวลบเสมอ · คูณ: หลักตัวคูณไม่เกินตัวตั้ง
       function genPair(dt, db) {
         var top, bot, ans;
         if (ast.kind === 'sub') {
@@ -246,17 +248,20 @@
             bot = rndI(lo, hi - 1); top = rndI(bot + 1, hi);
           }
           ans = top - bot;
+        } else if (ast.kind === 'mul') {
+          var dm = Math.min(db, dt);                       // หลักตัวคูณไม่เกินหลักตัวตั้ง
+          top = numDg(dt); bot = numDg(dm); ans = top * bot;
         } else {
           top = numDg(dt); bot = numDg(db); ans = top + bot;
         }
         return { nums: [top, bot], ans: ans, cols: Math.max(String(top).length, String(bot).length, String(ans).length) };
       }
       function buildAddSet() { var p = [], i; for (i = 0; i < ast.count; i++) p.push(genPair(ast.dTop, ast.dBot)); return p; }
-      function buildAutoSet() { var p = [], i; for (i = 0; i < ast.count; i++) p.push(genPair(rndI(1, 8), rndI(1, 8))); return p; }
+      function buildAutoSet() { var p = [], i, K = KINDS[ast.kind]; for (i = 0; i < ast.count; i++) p.push(genPair(rndI(1, K.dMaxTop), rndI(1, K.dMaxBot))); return p; }
 
-      function effDb() { return ast.kind === 'sub' ? Math.min(ast.dBot, ast.dTop) : ast.dBot; }
+      function effDb() { return ast.kind === 'add' ? ast.dBot : Math.min(ast.dBot, ast.dTop); }   // ลบ/คูณ: ตัวล่างหลักไม่เกินตัวตั้ง
       function opt(v, label, cur) { return '<option value="' + v + '"' + (v == cur ? ' selected' : '') + '>' + label + '</option>'; }
-      function digOpts(cur) { var o = '', n; for (n = 1; n <= 8; n++) o += opt(n, n + ' หลัก', cur); return o; }
+      function digOpts(cur, maxN) { var o = '', n; for (n = 1; n <= maxN; n++) o += opt(n, n + ' หลัก', cur); return o; }
       function defTitle() {
         if (ast.title) return ast.title;
         var K = KINDS[ast.kind];
@@ -277,8 +282,9 @@
             '<div style="display:flex;gap:24px;flex-wrap:wrap;justify-content:center">' +
               tileBtn('add', 'ti-square-rounded-plus', 'สร้างแบบฝึก<br>การบวก') +
               tileBtn('sub', 'ti-square-rounded-minus', 'สร้างแบบฝึก<br>การลบ') +
+              tileBtn('mul', 'ti-square-rounded-x', 'สร้างแบบฝึก<br>การคูณ') +
             '</div>' +
-            '<div style="color:var(--muted);font-size:.86rem;text-align:center">กดเลือกประเภทเพื่อสร้างใบงาน (ตั้งบวก / ตั้งลบ)</div>' +
+            '<div style="color:var(--muted);font-size:.86rem;text-align:center">กดเลือกประเภทเพื่อสร้างใบงาน (ตั้งบวก / ตั้งลบ / ตั้งคูณ)</div>' +
           '</div>';
         $$('.efadd-tile', host).forEach(function (b) {
           b.onclick = function () { ast.kind = b.dataset.kind; ast.mixed = false; ast.probs = []; renderAdd(); };
@@ -288,14 +294,21 @@
       function renderAdd() {
         ensureAddCSS();
         var K = KINDS[ast.kind];
-        var subNote = ast.kind === 'sub' ? '<div style="font-size:12px;color:var(--muted);margin-top:-6px">* ตัวตั้งจะถูกสุ่มให้มีค่ามากกว่าตัวลบเสมอ (ผลลบไม่ติดลบ)</div>' : '';
+        // คุมจำนวนหลักให้ไม่เกินเพดานของชนิด และ (ลบ/คูณ) ตัวล่างไม่เกินตัวตั้ง
+        if (ast.dTop > K.dMaxTop) ast.dTop = K.dMaxTop;
+        var maxBot = (ast.kind === 'add') ? K.dMaxBot : Math.min(K.dMaxBot, ast.dTop);
+        if (ast.dBot > maxBot) ast.dBot = maxBot;
+        var note = '';
+        if (ast.kind === 'sub') note = '* ตัวตั้งจะถูกสุ่มให้มีค่ามากกว่าตัวลบเสมอ (ผลลบไม่ติดลบ)';
+        else if (ast.kind === 'mul') note = '* ตัวตั้งสูงสุด 4 หลัก · ตัวคูณสูงสุด 3 หลัก และหลักตัวคูณไม่เกินหลักตัวตั้ง';
+        var subNote = note ? '<div style="font-size:12px;color:var(--muted);margin-top:-6px">' + note + '</div>' : '';
         host.innerHTML =
           '<div style="margin-bottom:16px"><button class="btn btn-ghost" id="ad-back"><i class="ti ti-arrow-left"></i> กลับ</button></div>' +
           '<div class="grid-main" style="display:grid;gap:22px;grid-template-columns:340px 1fr">' +
             '<section><div class="panel" style="padding:18px;display:flex;flex-direction:column;gap:14px">' +
               '<div class="eyebrow">ตั้งค่าชุดแบบฝึก' + K.word + '</div>' +
-              '<div class="efadd-field"><label>จำนวนหลักของตัวตั้ง</label><select id="ad-dtop">' + digOpts(ast.dTop) + '</select></div>' +
-              '<div class="efadd-field"><label>จำนวนหลักของ' + K.t2 + '</label><select id="ad-dbot">' + digOpts(ast.dBot) + '</select></div>' + subNote +
+              '<div class="efadd-field"><label>จำนวนหลักของตัวตั้ง</label><select id="ad-dtop">' + digOpts(ast.dTop, K.dMaxTop) + '</select></div>' +
+              '<div class="efadd-field"><label>จำนวนหลักของ' + K.t2 + '</label><select id="ad-dbot">' + digOpts(ast.dBot, maxBot) + '</select></div>' + subNote +
               '<div class="efadd-field"><label>จำนวนข้อ</label><select id="ad-count">' +
                 [10, 20, 30, 40, 50].map(function (n) { return opt(n, n + ' ข้อ', ast.count); }).join('') + '</select></div>' +
               '<div class="efadd-field"><label>คอลัมน์ต่อหน้า</label><select id="ad-cols">' +
@@ -309,6 +322,13 @@
           '</div>';
 
         $('#ad-back', host).onclick = function () { renderHome(); };
+        // เปลี่ยนหลักตัวตั้ง → ปรับเพดานหลักตัวล่าง (ลบ/คูณ ห้ามเกินตัวตั้ง)
+        $('#ad-dtop', host).onchange = function () {
+          ast.dTop = +this.value;
+          var mb = (ast.kind === 'add') ? K.dMaxBot : Math.min(K.dMaxBot, ast.dTop);
+          if (ast.dBot > mb) ast.dBot = mb;
+          $('#ad-dbot', host).innerHTML = digOpts(ast.dBot, mb);
+        };
         function readUI() {
           ast.dTop = +$('#ad-dtop', host).value;
           ast.dBot = +$('#ad-dbot', host).value;
