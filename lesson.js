@@ -169,13 +169,16 @@
       + '.efadd-field{display:flex;flex-direction:column;gap:5px}'
       + '.efadd-field label{font-size:13px;color:var(--muted)}'
       + '.efadd-field select,.efadd-field input{padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt);font:inherit}'
-      + '.efadd-glow{position:relative;z-index:0;border-radius:18px!important}'
-      + '.efadd-glow::before{content:"";position:absolute;inset:-2px;border-radius:inherit;z-index:-1;background:conic-gradient(from 0deg,#f59e0b,#fb7185,#a78bfa,#34d399,#38bdf8,#f59e0b);filter:blur(8px);opacity:.8;animation:efSpin 4s linear infinite}'
-      + '.efadd-glow::after{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;background:var(--bg2)}'
-      + '@keyframes efSpin{to{transform:rotate(1turn)}}'
-      + '@keyframes efPulse{0%,100%{box-shadow:0 0 10px color-mix(in srgb,var(--accent) 35%,transparent)}50%{box-shadow:0 0 28px color-mix(in srgb,var(--accent) 65%,transparent)}}'
-      + '.efadd-glow{animation:efPulse 2.6s ease-in-out infinite}'
-      + '@media (prefers-reduced-motion:reduce){.efadd-glow::before{animation:none}.efadd-glow{animation:none}}';
+      + '.efadd-tile{position:relative;border:0;cursor:pointer;color:#fff;border-radius:24px;'
+      + 'background:linear-gradient(150deg,var(--accent),color-mix(in srgb,var(--accent) 55%,#000));'
+      + 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;'
+      + 'width:220px;height:220px;animation:efBreathe 2.6s ease-in-out infinite}'
+      + '.efadd-tile:hover{filter:brightness(1.08)}'
+      + '.efadd-tile:active{transform:scale(.97)}'
+      + '@keyframes efBreathe{'
+      + '0%,100%{box-shadow:0 8px 22px color-mix(in srgb,var(--accent) 30%,transparent),0 0 0 0 color-mix(in srgb,var(--accent) 45%,transparent);transform:scale(1)}'
+      + '50%{box-shadow:0 10px 30px color-mix(in srgb,var(--accent) 45%,transparent),0 0 44px 8px color-mix(in srgb,var(--accent) 60%,transparent);transform:scale(1.035)}}'
+      + '@media (prefers-reduced-motion:reduce){.efadd-tile{animation:none}}';
     document.head.appendChild(s);
   }
 
@@ -216,11 +219,27 @@
         return ast.mixed ? 'แบบฝึกการบวก (คละจำนวนหลัก)' : ('แบบฝึกการบวก ' + ast.dTop + ' หลัก + ' + ast.dBot + ' หลัก');
       }
 
+      /* ---------- หน้าแรก: ปุ่มสี่เหลี่ยมเรืองแสงเข้า-ออก ---------- */
+      function renderHome() {
+        ensureAddCSS();
+        host.innerHTML =
+          '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;padding:48px 16px;min-height:340px">' +
+            '<div class="eyebrow" style="text-align:center">แบบฝึกหัด</div>' +
+            '<button class="efadd-tile" id="ad-open">' +
+              '<i class="ti ti-square-rounded-plus" style="font-size:60px;line-height:1"></i>' +
+              '<span style="font-size:1.15rem;font-weight:700;line-height:1.25;text-align:center">สร้างแบบฝึก<br>การบวก</span>' +
+            '</button>' +
+            '<div style="color:var(--muted);font-size:.86rem;text-align:center">กดเพื่อสร้างใบงานการบวก (ตั้งบวก)</div>' +
+          '</div>';
+        $('#ad-open', host).onclick = function () { renderAdd(); };
+      }
+
       function renderAdd() {
         ensureAddCSS();
         host.innerHTML =
+          '<div style="margin-bottom:16px"><button class="btn btn-ghost" id="ad-back"><i class="ti ti-arrow-left"></i> กลับ</button></div>' +
           '<div class="grid-main" style="display:grid;gap:22px;grid-template-columns:340px 1fr">' +
-            '<section><div class="panel efadd-glow" style="padding:18px;display:flex;flex-direction:column;gap:14px">' +
+            '<section><div class="panel" style="padding:18px;display:flex;flex-direction:column;gap:14px">' +
               '<div class="eyebrow">ตั้งค่าชุดแบบฝึก</div>' +
               '<div class="efadd-field"><label>จำนวนหลักของตัวตั้ง</label><select id="ad-dtop">' + digOpts(ast.dTop) + '</select></div>' +
               '<div class="efadd-field"><label>จำนวนหลักของตัวบวก</label><select id="ad-dbot">' + digOpts(ast.dBot) + '</select></div>' +
@@ -236,6 +255,7 @@
             '<section id="ad-out"></section>' +
           '</div>';
 
+        $('#ad-back', host).onclick = function () { renderHome(); };
         function readUI() {
           ast.dTop = +$('#ad-dtop', host).value;
           ast.dBot = +$('#ad-dbot', host).value;
@@ -260,14 +280,14 @@
       function renderAddOut() {
         var out = $('#ad-out', host); if (!out) return;
         if (!ast.probs.length) {
-          out.innerHTML = '<div class="panel efadd-glow" style="padding:30px;text-align:center;color:var(--muted)">เลือกค่าทางซ้าย แล้วกด “สร้างชุดแบบฝึก”</div>';
+          out.innerHTML = '<div class="panel" style="padding:30px;text-align:center;color:var(--muted)">เลือกค่าทางซ้าย แล้วกด “สร้างชุดแบบฝึก”</div>';
           return;
         }
         var cells = ast.probs.map(function (p, i) {
           return '<div class="efadd-prob"><span class="no">' + (i + 1) + ')</span>' + addGrid(p, ast.showKey) + '</div>';
         }).join('');
         out.innerHTML =
-          '<div class="panel efadd-glow" style="padding:18px">' +
+          '<div class="panel" style="padding:18px">' +
             '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:8px">' +
               '<div><div class="eyebrow">ตัวอย่างก่อนพิมพ์</div><div class="font-display" style="font-weight:800;font-size:1.25rem">' + esc(defTitle()) + ' <span style="font-size:.78rem;color:var(--muted)">ชุด ' + esc(ast.setId) + '</span></div></div>' +
               '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
@@ -303,8 +323,8 @@
         } else { finish(''); }
       }
 
-      /* เปิดหน้าสร้างแบบฝึกการบวกโดยตรง */
-      renderAdd();
+      /* เปิดหน้าแรก (ปุ่มสร้างแบบฝึกการบวก) */
+      renderHome();
     }
   });
 })();
