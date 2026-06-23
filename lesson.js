@@ -1,11 +1,8 @@
-/*** EduForge plugin — แบบฝึกหัด (แสดงวิธีทำ) ****************************
- * โหมดอ่าน: ดึงเนื้อหาจาก window.EduForgeLessons (ไฟล์ lessons-data.js)
- * ครูเอาเนื้อหามาจากที่อื่น แล้วเพิ่มเป็น Node ในไฟล์ข้อมูล (ทีละอัน)
- * ทำงานฝั่งหน้าเว็บล้วน · ทุกคนเปิดดู/พิมพ์ได้ · ไม่ต้อง backend
- *
- * + โหมดเสริม "สร้างแบบฝึกการบวก (ตั้งบวก)":
- *   ตัวตั้ง/ตัวบวก ตั้งหลักได้ 1–8 หลัก · A4 แนวตั้ง ตารางช่องตัวเลข
- *   เฉลย (inline/พิมพ์พร้อมเฉลย/QR มุมขวา) · จับเวลาเต็มจอ · ช่อง "เวลาที่ใช้"
+/*** EduForge plugin — สร้างแบบฝึกการบวก (ตั้งบวก) **********************
+ * ตัวสร้างใบงานการบวกแบบตั้งบวก ทำงานฝั่งหน้าเว็บล้วน · ไม่ต้อง backend
+ *   - ตัวตั้ง/ตัวบวก ตั้งหลักได้ 1–8 หลัก (แยกกัน) หรือสุ่มคละหลักต่อข้อ
+ *   - A4 แนวตั้ง ตารางช่องตัวเลข · เฉลย (inline/พิมพ์พร้อมเฉลย/QR มุมขวา)
+ *   - จับเวลาเต็มจอ · ช่อง "เวลาที่ใช้" · กรอบเรืองแสง
  ***********************************************************************/
 (function () {
   var $ = function (s, r) { return (r || document).querySelector(s); };
@@ -171,136 +168,20 @@
       + '.efadd-prob td.k{color:var(--accent)}'
       + '.efadd-field{display:flex;flex-direction:column;gap:5px}'
       + '.efadd-field label{font-size:13px;color:var(--muted)}'
-      + '.efadd-field select,.efadd-field input{padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt);font:inherit}';
+      + '.efadd-field select,.efadd-field input{padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt);font:inherit}'
+      + '.efadd-glow{position:relative;z-index:0;border-radius:18px!important}'
+      + '.efadd-glow::before{content:"";position:absolute;inset:-2px;border-radius:inherit;z-index:-1;background:conic-gradient(from 0deg,#f59e0b,#fb7185,#a78bfa,#34d399,#38bdf8,#f59e0b);filter:blur(8px);opacity:.8;animation:efSpin 4s linear infinite}'
+      + '.efadd-glow::after{content:"";position:absolute;inset:0;border-radius:inherit;z-index:-1;background:var(--bg2)}'
+      + '@keyframes efSpin{to{transform:rotate(1turn)}}'
+      + '@keyframes efPulse{0%,100%{box-shadow:0 0 10px color-mix(in srgb,var(--accent) 35%,transparent)}50%{box-shadow:0 0 28px color-mix(in srgb,var(--accent) 65%,transparent)}}'
+      + '.efadd-glow{animation:efPulse 2.6s ease-in-out infinite}'
+      + '@media (prefers-reduced-motion:reduce){.efadd-glow::before{animation:none}.efadd-glow{animation:none}}';
     document.head.appendChild(s);
   }
 
   window.Platform.register({
     id: 'lesson',
     mount: function (host, svc) {
-      var CUR = svc.curriculum || { grades: [] };
-      var DATA = (window.EduForgeLessons || []).slice();
-      var lockGrade = (svc.ctx && svc.ctx.gradeId) || null;
-      var st = { grade: lockGrade || 'all', page: 0, mode: 'lesson' };
-
-      /* ---------- ปุ่มสี่เหลี่ยมจัตุรัส เปิดหน้าสร้างแบบฝึกการบวก ---------- */
-      function addTileHTML() {
-        return '<button id="ad-open" style="width:168px;height:168px;border-radius:20px;border:0;cursor:pointer;' +
-          'background:linear-gradient(150deg,var(--accent),color-mix(in srgb,var(--accent) 60%,#000));color:#fff;' +
-          'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;' +
-          'box-shadow:0 10px 26px color-mix(in srgb,var(--accent) 38%,transparent);transition:.18s;margin-bottom:20px">' +
-          '<i class="ti ti-square-rounded-plus" style="font-size:50px;line-height:1"></i>' +
-          '<span style="font-size:1.05rem;font-weight:700;line-height:1.2">สร้างแบบฝึก<br>การบวก</span></button>';
-      }
-
-      function gradeName(id) {
-        var g = (CUR.grades || []).filter(function (x) { return x.id === id; })[0];
-        return g ? g.name : (id || 'ทั่วไป');
-      }
-      // ชั้นที่มีเนื้อหาจริง (เรียงตามหลักสูตร ถ้ามี)
-      function gradesWithData() {
-        var present = {}; DATA.forEach(function (l) { present[l.grade || ''] = true; });
-        var ordered = (CUR.grades || []).filter(function (g) { return present[g.id]; }).map(function (g) { return { id: g.id, name: g.name }; });
-        // ชั้น/หมวดที่ไม่ตรงหลักสูตร
-        Object.keys(present).forEach(function (k) {
-          if (!ordered.filter(function (o) { return o.id === k; }).length) ordered.push({ id: k, name: k || 'ทั่วไป' });
-        });
-        return ordered;
-      }
-
-      function renderItems(items, cls) {
-        return (items || []).map(function (it, i) {
-          var steps = (it.steps || []).join('<br>');
-          if (cls === 'print') {
-            return '<div class="ex-card"><div class="ex-no">ข้อ ' + (i + 1) + '</div><div class="ex-body"><div style="font-weight:700;margin-bottom:6px">' + (it.q || '') + '</div>' + steps + '</div></div>';
-          }
-          return '<div class="sol-card">' +
-            '<div class="sol-q"><span class="sol-no">' + (i + 1) + '</span><span class="sol-qt">' + (it.q || '') + '</span></div>' +
-            '<div class="sol-steps"><div class="sol-h">วิธีทำ</div>' + steps + '</div></div>';
-        }).join('');
-      }
-
-      /* ---------- รายการ ---------- */
-      function renderList() {
-        var list = DATA.filter(function (l) { return st.grade === 'all' || (l.grade || '') === st.grade; });
-        var PER = 10, pages = Math.max(1, Math.ceil(list.length / PER));
-        if (st.page >= pages) st.page = pages - 1; if (st.page < 0) st.page = 0;
-        var shown = list.slice(st.page * PER, st.page * PER + PER);
-
-        var chips = '';
-        if (!lockGrade) {
-          chips = '<div id="lsGrades" style="display:flex;gap:8px;overflow:auto;padding-bottom:6px;margin:6px 0 16px">' +
-            '<button class="chip click' + (st.grade === 'all' ? ' on' : '') + '" data-g="all" style="white-space:nowrap">ทั้งหมด</button>' +
-            gradesWithData().map(function (g) { return '<button class="chip click' + (st.grade === g.id ? ' on' : '') + '" data-g="' + esc(g.id) + '" style="white-space:nowrap">' + esc(g.name) + '</button>'; }).join('') +
-            '</div>';
-        }
-
-        var cards = shown.map(function (l, j) {
-          var i = st.page * PER + j;
-          return '<div class="qcard" style="display:flex;align-items:center;gap:14px;margin:0">' +
-            '<span class="stamp"><i class="ti ti-notebook"></i></span>' +
-            '<div style="flex:1;min-width:0"><div class="font-display" style="font-weight:600">' + esc(l.title || '(ไม่มีชื่อ)') + '</div>' +
-            '<div style="color:var(--muted);font-size:.82rem">' + esc(gradeName(l.grade)) + ' · ' + ((l.items || []).length) + ' ข้อ</div></div>' +
-            '<button class="btn btn-accent" data-view="' + i + '"><i class="ti ti-eye"></i> ดูวิธีทำ</button></div>';
-        }).join('');
-
-        var empty = '<div style="text-align:center;padding:48px;color:var(--muted)"><i class="ti ti-notebook" style="font-size:42px"></i>' +
-          '<div style="margin-top:10px">ยังไม่มีแบบฝึกหัดในส่วนนี้</div>' +
-          '<div style="margin-top:6px;font-size:.85rem">เนื้อหาจะถูกเพิ่มลงไฟล์ lessons-data.js</div></div>';
-
-        var pager = pages > 1 ? '<div class="pager" style="display:flex">' +
-          '<button class="pg-btn lsPrev"' + (st.page === 0 ? ' disabled' : '') + '><i class="ti ti-chevron-left"></i></button>' +
-          '<span class="pg-info">หน้า ' + (st.page + 1) + ' / ' + pages + ' (รวม ' + list.length + ')</span>' +
-          '<button class="pg-btn lsNext"' + (st.page === pages - 1 ? ' disabled' : '') + '><i class="ti ti-chevron-right"></i></button></div>' : '';
-
-        host.innerHTML =
-          addTileHTML() +
-          '<div class="panel" style="padding:22px">' +
-            '<div class="eyebrow">แบบฝึกหัด</div>' +
-            '<h3 class="font-display" style="margin:.2rem 0 4px;font-weight:700">แบบฝึกหัด — แสดงวิธีทำ</h3>' +
-            '<p style="color:var(--muted);font-size:.88rem;margin:0 0 12px">ตัวอย่างการคิดและวิธีทำทีละขั้น เปิดดูและพิมพ์เป็นใบความรู้ได้</p>' +
-            chips +
-            '<div style="display:grid;gap:12px">' + (shown.length ? cards : empty) + '</div>' +
-            pager +
-          '</div>';
-
-        var openBtn = $('#ad-open', host);
-        if (openBtn) openBtn.onclick = function () { st.mode = 'add'; renderAdd(); };
-        $$('#lsGrades .chip', host).forEach(function (b) { b.onclick = function () { st.grade = b.dataset.g; st.page = 0; renderList(); }; });
-        var pv = $('.lsPrev', host), nx = $('.lsNext', host);
-        if (pv) pv.onclick = function () { if (st.page > 0) { st.page--; renderList(); } };
-        if (nx) nx.onclick = function () { st.page++; renderList(); };
-        $$('[data-view]', host).forEach(function (b) { b.onclick = function () { view(list[+b.dataset.view]); }; });
-      }
-
-      /* ---------- ดูวิธีทำ ---------- */
-      function view(l) {
-        if (!l) return;
-        host.innerHTML =
-          '<div class="panel" style="padding:22px">' +
-            '<div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;flex-wrap:wrap">' +
-              '<button class="btn btn-ghost" id="lsBack"><i class="ti ti-arrow-left"></i> กลับ</button>' +
-              '<button class="btn btn-accent" id="lsPrint" style="margin-left:auto"><i class="ti ti-printer"></i> พิมพ์เป็นใบความรู้</button>' +
-            '</div>' +
-            '<div class="eyebrow">' + esc(gradeName(l.grade)) + '</div>' +
-            '<h2 class="font-display" style="margin:.2rem 0 16px;font-weight:800"><span class="grad-text">' + esc(l.title || '') + '</span></h2>' +
-            '<div class="sol-list">' + renderItems(l.items) + '</div>' +
-          '</div>';
-        $('#lsBack', host).onclick = function () { renderList(); };
-        $('#lsPrint', host).onclick = function () { printLesson(l); };
-        if (svc.reveal) svc.reveal(host);
-      }
-
-      /* ---------- พิมพ์ ---------- */
-      function printLesson(l) {
-        var S = svc.settings || {};
-        var head = '<div class="exam-head"><img src="' + (S.logo || '') + '">' +
-          '<div style="flex:1"><h1>' + esc(S.org || 'แบบฝึกหัด') + '</h1><div class="sub">' + esc(S.dept || '') + '</div></div></div>' +
-          '<div style="text-align:center;margin:14px 0 6px"><div class="font-display" style="font-size:18px;font-weight:700">' + esc(l.title || '') + '</div>' +
-          '<div class="sub">ใบความรู้ · แสดงวิธีทำ · ' + esc(gradeName(l.grade)) + '</div></div>';
-        var foot = '<div class="sheet-foot"><span>พัฒนาโดย นายชิติพัทธ์ นิลวรรณ ครู สพป.ศรีสะเกษ เขต 3</span></div>';
-        svc.printNode('<div class="sheet"><div class="exam-body">' + head + '<div class="ex-list print">' + renderItems(l.items, 'print') + '</div>' + foot + '</div></div>');
-      }
 
       /* ============================================================
          โหมด: สร้างแบบฝึกการบวก (ตั้งบวก)
@@ -338,9 +219,8 @@
       function renderAdd() {
         ensureAddCSS();
         host.innerHTML =
-          '<div style="margin-bottom:16px"><button class="btn btn-ghost" id="ad-back"><i class="ti ti-arrow-left"></i> กลับ</button></div>' +
           '<div class="grid-main" style="display:grid;gap:22px;grid-template-columns:340px 1fr">' +
-            '<section><div class="panel" style="padding:18px;display:flex;flex-direction:column;gap:14px">' +
+            '<section><div class="panel efadd-glow" style="padding:18px;display:flex;flex-direction:column;gap:14px">' +
               '<div class="eyebrow">ตั้งค่าชุดแบบฝึก</div>' +
               '<div class="efadd-field"><label>จำนวนหลักของตัวตั้ง</label><select id="ad-dtop">' + digOpts(ast.dTop) + '</select></div>' +
               '<div class="efadd-field"><label>จำนวนหลักของตัวบวก</label><select id="ad-dbot">' + digOpts(ast.dBot) + '</select></div>' +
@@ -356,7 +236,6 @@
             '<section id="ad-out"></section>' +
           '</div>';
 
-        $('#ad-back', host).onclick = function () { st.mode = 'lesson'; renderList(); };
         function readUI() {
           ast.dTop = +$('#ad-dtop', host).value;
           ast.dBot = +$('#ad-dbot', host).value;
@@ -381,14 +260,14 @@
       function renderAddOut() {
         var out = $('#ad-out', host); if (!out) return;
         if (!ast.probs.length) {
-          out.innerHTML = '<div class="panel" style="padding:30px;text-align:center;color:var(--muted)">เลือกค่าทางซ้าย แล้วกด “สร้างชุดแบบฝึก”</div>';
+          out.innerHTML = '<div class="panel efadd-glow" style="padding:30px;text-align:center;color:var(--muted)">เลือกค่าทางซ้าย แล้วกด “สร้างชุดแบบฝึก”</div>';
           return;
         }
         var cells = ast.probs.map(function (p, i) {
           return '<div class="efadd-prob"><span class="no">' + (i + 1) + ')</span>' + addGrid(p, ast.showKey) + '</div>';
         }).join('');
         out.innerHTML =
-          '<div class="panel" style="padding:18px">' +
+          '<div class="panel efadd-glow" style="padding:18px">' +
             '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:8px">' +
               '<div><div class="eyebrow">ตัวอย่างก่อนพิมพ์</div><div class="font-display" style="font-weight:800;font-size:1.25rem">' + esc(defTitle()) + ' <span style="font-size:.78rem;color:var(--muted)">ชุด ' + esc(ast.setId) + '</span></div></div>' +
               '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
@@ -424,8 +303,8 @@
         } else { finish(''); }
       }
 
-      /* เปิดตามโหมดเริ่มต้น */
-      if (st.mode === 'add') renderAdd(); else renderList();
+      /* เปิดหน้าสร้างแบบฝึกการบวกโดยตรง */
+      renderAdd();
     }
   });
 })();
