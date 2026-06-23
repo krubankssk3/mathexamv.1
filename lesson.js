@@ -305,7 +305,7 @@
       /* ============================================================
          โหมด: สร้างแบบฝึกการบวก (ตั้งบวก)
          ============================================================ */
-      var ast = { dTop: 3, dBot: 3, count: 15, cols: 3, title: '', setId: '', showKey: false, probs: [] };
+      var ast = { dTop: 3, dBot: 3, count: 15, cols: 3, title: '', setId: '', showKey: false, mixed: false, probs: [] };
 
       function newSetId() {
         var d = new Date();
@@ -319,9 +319,21 @@
         }
         return probs;
       }
+      function buildAutoSet() {
+        var probs = [], i;
+        for (i = 0; i < ast.count; i++) {
+          var dt = rndI(1, 8), db = rndI(1, 8);
+          var top = numDg(dt), bot = numDg(db), ans = top + bot;
+          probs.push({ nums: [top, bot], ans: ans, cols: Math.max(dt, db, String(ans).length) });
+        }
+        return probs;
+      }
       function opt(v, label, cur) { return '<option value="' + v + '"' + (v == cur ? ' selected' : '') + '>' + label + '</option>'; }
       function digOpts(cur) { var o = '', n; for (n = 1; n <= 8; n++) o += opt(n, n + ' หลัก', cur); return o; }
-      function defTitle() { return ast.title || ('แบบฝึกการบวก ' + ast.dTop + ' หลัก + ' + ast.dBot + ' หลัก'); }
+      function defTitle() {
+        if (ast.title) return ast.title;
+        return ast.mixed ? 'แบบฝึกการบวก (คละจำนวนหลัก)' : ('แบบฝึกการบวก ' + ast.dTop + ' หลัก + ' + ast.dBot + ' หลัก');
+      }
 
       function renderAdd() {
         ensureAddCSS();
@@ -338,6 +350,7 @@
                 opt(2, '2 คอลัมน์', ast.cols) + opt(3, '3 คอลัมน์', ast.cols) + opt(4, '4 คอลัมน์', ast.cols) + '</select></div>' +
               '<div class="efadd-field"><label>ชื่อชุด (เว้นว่างได้)</label><input id="ad-title" value="' + esc(ast.title) + '" placeholder="เช่น การบวก 3 หลัก ชุดที่ 1"></div>' +
               '<button class="btn btn-accent" id="ad-gen"><i class="ti ti-refresh"></i> สร้างชุดแบบฝึก</button>' +
+              '<button class="btn btn-ghost" id="ad-auto"><i class="ti ti-arrows-shuffle"></i> สุ่มอัตโนมัติ (คละหลัก)</button>' +
               '<button class="btn btn-ghost" id="ad-timer"><i class="ti ti-clock"></i> จับเวลาเต็มจอ</button>' +
             '</div></section>' +
             '<section id="ad-out"></section>' +
@@ -352,9 +365,14 @@
           ast.title = $('#ad-title', host).value.trim();
         }
         $('#ad-gen', host).onclick = function () {
-          readUI(); ast.setId = newSetId(); ast.probs = buildAddSet(); ast.showKey = false;
+          readUI(); ast.setId = newSetId(); ast.mixed = false; ast.probs = buildAddSet(); ast.showKey = false;
           renderAddOut();
           if (svc.toast) svc.toast('success', 'สร้าง ' + ast.count + ' ข้อแล้ว');
+        };
+        $('#ad-auto', host).onclick = function () {
+          readUI(); ast.setId = newSetId(); ast.mixed = true; ast.probs = buildAutoSet(); ast.showKey = false;
+          renderAddOut();
+          if (svc.toast) svc.toast('success', 'สุ่มคละหลัก ' + ast.count + ' ข้อแล้ว');
         };
         $('#ad-timer', host).onclick = tmOpen;
         renderAddOut();
@@ -389,7 +407,7 @@
         var S = svc.settings || {};
         var o = {
           title: defTitle(), setId: ast.setId,
-          sub: 'ตั้งบวก ' + ast.dTop + ' หลัก + ' + ast.dBot + ' หลัก',
+          sub: ast.mixed ? 'ตั้งบวก คละจำนวนหลัก (สุ่ม 1–8 หลัก)' : ('ตั้งบวก ' + ast.dTop + ' หลัก + ' + ast.dBot + ' หลัก'),
           org: S.org || '', logo: S.logo || LOGO,
           probs: ast.probs, cols: ast.cols, qrImg: ''
         };
