@@ -100,8 +100,19 @@
   function makeQR(text) {
     return new Promise(function (res) {
       if (!window.QRCode) { res(''); return; }
-      try { window.QRCode.toDataURL(text, { width: 240, margin: 1, errorCorrectionLevel: 'M' }, function (e, u) { res(e ? '' : u); }); }
-      catch (_) { res(''); }
+      try {
+        var tmp = document.createElement('div');
+        tmp.style.position = 'absolute'; tmp.style.left = '-9999px'; tmp.style.top = '0';
+        document.body.appendChild(tmp);
+        new QRCode(tmp, { text: text, width: 240, height: 240, correctLevel: QRCode.CorrectLevel.M });
+        setTimeout(function () {
+          var url = '', cv = tmp.querySelector('canvas');
+          if (cv) { try { url = cv.toDataURL('image/png'); } catch (e) { } }
+          if (!url) { var im = tmp.querySelector('img'); if (im) url = im.src; }
+          document.body.removeChild(tmp);
+          res(url);
+        }, 40);
+      } catch (e) { res(''); }
     });
   }
   // ถ้าเปิดด้วยลิงก์ QR (#k=...) ให้แสดงหน้าเฉลยแล้วหยุด
