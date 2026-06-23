@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.3.0/dist/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
 
 <style>
   :root{
@@ -110,6 +111,15 @@
   .pg-btn:hover:not(:disabled){background:var(--accent);color:#fff;border-color:transparent}
   .pg-btn:disabled{opacity:.35;cursor:not-allowed}
   .pg-info{font-size:.85rem;color:var(--muted,#9aa8c8);font-family:'Sarabun',sans-serif;min-width:74px;text-align:center}
+  .qr-key{width:74px;height:74px;display:block;margin-left:auto}
+  .qr-cap{font-size:9px;color:#888;text-align:center;margin-top:1px}
+  .sheet.fs-lg .qitem,.sheet.fs-lg .qbody{font-size:21px}
+  .sheet.fs-lg .qno{font-size:21px}
+  .sheet.fs-xl .qitem,.sheet.fs-xl .qbody{font-size:26px}
+  .sheet.fs-xl .qno{font-size:26px}
+  #printArea .sheet.fs-lg .qitem,#printArea .sheet.fs-lg .qbody,#printArea .sheet.fs-lg .qno{font-size:20px}
+  #printArea .sheet.fs-xl .qitem,#printArea .sheet.fs-xl .qbody,#printArea .sheet.fs-xl .qno{font-size:25px}
+  #printArea .qr-key{width:21mm;height:21mm}
   .ex-list{display:flex;flex-direction:column;gap:14px}
   .ex-card{background:var(--bg2);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:12px;padding:14px 18px}
   .ex-no{display:inline-block;font-weight:700;color:var(--accent);font-size:.85rem;margin-bottom:6px;font-family:'Sarabun',sans-serif}
