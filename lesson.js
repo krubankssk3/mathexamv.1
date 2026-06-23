@@ -183,24 +183,14 @@
       var lockGrade = (svc.ctx && svc.ctx.gradeId) || null;
       var st = { grade: lockGrade || 'all', page: 0, mode: 'lesson' };
 
-      /* ---------- แท็บสลับโหมด ---------- */
-      function tabsHTML(active) {
-        function tab(m, ic, label) {
-          var on = active === m;
-          return '<button class="ls-tab" data-mode="' + m + '" style="display:inline-flex;align-items:center;gap:6px;border:0;cursor:pointer;padding:9px 16px;border-radius:9px;font:inherit;font-weight:600;' +
-            (on ? 'background:var(--accent);color:#fff' : 'background:transparent;color:var(--muted)') + '"><i class="ti ' + ic + '"></i> ' + label + '</button>';
-        }
-        return '<div class="ls-tabs" style="display:inline-flex;gap:4px;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:4px;margin-bottom:16px">' +
-          tab('lesson', 'ti-notebook', 'แสดงวิธีทำ') + tab('add', 'ti-plus', 'สร้างแบบฝึกการบวก') + '</div>';
-      }
-      function bindTabs() {
-        $$('.ls-tab', host).forEach(function (b) {
-          b.onclick = function () {
-            var m = b.dataset.mode; if (m === st.mode) return;
-            st.mode = m;
-            if (m === 'add') renderAdd(); else renderList();
-          };
-        });
+      /* ---------- ปุ่มสี่เหลี่ยมจัตุรัส เปิดหน้าสร้างแบบฝึกการบวก ---------- */
+      function addTileHTML() {
+        return '<button id="ad-open" style="width:168px;height:168px;border-radius:20px;border:0;cursor:pointer;' +
+          'background:linear-gradient(150deg,var(--accent),color-mix(in srgb,var(--accent) 60%,#000));color:#fff;' +
+          'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;' +
+          'box-shadow:0 10px 26px color-mix(in srgb,var(--accent) 38%,transparent);transition:.18s;margin-bottom:20px">' +
+          '<i class="ti ti-square-rounded-plus" style="font-size:50px;line-height:1"></i>' +
+          '<span style="font-size:1.05rem;font-weight:700;line-height:1.2">สร้างแบบฝึก<br>การบวก</span></button>';
       }
 
       function gradeName(id) {
@@ -264,7 +254,7 @@
           '<button class="pg-btn lsNext"' + (st.page === pages - 1 ? ' disabled' : '') + '><i class="ti ti-chevron-right"></i></button></div>' : '';
 
         host.innerHTML =
-          tabsHTML('lesson') +
+          addTileHTML() +
           '<div class="panel" style="padding:22px">' +
             '<div class="eyebrow">แบบฝึกหัด</div>' +
             '<h3 class="font-display" style="margin:.2rem 0 4px;font-weight:700">แบบฝึกหัด — แสดงวิธีทำ</h3>' +
@@ -274,7 +264,8 @@
             pager +
           '</div>';
 
-        bindTabs();
+        var openBtn = $('#ad-open', host);
+        if (openBtn) openBtn.onclick = function () { st.mode = 'add'; renderAdd(); };
         $$('#lsGrades .chip', host).forEach(function (b) { b.onclick = function () { st.grade = b.dataset.g; st.page = 0; renderList(); }; });
         var pv = $('.lsPrev', host), nx = $('.lsNext', host);
         if (pv) pv.onclick = function () { if (st.page > 0) { st.page--; renderList(); } };
@@ -335,7 +326,7 @@
       function renderAdd() {
         ensureAddCSS();
         host.innerHTML =
-          tabsHTML('add') +
+          '<div style="margin-bottom:16px"><button class="btn btn-ghost" id="ad-back"><i class="ti ti-arrow-left"></i> กลับ</button></div>' +
           '<div class="grid-main" style="display:grid;gap:22px;grid-template-columns:340px 1fr">' +
             '<section><div class="panel" style="padding:18px;display:flex;flex-direction:column;gap:14px">' +
               '<div class="eyebrow">ตั้งค่าชุดแบบฝึก</div>' +
@@ -352,7 +343,7 @@
             '<section id="ad-out"></section>' +
           '</div>';
 
-        bindTabs();
+        $('#ad-back', host).onclick = function () { st.mode = 'lesson'; renderList(); };
         function readUI() {
           ast.dTop = +$('#ad-dtop', host).value;
           ast.dBot = +$('#ad-dbot', host).value;
