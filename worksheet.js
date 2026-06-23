@@ -140,7 +140,7 @@
       $('#year', host).oninput = function (e) { st.year = e.target.value.trim(); if (st.current) render(); };
       $$('#fsz button', host).forEach(function (b) { b.onclick = function () { $$('#fsz button', host).forEach(function (x) { x.classList.remove('on'); }); b.classList.add('on'); st.fontSize = b.dataset.f; if (st.current) render(); }; });
       $('#copies', host).oninput = function (e) { st.copies = Math.max(1, Math.min(10, +e.target.value || 1)); };
-      $('#qron', host).onchange = function (e) { st.qr = e.target.checked; };
+      $('#qron', host).onchange = function (e) { st.qr = e.target.checked; if (st.current) render(); };
 
       var DEF_INSTR = {
         compare: 'เติมเครื่องหมาย > , < หรือ = ลงในช่องว่าง',
@@ -172,7 +172,12 @@
         var g = gradeOf(st.gradeId), ch = chapterOf(st.gradeId, st.chapterId);
         $('#stamp', host).textContent = c.setId;
         $('#crumb', host).textContent = CUR.subject + ' › ' + g.name + ' › ' + ch.name;
-        $('#stage', host).innerHTML = svc.examSheetHTML(sheetOpts(c, st.showKey, ''));
+        var stage = $('#stage', host);
+        var draw = function (qr) { stage.innerHTML = svc.examSheetHTML(sheetOpts(c, st.showKey, qr)); };
+        if (st.qr) {
+          if (!window.QRCode) { svc.toast('warning', 'โหลดตัวสร้าง QR ไม่ได้ — กรุณาอัปไฟล์ index.html ใหม่ หรือเช็คอินเทอร์เน็ต'); draw(''); return; }
+          svc.makeQR(svc.keyURL(c.title, c.setId, c.problems.map(function (p) { return p.a; }))).then(draw);
+        } else { draw(''); }
       }
       function keyBtn() { $('#key', host).innerHTML = st.showKey ? '<i class="ti ti-eye-off"></i> ซ่อนเฉลย' : '<i class="ti ti-eye"></i> แสดงเฉลย'; }
 
