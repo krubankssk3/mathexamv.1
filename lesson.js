@@ -20,12 +20,12 @@
 
   /* ตารางช่องตัวเลขของหนึ่งข้อ (ใช้ทั้งพรีวิวและพิมพ์) */
   function addGrid(p, showAns) {
-    var rows = '', i, j;
-    for (i = 0; i < p.nums.length; i++) {
+    var rows = '', i, j, n = p.nums.length;
+    for (i = 0; i < n; i++) {
       var s = String(p.nums[i]), pad = p.cols - s.length, tds = '';
       for (j = 0; j < p.cols; j++) tds += '<td>' + (j < pad ? '' : esc(s.charAt(j - pad))) + '</td>';
-      var op = (i === p.nums.length - 1) ? '+' : '';
-      rows += '<tr>' + tds + '<td class="op">' + op + '</td></tr>';
+      if (i === 0) tds += '<td class="op" rowspan="' + n + '">+</td>';   // + กึ่งกลางแนวตั้งของตัวตั้ง+ตัวบวก
+      rows += '<tr>' + tds + '</tr>';
     }
     var as = showAns ? String(p.ans) : '', apad = p.cols - as.length, atds = '';
     for (j = 0; j < p.cols; j++) {
@@ -58,7 +58,7 @@
       + '.prob .no{font-weight:700;color:#c0392b;font-size:15px;min-width:26px}'
       + '.agrid{border-collapse:collapse;margin-top:2px}'
       + '.agrid td{width:8.5mm;height:8.5mm;border:1px solid #333;text-align:center;font-size:16px;font-weight:600;padding:0;line-height:8.5mm}'
-      + '.agrid td.op{border:0;width:6mm;font-size:18px;font-weight:700;color:#111}'
+      + '.agrid td.op{border:0;width:6mm;font-size:18px;font-weight:700;color:#111;vertical-align:middle}'
       + '.agrid tr.sum td{border-top:2px solid #111}'
       + '.agrid tr.sum td.op{border-top:0}'
       + '.agrid td.k{color:#c0392b}'
@@ -162,7 +162,7 @@
       + '.efadd-prob .no{font-weight:700;color:var(--accent);min-width:26px}'
       + '.efadd-prob table{border-collapse:collapse}'
       + '.efadd-prob td{width:30px;height:30px;border:1px solid var(--line);text-align:center;font-weight:600;color:var(--txt)}'
-      + '.efadd-prob td.op{border:0;width:22px;color:var(--txt);font-weight:700}'
+      + '.efadd-prob td.op{border:0;width:22px;color:var(--txt);font-weight:700;vertical-align:middle}'
       + '.efadd-prob tr.sum td{border-top:2px solid var(--txt)}'
       + '.efadd-prob tr.sum td.op{border-top:0}'
       + '.efadd-prob td.k{color:var(--accent)}'
