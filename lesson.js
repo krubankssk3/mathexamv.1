@@ -53,11 +53,11 @@
       + '.qr img{width:80px;height:80px;display:block}'
       + '.qr .cap{font-size:9px;color:#888;margin-top:1px}'
       + '.dot{border-bottom:1px dotted #555;display:inline-block;min-width:60px}'
-      + '.page{position:relative}'
+      + '.page{position:relative;display:flex;flex-direction:column;min-height:272mm}'
       + '.page.brk{page-break-before:always}'
       + '.conthd{border-bottom:2px solid #c0392b;color:#c0392b;font-weight:700;font-size:18px;padding-bottom:6px;margin-bottom:12px}'
       + '.conthd span{font-weight:400;font-size:13px;color:#999}'
-      + '.grid{display:grid;gap:8px 14px}'
+      + '.grid{display:grid;gap:8px 14px;flex:1;align-content:space-evenly}'
       + '.prob{break-inside:avoid;page-break-inside:avoid;padding:6px 4px 8px;display:flex;gap:8px;align-items:flex-start}'
       + '.prob .no{font-weight:700;color:#c0392b;font-size:15px;min-width:26px}'
       + '.agrid{border-collapse:collapse;margin-top:2px}'
@@ -94,7 +94,7 @@
     // คำนวณขนาดช่องให้ใหญ่ที่สุดเท่าที่ไม่ล้นความกว้าง A4 (พิมพ์เต็มที่ ~192mm)
     var perProb = (192 - 12 * (numCols - 1)) / numCols;   // ความกว้างต่อ 1 ข้อ (mm)
     var widthCap = (perProb - 14) / maxGC;                // หัก label+op+ระยะกันชน
-    var cell = Math.min(12, widthCap);                    // เพดานความสูง (5 แถว + หัวกระดาษ ใน 1 หน้า)
+    var cell = Math.min(15, widthCap);                    // ขยายช่องให้ใหญ่ เติมเต็มหน้า A4
     cell = Math.max(6.5, Math.round(cell * 10) / 10);
     var fpx = Math.max(13, Math.round(cell * 1.6));
     var dyn = '.agrid td{width:' + cell + 'mm;height:' + cell + 'mm;line-height:' + cell + 'mm;font-size:' + fpx + 'px}'
