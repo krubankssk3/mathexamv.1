@@ -12,7 +12,8 @@
       var st = {
         gradeId: firstG && firstG.id,
         chapterId: firstG && firstG.chapters[0] && firstG.chapters[0].id,
-        level: 'easy', count: 12, cols: 2, title: '', current: null, showKey: false, busy: false, chPage: 0
+        level: 'easy', count: 12, cols: 2, title: '', current: null, showKey: false, busy: false, chPage: 0,
+        term: '1', year: String(new Date().getFullYear() + 543), fontSize: 'normal', copies: 1, qr: false
       };
       function gradeOf(id) { return CUR.grades.filter(function (g) { return g.id === id; })[0]; }
       function chapterOf(gid, cid) { return gradeOf(gid).chapters.filter(function (c) { return c.id === cid; })[0]; }
@@ -36,6 +37,17 @@
               '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">' +
                 '<div><label class="lbl">จำนวนข้อ</label><input id="cnt" type="number" min="4" max="50" value="12" class="field mono" style="margin-top:5px"></div>' +
                 '<div><label class="lbl">คอลัมน์</label><div class="seg" id="col" style="margin-top:5px"><button data-c="1">1</button><button data-c="2" class="on">2</button></div></div>' +
+              '</div>' +
+              '<label class="lbl">หัวกระดาษ</label>' +
+              '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:5px 0 12px">' +
+                '<div><span class="lbl" style="font-size:.72rem">ภาคเรียน</span><div class="seg" id="term" style="margin-top:4px"><button data-t="1" class="on">1</button><button data-t="2">2</button></div></div>' +
+                '<div><span class="lbl" style="font-size:.72rem">ปีการศึกษา</span><input id="year" class="field mono" style="margin-top:4px" value="' + (new Date().getFullYear() + 543) + '"></div>' +
+              '</div>' +
+              '<label class="lbl">ขนาดฟอนต์</label>' +
+              '<div class="seg" id="fsz" style="margin:5px 0 12px"><button data-f="normal" class="on">ปกติ</button><button data-f="lg">ใหญ่</button><button data-f="xl">ใหญ่พิเศษ</button></div>' +
+              '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;align-items:end">' +
+                '<div><label class="lbl">จำนวนชุดพิมพ์</label><input id="copies" type="number" min="1" max="10" value="1" class="field mono" style="margin-top:5px"></div>' +
+                '<label style="display:flex;align-items:center;gap:8px;font-size:.85rem;padding-bottom:9px;cursor:pointer"><input type="checkbox" id="qron"> QR เฉลย</label>' +
               '</div>' +
               '<label class="lbl">ชื่อใบงาน</label>' +
               '<input id="ttl" class="field" style="margin:5px 0 14px">' +
@@ -124,31 +136,43 @@
       $$('#col button', host).forEach(function (b) { b.onclick = function () { $$('#col button', host).forEach(function (x) { x.classList.remove('on'); }); b.classList.add('on'); st.cols = +b.dataset.c; if (st.current) render(); }; });
       $('#cnt', host).oninput = function (e) { st.count = Math.max(4, Math.min(50, +e.target.value || 12)); };
       $('#ttl', host).oninput = function (e) { st.title = e.target.value; };
+      $$('#term button', host).forEach(function (b) { b.onclick = function () { $$('#term button', host).forEach(function (x) { x.classList.remove('on'); }); b.classList.add('on'); st.term = b.dataset.t; if (st.current) render(); }; });
+      $('#year', host).oninput = function (e) { st.year = e.target.value.trim(); if (st.current) render(); };
+      $$('#fsz button', host).forEach(function (b) { b.onclick = function () { $$('#fsz button', host).forEach(function (x) { x.classList.remove('on'); }); b.classList.add('on'); st.fontSize = b.dataset.f; if (st.current) render(); }; });
+      $('#copies', host).oninput = function (e) { st.copies = Math.max(1, Math.min(10, +e.target.value || 1)); };
+      $('#qron', host).onchange = function (e) { st.qr = e.target.checked; };
 
-      function build(announce) {
+      var DEF_INSTR = {
+        compare: 'เติมเครื่องหมาย > , < หรือ = ลงในช่องว่าง',
+        count: 'นับจำนวนรูปภาพในแต่ละข้อ แล้ววงกลมตัวเลขที่ถูกต้อง',
+        count9: 'นับจำนวนรูปภาพในแต่ละข้อ แล้ววงหรือเขียนจำนวนที่ถูกต้อง',
+        numwrite: 'นับจำนวนแท่งฐานสิบ แล้วเขียนตัวเลขฮินดูอารบิก ตัวเลขไทย และตัวหนังสือ ลงในตาราง',
+        order: 'เรียงจำนวนที่กำหนดให้ ตามทิศที่ระบุในแต่ละข้อ แล้วเขียนลงในช่องว่าง',
+        time: 'ดูเข็มนาฬิกาในแต่ละข้อ แล้วเขียนเวลาลงในช่องว่าง',
+        geometry: 'ระบายสีรูปตามข้อกำหนด แล้วนับจำนวนรูปแต่ละชนิด เขียนลงในช่องว่าง',
+        measlen: 'จงวัดความยาวของสิ่งของแต่ละชิ้นโดยใช้ไม้บรรทัด แล้วบอกความยาวเป็นเซนติเมตรและมิลลิเมตร'
+      };
+      function makeSet() {
         var g = gradeOf(st.gradeId), ch = chapterOf(st.gradeId, st.chapterId);
         var res = svc.genProblems(ch, st.level, st.count);
-        var DEF_INSTR = {
-          compare: 'เติมเครื่องหมาย > , < หรือ = ลงในช่องว่าง',
-          count: 'นับจำนวนรูปภาพในแต่ละข้อ แล้ววงกลมตัวเลขที่ถูกต้อง',
-          count9: 'นับจำนวนรูปภาพในแต่ละข้อ แล้ววงหรือเขียนจำนวนที่ถูกต้อง',
-          numwrite: 'นับจำนวนแท่งฐานสิบ แล้วเขียนตัวเลขฮินดูอารบิก ตัวเลขไทย และตัวหนังสือ ลงในตาราง',
-          order: 'เรียงจำนวนที่กำหนดให้ ตามทิศที่ระบุในแต่ละข้อ แล้วเขียนลงในช่องว่าง',
-          time: 'ดูเข็มนาฬิกาในแต่ละข้อ แล้วเขียนเวลาลงในช่องว่าง',
-          geometry: 'ระบายสีรูปตามข้อกำหนด แล้วนับจำนวนรูปแต่ละชนิด เขียนลงในช่องว่าง',
-          measlen: 'จงวัดความยาวของสิ่งของแต่ละชิ้นโดยใช้ไม้บรรทัด แล้วบอกความยาวเป็นเซนติเมตรและมิลลิเมตร'
-        };
         var instrText = (ch.lv && ch.lv.instruction) || DEF_INSTR[ch.gen] || '';
-        st.current = { setId: res.setId, subjectName: g.name + ' · ' + ch.name, problems: res.problems, level: st.level, cols: st.cols, title: st.title, instr: instrText, picture: ch.gen === 'picture' };
+        return { setId: res.setId, subjectName: g.name + ' · ' + ch.name, problems: res.problems, level: st.level, cols: st.cols, title: st.title, instr: instrText, picture: ch.gen === 'picture' };
+      }
+      function sheetOpts(c, withKey, qr) {
+        return { title: c.title, subjectName: c.subjectName, level: c.level, setId: c.setId, problems: c.problems, cols: (c.picture ? 1 : st.cols), withKey: withKey, instr: c.instr, term: st.term, year: st.year, fontSize: st.fontSize, qr: qr || '' };
+      }
+      function build(announce) {
+        var g = gradeOf(st.gradeId), ch = chapterOf(st.gradeId, st.chapterId);
+        st.current = makeSet();
         st.showKey = false; keyBtn(); render();
-        if (announce) svc.toast('success', 'สร้างชุด ' + res.setId);
+        if (announce) svc.toast('success', 'สร้างชุด ' + st.current.setId);
       }
       function render() {
         var c = st.current; if (!c) return;
         var g = gradeOf(st.gradeId), ch = chapterOf(st.gradeId, st.chapterId);
         $('#stamp', host).textContent = c.setId;
         $('#crumb', host).textContent = CUR.subject + ' › ' + g.name + ' › ' + ch.name;
-        $('#stage', host).innerHTML = svc.examSheetHTML({ title: c.title, subjectName: c.subjectName, level: c.level, setId: c.setId, problems: c.problems, cols: (c.picture ? 1 : st.cols), withKey: st.showKey, instr: c.instr });
+        $('#stage', host).innerHTML = svc.examSheetHTML(sheetOpts(c, st.showKey, ''));
       }
       function keyBtn() { $('#key', host).innerHTML = st.showKey ? '<i class="ti ti-eye-off"></i> ซ่อนเฉลย' : '<i class="ti ti-eye"></i> แสดงเฉลย'; }
 
@@ -168,13 +192,27 @@
             svc.toast('error', 'บันทึกไม่สำเร็จ: ' + String(e.message || e));
           });
       };
+      function doPrint(withKey) {
+        var copies = Math.max(1, Math.min(10, st.copies || 1));
+        var sets = [st.current];
+        for (var i = 1; i < copies; i++) sets.push(makeSet());   // ชุดถัดไปสุ่มใหม่
+        var jobs = sets.map(function (s) { return st.qr ? svc.makeQR(svc.keyURL(s.title, s.setId, s.problems.map(function (p) { return p.a; }))) : Promise.resolve(''); });
+        svc.loading('กำลังเตรียมพิมพ์...');
+        Promise.all(jobs).then(function (qrs) {
+          svc.done();
+          var html = sets.map(function (s, idx) {
+            var sheet = svc.examSheetHTML(sheetOpts(s, withKey, qrs[idx]));
+            return idx === 0 ? sheet : '<div style="page-break-before:always">' + sheet + '</div>';
+          }).join('');
+          svc.printNode(html);
+        }).catch(function () { svc.done(); svc.printNode(svc.examSheetHTML(sheetOpts(st.current, withKey, ''))); });
+      }
       $('#print', host).onclick = function () {
         if (!st.current) { svc.toast('warning', 'ยังไม่มีชุด'); return; }
         svc.swal.fire(Object.assign({ title: 'พิมพ์ใบงาน', icon: 'question', showCancelButton: true, confirmButtonText: 'พิมพ์พร้อมเฉลย', cancelButtonText: 'เฉพาะใบงาน', confirmButtonColor: '#6366f1', cancelButtonColor: '#334155' }, svc.swalDark))
           .then(function (r) {
             if (!r.isConfirmed && r.dismiss !== 'cancel') return; // ปิดด้วย ESC/คลิกพื้นหลัง = ไม่พิมพ์
-            var c = st.current;
-            svc.printNode(svc.examSheetHTML({ title: c.title, subjectName: c.subjectName, level: c.level, setId: c.setId, problems: c.problems, cols: (c.picture ? 1 : st.cols), withKey: r.isConfirmed, instr: c.instr }));
+            doPrint(r.isConfirmed);
           });
       };
 
