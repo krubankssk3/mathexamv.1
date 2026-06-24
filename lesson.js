@@ -74,12 +74,12 @@
       + '.qr img{width:80px;height:80px;display:block}'
       + '.qr .cap{font-size:9px;color:#888;margin-top:1px}'
       + '.dot{border-bottom:1px dotted #555;display:inline-block;min-width:60px}'
-      + '.page{position:relative;display:flex;flex-direction:column;min-height:272mm}'
+      + '.page{position:relative;display:flex;flex-direction:column;height:277mm;overflow:hidden}'
       + '.page.brk{page-break-before:always}'
       + '.conthd{border-bottom:2px solid ' + ac + ';color:' + ac + ';font-weight:700;font-size:18px;padding-bottom:6px;margin-bottom:12px}'
       + '.conthd span{font-weight:400;font-size:13px;color:#999}'
-      + '.grid{display:grid;gap:8px 14px;flex:1;align-content:space-evenly}'
-      + '.prob{break-inside:avoid;page-break-inside:avoid;padding:6px 4px 8px;display:flex;gap:8px;align-items:flex-start}'
+      + '.grid{display:grid;gap:6px 14px;flex:1;align-content:space-evenly}'
+      + '.prob{break-inside:avoid;page-break-inside:avoid;padding:3px 4px 4px;display:flex;gap:8px;align-items:flex-start}'
       + '.prob .no{font-weight:700;color:' + ac + ';font-size:15px;min-width:26px}'
       + '.agrid{border-collapse:collapse;margin-top:2px}'
       + '.agrid td{width:8.5mm;height:8.5mm;border:1px solid #333;text-align:center;font-size:16px;font-weight:600;padding:0;line-height:8.5mm}'
@@ -120,9 +120,9 @@
     // ความกว้าง: ไม่ให้ล้นขอบกระดาษ (~192mm)
     var perProb = (192 - 12 * (numCols - 1)) / numCols;
     var widthCap = (perProb - 14) / maxGC;
-    // ความสูง: ให้รวมทุกแถวเท่ากับพื้นที่ที่เคยพอดี (≈ 5 แถวโจทย์ × 3 บรรทัด × 15mm)
+    // ความสูง: เผื่อหัวกระดาษ/ท้าย/ระยะกันชน ให้ทุกแถวพอดี 1 หน้าจริง (กันข้อตกหน้า)
     var rowsPerPage = Math.ceil(PER / numCols);
-    var heightCap = 225 / (rowsPerPage * maxRows);
+    var heightCap = 200 / (rowsPerPage * maxRows);
     var cell = Math.min(15, widthCap, heightCap);
     cell = Math.max(6, Math.round(cell * 10) / 10);
     var fpx = Math.max(15, Math.round(cell * 2.3));
