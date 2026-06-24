@@ -35,6 +35,7 @@
       if (i === 0) tds += '<td class="op" rowspan="' + n + '">' + op + '</td>';   // เครื่องหมายกึ่งกลางแนวตั้ง
       rows += '<tr>' + tds + '</tr>';
     }
+    var partialCount = ansRows - 1;   // จำนวนบรรทัดผลคูณย่อยที่ต้องนำมาบวกกัน
     for (r = 0; r < ansRows; r++) {
       var isLast = (r === ansRows - 1);
       var cl = [];
@@ -45,7 +46,12 @@
         var ch = (as && j >= apad) ? esc(as.charAt(j - apad)) : '';
         atds += '<td class="ans' + (as ? ' k' : '') + '">' + ch + '</td>';
       }
-      rows += '<tr class="' + cl.join(' ') + '">' + atds + '<td class="op"></td></tr>';
+      var opCell;
+      if (ansRows === 1) opCell = '<td class="op"></td>';
+      else if (r === 0) opCell = '<td class="op" rowspan="' + partialCount + '">+</td>';  // + กึ่งกลางบรรทัดผลคูณย่อย
+      else if (r < partialCount) opCell = '';            // ถูก rowspan ครอบไว้
+      else opCell = '<td class="op"></td>';              // บรรทัดผลรวม (ไม่มีเครื่องหมาย)
+      rows += '<tr class="' + cl.join(' ') + '">' + atds + opCell + '</tr>';
     }
     return '<table class="agrid">' + rows + '</table>';
   }
@@ -104,7 +110,7 @@
   }
 
   function addSheet(o, withKey) {
-    var PER = 10;                 // 10 ข้อ/หน้า A4 พอดี
+    var PER = o.per || 10;        // ข้อ/หน้า (คูณ=4, บวก-ลบ=10)
     var numCols = o.cols, i, j;
     var maxGC = 1, maxRows = 1;
     for (i = 0; i < o.probs.length; i++) {
@@ -230,7 +236,7 @@
       + 'display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;'
       + 'width:200px;height:200px;animation:efBreathe 2.6s ease-in-out infinite}'
       + '.efadd-tile.sub{--tile:#16a34a}'
-      + '.efadd-tile.mul{--tile:#db2777}'
+      + '.efadd-tile.mul{--tile:#7c3aed}'
       + '.efadd-tile:hover{filter:brightness(1.08)}'
       + '.efadd-tile:active{transform:scale(.97)}'
       + '@keyframes efBreathe{'
@@ -248,9 +254,9 @@
          โหมด: สร้างแบบฝึก การบวก/การลบ (ตั้งบวก/ตั้งลบ)
          ============================================================ */
       var KINDS = {
-        add: { op: '+', accent: '#c0392b', word: 'การบวก', t2: 'ตัวบวก', verb: 'ตั้งบวก', pre: 'A', dMaxTop: 8, dMaxBot: 8 },
-        sub: { op: '−', accent: '#16a34a', word: 'การลบ', t2: 'ตัวลบ', verb: 'ตั้งลบ', pre: 'S', dMaxTop: 8, dMaxBot: 8 },
-        mul: { op: '×', accent: '#db2777', word: 'การคูณ', t2: 'ตัวคูณ', verb: 'ตั้งคูณ', pre: 'M', dMaxTop: 4, dMaxBot: 3 }
+        add: { op: '+', accent: '#c0392b', word: 'การบวก', t2: 'ตัวบวก', verb: 'ตั้งบวก', pre: 'A', dMaxTop: 8, dMaxBot: 8, per: 10 },
+        sub: { op: '−', accent: '#16a34a', word: 'การลบ', t2: 'ตัวลบ', verb: 'ตั้งลบ', pre: 'S', dMaxTop: 8, dMaxBot: 8, per: 10 },
+        mul: { op: '×', accent: '#7c3aed', word: 'การคูณ', t2: 'ตัวคูณ', verb: 'ตั้งคูณ', pre: 'M', dMaxTop: 4, dMaxBot: 3, per: 6 }
       };
       var ast = { kind: 'add', dTop: 3, dBot: 3, count: 10, cols: 2, title: '', setId: '', showKey: false, mixed: false, probs: [] };
 
@@ -291,7 +297,7 @@
 
       /* ---------- หน้าแรก: ปุ่มเรืองแสงเข้า-ออก (บวก/ลบ) ---------- */
       function tileBtn(kind, icon, label) {
-        return '<button class="efadd-tile' + (kind === 'sub' ? ' sub' : '') + '" data-kind="' + kind + '">' +
+        return '<button class="efadd-tile' + (kind !== 'add' ? ' ' + kind : '') + '" data-kind="' + kind + '">' +
           '<i class="ti ' + icon + '" style="font-size:56px;line-height:1"></i>' +
           '<span style="font-size:1.1rem;font-weight:700;line-height:1.25;text-align:center">' + label + '</span></button>';
       }
@@ -308,7 +314,11 @@
             '<div style="color:var(--muted);font-size:.86rem;text-align:center">กดเลือกประเภทเพื่อสร้างใบงาน (ตั้งบวก / ตั้งลบ / ตั้งคูณ)</div>' +
           '</div>';
         $$('.efadd-tile', host).forEach(function (b) {
-          b.onclick = function () { ast.kind = b.dataset.kind; ast.mixed = false; ast.probs = []; renderAdd(); };
+          b.onclick = function () {
+            ast.kind = b.dataset.kind; ast.mixed = false; ast.probs = [];
+            ast.count = KINDS[ast.kind].per; ast.cols = 2;   // คูณ: 4 ข้อ/หน้า · บวก-ลบ: 10 ข้อ/หน้า
+            renderAdd();
+          };
         });
       }
 
@@ -330,8 +340,8 @@
               '<div class="eyebrow">ตั้งค่าชุดแบบฝึก' + K.word + '</div>' +
               '<div class="efadd-field"><label>จำนวนหลักของตัวตั้ง</label><select id="ad-dtop">' + digOpts(ast.dTop, K.dMaxTop) + '</select></div>' +
               '<div class="efadd-field"><label>จำนวนหลักของ' + K.t2 + '</label><select id="ad-dbot">' + digOpts(ast.dBot, maxBot) + '</select></div>' + subNote +
-              '<div class="efadd-field"><label>จำนวนข้อ</label><select id="ad-count">' +
-                [10, 20, 30, 40, 50].map(function (n) { return opt(n, n + ' ข้อ', ast.count); }).join('') + '</select></div>' +
+              '<div class="efadd-field"><label>จำนวนข้อ (' + K.per + ' ข้อ/หน้า)</label><select id="ad-count">' +
+                [1, 2, 3, 4, 5].map(function (k) { return opt(k * K.per, (k * K.per) + ' ข้อ', ast.count); }).join('') + '</select></div>' +
               '<div class="efadd-field"><label>คอลัมน์ต่อหน้า</label><select id="ad-cols">' +
                 opt(2, '2 คอลัมน์', ast.cols) + opt(3, '3 คอลัมน์', ast.cols) + opt(4, '4 คอลัมน์', ast.cols) + '</select></div>' +
               '<div class="efadd-field"><label>ชื่อชุด (เว้นว่างได้)</label><input id="ad-title" value="' + esc(ast.title) + '" placeholder="เช่น ' + K.word + ' 3 หลัก ชุดที่ 1"></div>' +
@@ -403,7 +413,7 @@
           : (K.verb + ' ' + ast.dTop + ' หลัก ' + K.op + ' ' + effDb() + ' หลัก');
         var o = {
           title: defTitle(), setId: ast.setId, sub: subTxt,
-          op: K.op, accent: K.accent,
+          op: K.op, accent: K.accent, per: K.per,
           org: S.org || '', logo: S.logo || LOGO,
           probs: ast.probs, cols: ast.cols, qrImg: ''
         };
