@@ -36,15 +36,34 @@
       rows += '<tr>' + tds + '</tr>';
     }
     var partialCount = ansRows - 1;   // จำนวนบรรทัดผลคูณย่อยที่ต้องนำมาบวกกัน
+    // เตรียมค่าเฉลยแต่ละบรรทัด: {str, shift} (shift = เลื่อนเว้นช่องขวา)
+    var keyRows = null;
+    if (showAns) {
+      keyRows = [];
+      if (op === '×' && ansRows > 1) {
+        var ms = String(p.nums[1]);                       // ตัวคูณ
+        for (r = 0; r < partialCount; r++) {
+          var digit = +ms.charAt(ms.length - 1 - r);      // หลักที่ r จากขวา
+          keyRows.push({ str: String(p.nums[0] * digit), shift: r });   // ตัวตั้ง × หลักนั้น เลื่อน r ช่อง
+        }
+        keyRows.push({ str: String(p.ans), shift: 0 });   // ผลรวมสุดท้าย
+      } else {
+        keyRows.push({ str: String(p.ans), shift: 0 });   // บวก/ลบ/คูณ 1 หลัก
+      }
+    }
     for (r = 0; r < ansRows; r++) {
       var isLast = (r === ansRows - 1);
       var cl = [];
       if (r === 0) cl.push('sum');                       // เส้นใต้ตัวล่าง (ใต้ตัวคูณ/ตัวบวก)
       if (isLast && ansRows > 1) cl.push('sumf');         // เส้นเหนือผลรวมสุดท้าย (คูณหลายหลัก)
-      var as = (showAns && isLast) ? String(p.ans) : '', apad = p.cols - as.length, atds = '';
+      var kv = keyRows ? keyRows[r] : null, atds = '';
       for (j = 0; j < p.cols; j++) {
-        var ch = (as && j >= apad) ? esc(as.charAt(j - apad)) : '';
-        atds += '<td class="ans' + (as ? ' k' : '') + '">' + ch + '</td>';
+        var ch = '';
+        if (kv) {
+          var len = kv.str.length, start = p.cols - kv.shift - len;
+          if (j >= start && j < start + len) ch = esc(kv.str.charAt(j - start));
+        }
+        atds += '<td class="ans' + (ch ? ' k' : '') + '">' + ch + '</td>';
       }
       var opCell;
       if (ansRows === 1) opCell = '<td class="op"></td>';
