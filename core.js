@@ -545,7 +545,7 @@
       return [{ q: q, a: ans, geo: true, full: true, noline: true, pts: n }];
     },
     measlen: function (c) {
-      var prec = c.prec || 'half', maxCm = 15, W = 700, x0 = 46, pad = 18;
+      var maxCm = 13, W = 700, x0 = 46, pad = 18;
       var pxCm = (W - x0 - pad) / maxCm;
       function f(x) { return x.toFixed(1); }
       function shuffle(a) { for (var i = a.length - 1; i > 0; i--) { var j = Math.floor(Math.random() * (i + 1)), t = a[i]; a[i] = a[j]; a[j] = t; } return a; }
@@ -559,15 +559,21 @@
         straw: function (x, y, L) { return rrect(x, y - 7, L, 14, 6) + '<line x1="' + f(x + L * 0.35) + '" y1="' + f(y - 7) + '" x2="' + f(x + L * 0.35) + '" y2="' + f(y + 7) + '" stroke="#111" stroke-width="1.2"/><line x1="' + f(x + L * 0.65) + '" y1="' + f(y - 7) + '" x2="' + f(x + L * 0.65) + '" y2="' + f(y + 7) + '" stroke="#111" stroke-width="1.2"/>'; },
         nail: function (x, y, L) { return rrect(x, y - 9, 8, 18, 1) + rrect(x + 8, y - 3, L - 18, 6, 1) + '<polygon points="' + f(x + L - 10) + ',' + f(y - 3) + ' ' + f(x + L) + ',' + f(y) + ' ' + f(x + L - 10) + ',' + f(y + 3) + '" ' + ST + '/>'; },
         candle: function (x, y, L) { var b = L - 16; return rrect(x, y - 11, b, 22, 3) + '<line x1="' + f(x + b) + '" y1="' + f(y) + '" x2="' + f(x + b + 6) + '" y2="' + f(y) + '" stroke="#111" stroke-width="1.4"/><path d="M' + f(x + b + 6) + ',' + f(y - 10) + ' Q' + f(x + L) + ',' + f(y) + ' ' + f(x + b + 6) + ',' + f(y + 10) + ' Q' + f(x + b + 2) + ',' + f(y) + ' ' + f(x + b + 6) + ',' + f(y - 10) + ' Z" ' + ST + '/>'; },
-        crayon: function (x, y, L) { var tip = 12, b = L - tip, h = 16; return rrect(x, y - h / 2, b, h, 2) + '<polygon points="' + f(x + b) + ',' + f(y - h / 2 + 3) + ' ' + f(x + L) + ',' + f(y) + ' ' + f(x + b) + ',' + f(y + h / 2 - 3) + '" ' + ST + '/><line x1="' + f(x + b * 0.4) + '" y1="' + f(y - h / 2) + '" x2="' + f(x + b * 0.4) + '" y2="' + f(y + h / 2) + '" stroke="#111" stroke-width="1.2"/><line x1="' + f(x + b * 0.62) + '" y1="' + f(y - h / 2) + '" x2="' + f(x + b * 0.62) + '" y2="' + f(y + h / 2) + '" stroke="#111" stroke-width="1.2"/>'; }
+        crayon: function (x, y, L) { var tip = 12, b = L - tip, h = 16; return rrect(x, y - h / 2, b, h, 2) + '<polygon points="' + f(x + b) + ',' + f(y - h / 2 + 3) + ' ' + f(x + L) + ',' + f(y) + ' ' + f(x + b) + ',' + f(y + h / 2 - 3) + '" ' + ST + '/><line x1="' + f(x + b * 0.4) + '" y1="' + f(y - h / 2) + '" x2="' + f(x + b * 0.4) + '" y2="' + f(y + h / 2) + '" stroke="#111" stroke-width="1.2"/><line x1="' + f(x + b * 0.62) + '" y1="' + f(y - h / 2) + '" x2="' + f(x + b * 0.62) + '" y2="' + f(y + h / 2) + '" stroke="#111" stroke-width="1.2"/>'; },
+        marker: function (x, y, L) { var h = 18, capW = L * 0.32, bodyW = L - capW; return rrect(x, y - h / 2, bodyW, h, 4) + rrect(x + bodyW, y - h / 2 - 1.5, capW, h + 3, 4) + '<line x1="' + f(x + bodyW) + '" y1="' + f(y - h / 2) + '" x2="' + f(x + bodyW) + '" y2="' + f(y + h / 2) + '" stroke="#111" stroke-width="1.2"/><circle cx="' + f(x + bodyW + capW - 6) + '" cy="' + f(y) + '" r="2.6" fill="#111"/>'; },
+        eraser: function (x, y, L) { var h = 22; return rrect(x, y - h / 2, L, h, 4) + '<line x1="' + f(x + L * 0.56) + '" y1="' + f(y - h / 2) + '" x2="' + f(x + L * 0.46) + '" y2="' + f(y + h / 2) + '" stroke="#111" stroke-width="1.4"/><line x1="' + f(x + L * 0.67) + '" y1="' + f(y - h / 2) + '" x2="' + f(x + L * 0.57) + '" y2="' + f(y + h / 2) + '" stroke="#111" stroke-width="1.4"/>'; },
+        leaf: function (x, y, L) { var h = 22; return '<path d="M' + f(x) + ',' + f(y) + ' Q' + f(x + L * 0.5) + ',' + f(y - h) + ' ' + f(x + L) + ',' + f(y) + ' Q' + f(x + L * 0.5) + ',' + f(y + h) + ' ' + f(x) + ',' + f(y) + ' Z" ' + ST + '/><line x1="' + f(x) + '" y1="' + f(y) + '" x2="' + f(x + L) + '" y2="' + f(y) + '" stroke="#111" stroke-width="1.2"/>'; },
+        key: function (x, y, L) { var r = 11; return '<circle cx="' + f(x + r) + '" cy="' + f(y) + '" r="' + r + '" fill="none" stroke="#111" stroke-width="3"/>' + rrect(x + 2 * r, y - 3, L - 2 * r, 6, 1) + '<rect x="' + f(x + L - 12) + '" y="' + f(y) + '" width="4" height="8" fill="#fff" stroke="#111" stroke-width="1.5"/><rect x="' + f(x + L - 6) + '" y="' + f(y) + '" width="4" height="6" fill="#fff" stroke="#111" stroke-width="1.5"/>'; },
+        toothbrush: function (x, y, L) { var h = 9, headW = Math.min(L * 0.3, 46), hl = L - headW, s = rrect(x, y - h / 2, L, h, 4); for (var b = 0; b < 8; b++) { var bx = x + hl + 4 + b * ((headW - 6) / 7); s += '<line x1="' + f(bx) + '" y1="' + f(y - h / 2) + '" x2="' + f(bx) + '" y2="' + f(y - h / 2 - 8) + '" stroke="#111" stroke-width="1.6"/>'; } return s; },
+        battery: function (x, y, L) { var h = 20, body = L - 5; return rrect(x, y - h / 2, body, h, 3) + '<rect x="' + f(x + body) + '" y="' + f(y - 5) + '" width="5" height="10" fill="#fff" stroke="#111" stroke-width="1.5"/><line x1="' + f(x + body * 0.7) + '" y1="' + f(y - h / 2) + '" x2="' + f(x + body * 0.7) + '" y2="' + f(y + h / 2) + '" stroke="#111" stroke-width="1.4"/><line x1="' + f(x + body * 0.82) + '" y1="' + f(y - h / 2) + '" x2="' + f(x + body * 0.82) + '" y2="' + f(y + h / 2) + '" stroke="#111" stroke-width="1.4"/>'; }
       };
-      var pool = [['pencil', 'ดินสอ'], ['spoon', 'ช้อน'], ['fork', 'ส้อม'], ['knife', 'มีด'], ['straw', 'หลอด'], ['nail', 'ตะปู'], ['candle', 'เทียน'], ['crayon', 'สีเทียน']];
+      var pool = [['pencil', 'ดินสอ'], ['spoon', 'ช้อน'], ['fork', 'ส้อม'], ['knife', 'มีด'], ['straw', 'หลอด'], ['nail', 'ตะปู'], ['candle', 'เทียน'], ['crayon', 'สีเทียน'], ['marker', 'ปากกา'], ['eraser', 'ยางลบ'], ['leaf', 'ใบไม้'], ['key', 'กุญแจ'], ['toothbrush', 'แปรงสีฟัน'], ['battery', 'ถ่านไฟฉาย']];
       shuffle(pool);
       var chosen = pool.slice(0, 5), used = {}, items = [];
       chosen.forEach(function (o) {
-        var cm, mm, val, guard = 0;
-        do { cm = ri(4, 13); mm = prec === 'mm' ? ri(0, 9) : (ri(0, 1) ? 0 : 5); val = cm * 10 + mm; guard++; } while (used[val] && guard < 60);
-        used[val] = 1; items.push({ k: o[0], name: o[1], cm: cm, mm: mm, len: cm + mm / 10 });
+        var cm, guard = 0;
+        do { cm = ri(3, 12); guard++; } while (used[cm] && guard < 60);
+        used[cm] = 1; items.push({ k: o[0], name: o[1], cm: cm, len: cm });
       });
       var bandH = 66, top = 16, rulerH = 44, H = top + items.length * bandH + rulerH + 18, svg = '';
       var rulerTop = top + items.length * bandH + 6;
@@ -585,11 +591,41 @@
       }
       var qorder = items.slice(); shuffle(qorder);
       var qs = qorder.map(function (it, i) {
-        return '<div class="mlq"><span class="mlno">' + (i + 1) + '</span><span class="mlname">' + it.name + 'ยาว</span> <span class="mlblank"></span> เซนติเมตร <span class="mlblank"></span> มิลลิเมตร</div>';
+        return '<div class="mlq"><span class="mlno">' + (i + 1) + '</span><span class="mlname">' + it.name + 'ยาว</span> <span class="mlblank"></span> เซนติเมตร หรือ <span class="mlblank"></span> ซม.</div>';
       }).join('');
-      var ans = qorder.map(function (it, i) { return (i + 1) + ') ' + it.name + ' ' + it.cm + ' ซม ' + it.mm + ' มม'; }).join('  ·  ');
+      var ans = qorder.map(function (it, i) { return (i + 1) + ') ' + it.name + ' ' + it.cm + ' ซม.'; }).join('  ·  ');
       var q = '<div class="mlwrap"><svg class="mlfield" viewBox="0 0 ' + W + ' ' + H + '">' + svg + '</svg><div class="mlqs">' + qs + '</div></div>';
       return [{ q: q, a: ans, full: true, noline: true, pts: items.length }];
+    },
+    mixed: function (c) {
+      var max = ({ easy: 20, medium: 50, hard: 100 }[c.level]) || 20;
+      var out = [];
+      for (var i = 0; i < c.count; i++) {
+        var a, b, cc, expr, ans, guard = 0;
+        do {
+          var pat = ri(0, 3);
+          if (pat === 0) { a = ri(1, max - 1); b = ri(1, max - a); var s = a + b; cc = ri(1, s); expr = '(' + a + ' + ' + b + ') \u2212 ' + cc; ans = s - cc; }
+          else if (pat === 1) { a = ri(2, max); b = ri(1, a - 1); cc = ri(1, max - (a - b)); expr = '(' + a + ' \u2212 ' + b + ') + ' + cc; ans = (a - b) + cc; }
+          else if (pat === 2) { b = ri(2, max); cc = ri(1, b - 1); a = ri(1, max - (b - cc)); expr = a + ' + (' + b + ' \u2212 ' + cc + ')'; ans = a + (b - cc); }
+          else { b = ri(1, max - 2); cc = ri(1, max - b - 1); var s2 = b + cc; a = ri(s2, max); expr = a + ' \u2212 (' + b + ' + ' + cc + ')'; ans = a - s2; }
+          guard++;
+        } while ((ans < 0 || ans > max) && guard < 50);
+        out.push({ q: expr + ' =', a: String(ans), n: ans });
+      }
+      return out;
+    },
+    expand: function (c) {
+      var out = [], max = Math.min(50, c.count);
+      for (var i = 0; i < max; i++) {
+        var t = ri(1, 9), o = ri(1, 9), n = t * 10 + o;
+        var q = '<div class="exp"><div class="exp-num">' + n + '</div><div class="exp-rows">' +
+          '<div class="exp-r"><span class="exp-bl"></span> ในหลักสิบ มีค่า <span class="exp-bl"></span></div>' +
+          '<div class="exp-r"><span class="exp-bl"></span> ในหลักหน่วย มีค่า <span class="exp-bl"></span></div>' +
+          '<div class="exp-r exp-sum">เขียนในรูปกระจาย <span class="exp-bl"></span> = <span class="exp-bl"></span> + <span class="exp-bl"></span></div>' +
+          '</div></div>';
+        out.push({ q: q, a: n + ' = ' + (t * 10) + ' + ' + o, noline: true, tall: true });
+      }
+      return out;
     }
   };
   function buildProblems(ch, level, count) {
