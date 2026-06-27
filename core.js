@@ -150,7 +150,8 @@
     if (isNum || isFull) cols = 1;
     var fs = o.fontSize || 'normal';
     var fsFactor = fs === 'xl' ? 0.6 : (fs === 'lg' ? 0.78 : 1);
-    var perCol = isFull ? 1 : (isNum ? 3 : (isClock ? 4 : (isOrd ? 8 : (isTall ? 5 : 15))));    // numwrite แถวสูง (4 บรรทัด) จำกัด 3/หน้า กันตก
+    var isScale = o.problems.length && o.problems[0].scale;
+    var perCol = isFull ? 1 : (isScale ? 4 : (isNum ? 3 : (isClock ? 4 : (isOrd ? 8 : (isTall ? 5 : 15)))));    // numwrite แถวสูง (4 บรรทัด) จำกัด 3/หน้า กันตก
     if (!isFull) perCol = Math.max(2, Math.round(perCol * fsFactor));   // ฟอนต์ใหญ่ = ข้อต่อหน้าน้อยลง กันตก
     var perPage = perCol * cols;
     var scoreTotal = isFull ? (o.problems[0].pts || total) : total;   // เต็มหน้า: คะแนนเต็ม = จำนวนรูป/ข้อ
@@ -627,6 +628,35 @@
           '<div class="exp-r exp-sum">เขียนในรูปกระจาย <span class="exp-bl"></span> = <span class="exp-bl"></span> + <span class="exp-bl"></span></div>' +
           '</div></div>';
         out.push({ q: q, a: n + ' = ' + (t * 10) + ' + ' + o, noline: true, tall: true, grid: true });
+      }
+      return out;
+    },
+    weigh: function (c) {
+      var mode = c.mode || 'mix';
+      var foods = ['กล้วย', 'ส้ม', 'มังคุด', 'แครอท', 'สับปะรด', 'ชมพู่', 'เงาะ', 'ฟักทอง', 'มะม่วง', 'องุ่น', 'แอปเปิล', 'มะเขือเทศ', 'หอมแดง', 'มันฝรั่ง', 'ลำไย', 'น้อยหน่า', 'แตงกวา', 'มะนาว'];
+      for (var z = foods.length - 1; z > 0; z--) { var j = Math.floor(Math.random() * (z + 1)), t = foods[z]; foods[z] = foods[j]; foods[j] = t; }
+      function f(n) { return Math.round(n * 10) / 10; }
+      function dial(w, showNeedle) {
+        var cx = 85, cy = 85, R = 72;
+        function pt(deg, r) { var a = deg * Math.PI / 180; return [cx + r * Math.sin(a), cy - r * Math.cos(a)]; }
+        var s = '<circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="#fff" stroke="#3a3a4a" stroke-width="2.5"/><circle cx="' + cx + '" cy="' + cy + '" r="' + (R - 4) + '" fill="none" stroke="#bcbcd0" stroke-width="1"/>';
+        for (var d = 0; d < 60; d++) { var mj = (d % 10 === 0), p1 = pt(d * 6, R - (mj ? 15 : 8)), p2 = pt(d * 6, R - 3); s += '<line x1="' + f(p1[0]) + '" y1="' + f(p1[1]) + '" x2="' + f(p2[0]) + '" y2="' + f(p2[1]) + '" stroke="#3a3a4a" stroke-width="' + (mj ? 2 : 1) + '"/>'; }
+        for (var k = 0; k < 6; k++) { var pn = pt(k * 60, R - 28); s += '<text x="' + f(pn[0]) + '" y="' + f(pn[1] + 5) + '" font-size="15" font-family="Arial" font-weight="bold" text-anchor="middle" fill="#2a2a38">' + k + '</text>'; }
+        s += '<text x="' + cx + '" y="' + f(cy - R * 0.42) + '" font-size="8" font-family="Arial" text-anchor="middle" fill="#888" letter-spacing="1">KILOG</text>';
+        if (showNeedle) { var np = pt(w * 6, R - 20), tl = pt(w * 6 + 180, 12); s += '<line x1="' + f(tl[0]) + '" y1="' + f(tl[1]) + '" x2="' + f(np[0]) + '" y2="' + f(np[1]) + '" stroke="#c0392b" stroke-width="2.6"/>'; }
+        s += '<circle cx="' + cx + '" cy="' + cy + '" r="4.5" fill="#c0392b"/>';
+        return '<svg class="wscale" viewBox="0 0 170 170">' + s + '</svg>';
+      }
+      var out = [], used = {};
+      for (var i = 0; i < c.count; i++) {
+        var w, guard = 0; do { w = ri(2, 29); guard++; } while (used[w] && guard < 40); used[w] = 1;
+        var m = mode === 'mix' ? (ri(0, 1) ? 'read' : 'draw') : mode;
+        if (m === 'read') {
+          out.push({ q: '<div class="wcard">' + dial(w, true) + '<div class="wlabel">น้ำหนัก <span class="wbl"></span> ขีด</div></div>', a: w + ' ขีด', noline: true, scale: true, grid: true });
+        } else {
+          var food = foods[i % foods.length];
+          out.push({ q: '<div class="wcard"><div class="wtitle">' + food + 'หนัก ' + w + ' ขีด</div>' + dial(w, false) + '<div class="wsub">วาดเข็มชี้น้ำหนัก</div></div>', a: food + ' ' + w + ' ขีด', noline: true, scale: true, grid: true });
+        }
       }
       return out;
     }
