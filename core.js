@@ -151,7 +151,8 @@
     var fs = o.fontSize || 'normal';
     var fsFactor = fs === 'xl' ? 0.6 : (fs === 'lg' ? 0.78 : 1);
     var isScale = o.problems.length && o.problems[0].scale;
-    var perCol = isFull ? 1 : (isScale ? 4 : (isNum ? 3 : (isClock ? 4 : (isOrd ? 8 : (isTall ? 5 : 15)))));    // numwrite แถวสูง (4 บรรทัด) จำกัด 3/หน้า กันตก
+    var isBox = o.problems.length && o.problems[0].box;
+    var perCol = isFull ? 1 : (isBox ? 3 : (isScale ? 4 : (isNum ? 3 : (isClock ? 4 : (isOrd ? 8 : (isTall ? 5 : 15))))));    // numwrite แถวสูง (4 บรรทัด) จำกัด 3/หน้า กันตก
     if (!isFull) perCol = Math.max(2, Math.round(perCol * fsFactor));   // ฟอนต์ใหญ่ = ข้อต่อหน้าน้อยลง กันตก
     var perPage = perCol * cols;
     var scoreTotal = isFull ? (o.problems[0].pts || total) : total;   // เต็มหน้า: คะแนนเต็ม = จำนวนรูป/ข้อ
@@ -690,6 +691,21 @@
       var q = '<div class="wcmp"><div class="wcmp-dials">' + dials + '</div><div class="wcmp-read">' + reads + '</div><div class="wcmp-rows">' + rows + '</div></div>';
       var a = it.map(function (nm, i) { return nm + ' ' + wt[i] + ' ขีด'; }).join(', ') + ' | ' + ansC.join('  ·  ');
       return [{ q: q, a: a, full: true, noline: true, pts: 9 }];
+    },
+    findbox: function (c) {
+      var max = ({ easy: 50, medium: 100, hard: 100 }[c.level]) || 50;
+      var out = [], lines = '<div class="ubox-lines">' + Array(6).join('<span></span>') + '</div>';
+      for (var i = 0; i < c.count; i++) {
+        var pat = ri(0, 5), a, b, res, eq, ans, box = '<span class="ubox-sq"></span>';
+        if (pat === 0) { a = ri(2, max - 2); ans = ri(1, max - a); res = a + ans; eq = a + ' + ' + box + ' = ' + res; }
+        else if (pat === 1) { b = ri(2, max - 2); ans = ri(1, max - b); res = ans + b; eq = box + ' + ' + b + ' = ' + res; }
+        else if (pat === 2) { a = ri(3, max); ans = ri(1, a - 1); res = a - ans; eq = a + ' \u2212 ' + box + ' = ' + res; }
+        else if (pat === 3) { b = ri(1, max - 2); res = ri(1, max - b); ans = res + b; eq = box + ' \u2212 ' + b + ' = ' + res; }
+        else if (pat === 4) { a = ri(2, max - 2); b = ri(1, max - a); ans = a + b; eq = a + ' + ' + b + ' = ' + box; }
+        else { a = ri(3, max); b = ri(1, a - 1); ans = a - b; eq = a + ' \u2212 ' + b + ' = ' + box; }
+        out.push({ q: '<div class="ubox-q"><div class="ubox-eq">' + eq + '</div>' + lines + '</div>', a: String(ans), noline: true, box: true, grid: true });
+      }
+      return out;
     }
   };
   function buildProblems(ch, level, count) {
