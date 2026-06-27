@@ -659,6 +659,37 @@
         }
       }
       return out;
+    },
+    weighcmp: function (c) {
+      var foods = ['ผักชี', 'มะระ', 'ฟักเขียว', 'แครอท', 'มะเขือ', 'ฟักทอง', 'หอมแดง', 'แตงกวา', 'มันฝรั่ง', 'พริก', 'กะหล่ำ', 'ถั่วฝักยาว'];
+      for (var z = foods.length - 1; z > 0; z--) { var j = Math.floor(Math.random() * (z + 1)), t = foods[z]; foods[z] = foods[j]; foods[j] = t; }
+      function f(n) { return Math.round(n * 10) / 10; }
+      function dial(w) {
+        var cx = 75, cy = 75, R = 64;
+        function pt(deg, r) { var a = deg * Math.PI / 180; return [cx + r * Math.sin(a), cy - r * Math.cos(a)]; }
+        var s = '<circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="#fff" stroke="#3a3a4a" stroke-width="2.5"/>';
+        for (var d = 0; d < 60; d++) { var mj = (d % 10 === 0), p1 = pt(d * 6, R - (mj ? 13 : 7)), p2 = pt(d * 6, R - 3); s += '<line x1="' + f(p1[0]) + '" y1="' + f(p1[1]) + '" x2="' + f(p2[0]) + '" y2="' + f(p2[1]) + '" stroke="#3a3a4a" stroke-width="' + (mj ? 2 : 1) + '"/>'; }
+        for (var k = 0; k < 6; k++) { var pn = pt(k * 60, R - 24); s += '<text x="' + f(pn[0]) + '" y="' + f(pn[1] + 5) + '" font-size="14" font-family="Arial" font-weight="bold" text-anchor="middle" fill="#2a2a38">' + k + '</text>'; }
+        s += '<text x="' + cx + '" y="' + f(cy - R * 0.42) + '" font-size="7" font-family="Arial" text-anchor="middle" fill="#888">KILOG</text>';
+        var np = pt(w * 6, R - 18), tl = pt(w * 6 + 180, 10);
+        s += '<line x1="' + f(tl[0]) + '" y1="' + f(tl[1]) + '" x2="' + f(np[0]) + '" y2="' + f(np[1]) + '" stroke="#c0392b" stroke-width="2.4"/><circle cx="' + cx + '" cy="' + cy + '" r="4" fill="#c0392b"/>';
+        return '<svg viewBox="0 0 150 150" class="wcmp-dial">' + s + '</svg>';
+      }
+      var it = foods.slice(0, 3), wt = [], used = {};
+      for (var i = 0; i < 3; i++) { var w, g = 0; do { w = ri(4, 28); g++; } while (used[w] && g < 40); used[w] = 1; wt.push(w); }
+      var dials = it.map(function (nm, i) { return '<div class="wcmp-one">' + dial(wt[i]) + '<div class="wcmp-cap">' + nm + '</div></div>'; }).join('');
+      var reads = it.map(function (nm) { return '<span>' + nm + 'หนัก <span class="wcmp-bl wcmp-bn"></span> ขีด</span>'; }).join('');
+      var pairs = [[0, 1], [0, 2], [1, 2]], rows = '', ansC = [];
+      pairs.forEach(function (p) {
+        [[p[0], p[1]], [p[1], p[0]]].forEach(function (q) {
+          var A = it[q[0]], B = it[q[1]], word = wt[q[0]] > wt[q[1]] ? 'หนักกว่า' : 'เบากว่า', diff = Math.abs(wt[q[0]] - wt[q[1]]);
+          rows += '<div class="wcmp-r">' + A + ' <span class="wcmp-bl wcmp-bw"></span> ' + B + ' <span class="wcmp-bl wcmp-bn"></span> ขีด</div>';
+          ansC.push(A + ' ' + word + ' ' + B + ' ' + diff + ' ขีด');
+        });
+      });
+      var q = '<div class="wcmp"><div class="wcmp-dials">' + dials + '</div><div class="wcmp-read">' + reads + '</div><div class="wcmp-rows">' + rows + '</div></div>';
+      var a = it.map(function (nm, i) { return nm + ' ' + wt[i] + ' ขีด'; }).join(', ') + ' | ' + ansC.join('  ·  ');
+      return [{ q: q, a: a, full: true, noline: true, pts: 9 }];
     }
   };
   function buildProblems(ch, level, count) {
