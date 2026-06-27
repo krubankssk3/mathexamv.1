@@ -256,12 +256,7 @@
                 '<div style="font-size:.8rem;color:#9aa8c8;margin-top:.3rem">รูปจะกระจายเต็มหน้า A4 ค่า "จำนวนข้อ" = จำนวนรูปในหน้า</div>' +
               '</div>' +
               '<div id="sw_mlWrap" style="display:none">' +
-                '<label style="font-size:.85rem;color:#9aa8c8">ความละเอียดความยาว</label>' +
-                '<select id="sw_prec" style="' + INP + '">' +
-                  '<option value="half"' + (selPrec === 'half' ? ' selected' : '') + '>ลงตัวครึ่งเซนติเมตร (มม. 0 หรือ 5)</option>' +
-                  '<option value="mm"' + (selPrec === 'mm' ? ' selected' : '') + '>ละเอียดทุกมิลลิเมตร (มม. 0–9)</option>' +
-                '</select>' +
-                '<div style="font-size:.8rem;color:#9aa8c8;margin-top:.3rem">ใบงานเต็มหน้า มีไม้บรรทัด + ของวัด 5 ชิ้น</div>' +
+                '<div style="font-size:.82rem;color:#9aa8c8">ใบงานเต็มหน้า มีไม้บรรทัด + ของวัด 5 ชิ้น (สุ่มจาก 14 ชนิด) ตอบเป็นเซนติเมตร</div>' +
               '</div>' +
               '<div id="sw_noOps" style="display:none;font-size:.82rem;color:#9aa8c8;margin-top:.3rem">ชนิดนี้สร้างโจทย์ให้อัตโนมัติ ไม่ต้องตั้งตัวดำเนินการ</div>' +
             '</div>',
@@ -339,8 +334,7 @@
               return { chapterName: name, icon: icon, gen: gen, ops: '', lv: lvObj, hasLv: true };
             }
             if (gen === 'measlen') {
-              lvObj.prec = document.getElementById('sw_prec').value || 'half';
-              return { chapterName: name, icon: icon, gen: gen, ops: '', lv: lvObj, hasLv: true };
+              return { chapterName: name, icon: icon, gen: gen, ops: '' };
             }
             return { chapterName: name, icon: icon, gen: gen, ops: '' };
           }
