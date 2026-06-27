@@ -140,6 +140,7 @@
         var selTstep = lvObj.step || 5;
         var selDim = lvObj.dim || '2d';
         var selPrec = lvObj.prec || 'half';
+        var selWMode = lvObj.mode || 'mix';
         var instr0 = lvObj.instruction || '';
 
         function tglBtns(list, sel, cls) {
@@ -258,6 +259,15 @@
               '<div id="sw_mlWrap" style="display:none">' +
                 '<div style="font-size:.82rem;color:#9aa8c8">ใบงานเต็มหน้า มีไม้บรรทัด + ของวัด 5 ชิ้น (สุ่มจาก 14 ชนิด) ตอบเป็นเซนติเมตร</div>' +
               '</div>' +
+              '<div id="sw_weighWrap" style="display:none">' +
+                '<label style="font-size:.85rem;color:#9aa8c8">รูปแบบโจทย์</label>' +
+                '<select id="sw_wmode" style="' + INP + '">' +
+                  '<option value="mix"' + (selWMode === 'mix' ? ' selected' : '') + '>ผสม (อ่านน้ำหนัก + วาดเข็ม)</option>' +
+                  '<option value="read"' + (selWMode === 'read' ? ' selected' : '') + '>อ่านน้ำหนักจากหน้าปัด</option>' +
+                  '<option value="draw"' + (selWMode === 'draw' ? ' selected' : '') + '>วาดเข็มชี้ตามน้ำหนักที่กำหนด</option>' +
+                '</select>' +
+                '<div style="font-size:.8rem;color:#9aa8c8;margin-top:.3rem">หน้าปัดตาชั่ง 0–5 (หน่วยขีด) เข็มแดง สุ่มน้ำหนักทุกข้อ</div>' +
+              '</div>' +
               '<div id="sw_noOps" style="display:none;font-size:.82rem;color:#9aa8c8;margin-top:.3rem">ชนิดนี้สร้างโจทย์ให้อัตโนมัติ ไม่ต้องตั้งตัวดำเนินการ</div>' +
             '</div>',
           showCancelButton: true, confirmButtonText: editing ? 'บันทึก' : 'เพิ่ม', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#6366f1',
@@ -274,7 +284,8 @@
               document.getElementById('sw_timeWrap').style.display = v === 'time' ? 'block' : 'none';
               document.getElementById('sw_geoWrap').style.display = v === 'geometry' ? 'block' : 'none';
               document.getElementById('sw_mlWrap').style.display = v === 'measlen' ? 'block' : 'none';
-              document.getElementById('sw_noOps').style.display = (v === 'arith' || v === 'picture' || v === 'compare' || v === 'numwrite' || v === 'order' || v === 'time' || v === 'geometry' || v === 'measlen') ? 'none' : 'block';
+              document.getElementById('sw_weighWrap').style.display = v === 'weigh' ? 'block' : 'none';
+              document.getElementById('sw_noOps').style.display = (v === 'arith' || v === 'picture' || v === 'compare' || v === 'numwrite' || v === 'order' || v === 'time' || v === 'geometry' || v === 'measlen' || v === 'weigh') ? 'none' : 'block';
             }
             sel.addEventListener('change', toggle); toggle();
             var icurl = document.getElementById('sw_icurl');
@@ -335,6 +346,9 @@
             }
             if (gen === 'measlen') {
               return { chapterName: name, icon: icon, gen: gen, ops: '' };
+            }
+            if (gen === 'weigh') {
+              return { chapterName: name, icon: icon, gen: gen, ops: '', lv: { mode: document.getElementById('sw_wmode').value || 'mix' }, hasLv: true };
             }
             return { chapterName: name, icon: icon, gen: gen, ops: '' };
           }
