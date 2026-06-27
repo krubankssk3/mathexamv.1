@@ -214,14 +214,19 @@
   .mlno{display:inline-flex;align-items:center;justify-content:center;width:23px;height:23px;border-radius:50%;background:#2b2f3a;color:#fff;font-size:12.5px;font-weight:700;flex:none}
   .mlname{font-weight:600}
   .mlblank{display:inline-block;min-width:62px;border-bottom:1.6px dotted #777;margin:0 4px}
-  .exp{display:flex;align-items:center;gap:18px;width:100%}
-  .exp-num{font-size:34px;font-weight:800;min-width:64px;text-align:center;color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent);border-radius:14px;padding:10px 6px;flex:none}
-  .exp-rows{display:flex;flex-direction:column;gap:9px;font-size:16px}
-  .exp-r{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
-  .exp-bl{display:inline-block;min-width:44px;border-bottom:1.6px dotted #777;height:1.15em}
+  .exp{display:flex;align-items:center;gap:12px;width:100%;border:1.4px solid var(--line);border-radius:12px;padding:11px 13px;box-sizing:border-box}
+  .exp-num{font-size:28px;font-weight:800;min-width:50px;text-align:center;color:var(--accent);background:color-mix(in srgb,var(--accent) 12%,transparent);border-radius:11px;padding:10px 4px;flex:none}
+  .exp-rows{display:flex;flex-direction:column;gap:8px;font-size:14.5px;flex:1;min-width:0}
+  .exp-r{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+  .exp-bl{display:inline-block;min-width:34px;border-bottom:1.6px dotted #777;height:1.15em;flex:none}
   .exp-sum{font-weight:600}
+  .qgrid{display:grid;gap:14px 26px;grid-template-columns:1fr}
+  .qgrid.c2{grid-template-columns:1fr 1fr}
+  .qgrid .qitem{margin:0;align-items:stretch}
+  .qgrid .qbody{display:flex}
   #printArea .exp-num{color:#111;background:#fff;border:1.6px solid #333}
   #printArea .exp-bl{border-bottom:1.6px dotted #555}
+  #printArea .exp{border-color:#333}
   .ans-line{display:inline-block;border-bottom:1px solid #999;min-width:70px;margin-left:6px}
   .frac{display:inline-flex;flex-direction:column;text-align:center;vertical-align:middle;line-height:1;margin:0 2px}
   .frac span:first-child{border-bottom:1.5px solid currentColor;padding:0 4px}
