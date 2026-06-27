@@ -196,7 +196,10 @@
         content = '<div class="nwtable"><div class="nwrow nwhead"><div class="nwc nwpic">ภาพ</div><div class="nwc">ตัวเลขฮินดูอารบิก</div><div class="nwc">ตัวเลขไทย</div><div class="nwc">ตัวหนังสือ</div></div>' + rows + '</div>';
       } else {
         var items = chunk.map(function (p, idx) { return qitemHTML(p, pi * perPage + idx); }).join('');
-        content = '<div class="qcols ' + (cols === 2 ? 'c2' : '') + '">' + items + '</div>';
+        var isGrid = chunk[0] && chunk[0].grid;
+        content = isGrid
+          ? '<div class="qgrid ' + (cols === 2 ? 'c2' : '') + '">' + items + '</div>'
+          : '<div class="qcols ' + (cols === 2 ? 'c2' : '') + '">' + items + '</div>';
       }
       return '<div class="sheet pop' + (pi > 0 ? ' pgb' : '') + (fs !== 'normal' ? ' fs-' + fs : '') + '" style="--rowh:' + rowh + 'mm">' +
         (pi === 0 ? headFull() : headCont()) + content + '</div>';
@@ -591,9 +594,9 @@
       }
       var qorder = items.slice(); shuffle(qorder);
       var qs = qorder.map(function (it, i) {
-        return '<div class="mlq"><span class="mlno">' + (i + 1) + '</span><span class="mlname">' + it.name + 'ยาว</span> <span class="mlblank"></span> เซนติเมตร หรือ <span class="mlblank"></span> ซม.</div>';
+        return '<div class="mlq"><span class="mlno">' + (i + 1) + '</span><span class="mlname">' + it.name + 'ยาว</span> <span class="mlblank"></span> เซนติเมตร หรือ <span class="mlblank"></span> มิลลิเมตร</div>';
       }).join('');
-      var ans = qorder.map(function (it, i) { return (i + 1) + ') ' + it.name + ' ' + it.cm + ' ซม.'; }).join('  ·  ');
+      var ans = qorder.map(function (it, i) { return (i + 1) + ') ' + it.name + ' ' + it.cm + ' ซม. = ' + (it.cm * 10) + ' มม.'; }).join('  ·  ');
       var q = '<div class="mlwrap"><svg class="mlfield" viewBox="0 0 ' + W + ' ' + H + '">' + svg + '</svg><div class="mlqs">' + qs + '</div></div>';
       return [{ q: q, a: ans, full: true, noline: true, pts: items.length }];
     },
@@ -623,7 +626,7 @@
           '<div class="exp-r"><span class="exp-bl"></span> ในหลักหน่วย มีค่า <span class="exp-bl"></span></div>' +
           '<div class="exp-r exp-sum">เขียนในรูปกระจาย <span class="exp-bl"></span> = <span class="exp-bl"></span> + <span class="exp-bl"></span></div>' +
           '</div></div>';
-        out.push({ q: q, a: n + ' = ' + (t * 10) + ' + ' + o, noline: true, tall: true });
+        out.push({ q: q, a: n + ' = ' + (t * 10) + ' + ' + o, noline: true, tall: true, grid: true });
       }
       return out;
     }
