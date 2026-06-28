@@ -152,7 +152,7 @@
     var fsFactor = fs === 'xl' ? 0.6 : (fs === 'lg' ? 0.78 : 1);
     var isScale = o.problems.length && o.problems[0].scale;
     var isBox = o.problems.length && o.problems[0].box;
-    var perCol = isFull ? 1 : (isBox ? 3 : (isScale ? 4 : (isNum ? 3 : (isClock ? 4 : (isOrd ? 8 : (isTall ? 5 : 15))))));    // numwrite แถวสูง (4 บรรทัด) จำกัด 3/หน้า กันตก
+    var perCol = isFull ? 1 : (isBox ? 3 : (isScale ? 3 : (isNum ? 3 : (isClock ? 4 : (isOrd ? 8 : (isTall ? 5 : 15))))));    // numwrite แถวสูง (4 บรรทัด) จำกัด 3/หน้า กันตก
     if (!isFull) perCol = Math.max(2, Math.round(perCol * fsFactor));   // ฟอนต์ใหญ่ = ข้อต่อหน้าน้อยลง กันตก
     var perPage = perCol * cols;
     var scoreTotal = isFull ? (o.problems[0].pts || total) : total;   // เต็มหน้า: คะแนนเต็ม = จำนวนรูป/ข้อ
@@ -253,6 +253,47 @@
   function makeSetId() {
     var A = 'ABCDEFGHJKMNPQRSTUVWXYZ'.split(''), N = '23456789'.split('');
     return pick(A) + pick(A) + '-' + pick(N) + pick(N) + pick(N);
+  }
+  // รูปผัก/ผลไม้ (วาดเป็น SVG) สำหรับตาชั่ง
+  var PRODUCE_ = {
+    'กะหล่ำ': '<circle cx="CX" cy="CY" r="22" fill="#8bc34a" stroke="#4e7d22" stroke-width="2"/><path d="M CX,CYm22 Q CXm9,CY CX,CYp20 Q CXp9,CY CX,CYm22" fill="none" stroke="#4e7d22" stroke-width="1.3"/><circle cx="CX" cy="CY" r="6" fill="#cfe8a0"/>',
+    'ฟักทอง': '<ellipse cx="CX" cy="CYp2" rx="24" ry="18" fill="#f4901e" stroke="#b5560a" stroke-width="2"/><path d="M CXm12,CYm13 Q CXm16,CYp2 CXm12,CYp16" fill="none" stroke="#b5560a" stroke-width="1.3"/><path d="M CXp12,CYm13 Q CXp16,CYp2 CXp12,CYp16" fill="none" stroke="#b5560a" stroke-width="1.3"/><rect x="CXm3" y="CYm24" width="6" height="8" rx="2" fill="#6b8e23"/>',
+    'ถั่วฝักยาว': '<path d="M CXm20,CYm14 Q CXp6,CYm6 CXp18,CYp16" fill="none" stroke="#7cb342" stroke-width="5" stroke-linecap="round"/><path d="M CXm20,CYm7 Q CXp4,CY CXp20,CYp14" fill="none" stroke="#8bc34a" stroke-width="5" stroke-linecap="round"/><path d="M CXm18,CY Q CXp4,CYp8 CXp18,CYp20" fill="none" stroke="#689f38" stroke-width="5" stroke-linecap="round"/>',
+    'แครอท': '<polygon points="CXm13,CYm8 CXp13,CYm8 CX,CYp22" fill="#f4901e" stroke="#c4600a" stroke-width="2"/><path d="M CX,CYm8 L CXm8,CYm22 M CX,CYm8 L CX,CYm24 M CX,CYm8 L CXp8,CYm22" stroke="#4caf50" stroke-width="3" fill="none" stroke-linecap="round"/>',
+    'มะเขือ': '<path d="M CX,CYm16 Q CXp20,CYm12 CXp16,CYp8 Q CXp11,CYp22 CX,CYp22 Q CXm11,CYp22 CXm16,CYp8 Q CXm20,CYm12 CX,CYm16" fill="#7e3ff2" stroke="#4a1f9e" stroke-width="2"/><path d="M CXm8,CYm14 Q CX,CYm20 CXp8,CYm14" fill="#4caf50" stroke="#2e7d32" stroke-width="2"/><rect x="CXm2" y="CYm24" width="4" height="8" fill="#2e7d32"/>',
+    'มะระ': '<path d="M CXm20,CYm12 Q CX,CYm22 CXp20,CYp12 Q CX,CYp22 CXm20,CYm12" fill="#9ccc65" stroke="#558b2f" stroke-width="2"/><circle cx="CXm6" cy="CYm4" r="2" fill="#558b2f"/><circle cx="CXp4" cy="CYp4" r="2" fill="#558b2f"/><circle cx="CXp10" cy="CYm2" r="2" fill="#558b2f"/>',
+    'หอมแดง': '<path d="M CX,CYm18 Q CXp16,CYm6 CXp11,CYp11 Q CXp6,CYp22 CX,CYp22 Q CXm6,CYp22 CXm11,CYp11 Q CXm16,CYm6 CX,CYm18" fill="#b5532e" stroke="#7d2f16" stroke-width="2"/><path d="M CX,CYm18 L CXm4,CYm26 M CX,CYm18 L CXp4,CYm25" stroke="#8d6e63" stroke-width="2"/>',
+    'แตงกวา': '<rect x="CXm21" y="CYm8" width="42" height="17" rx="8" fill="#7cb342" stroke="#33691e" stroke-width="2"/><line x1="CXm11" y1="CYm6" x2="CXm11" y2="CYp7" stroke="#aed581" stroke-width="1.3"/><line x1="CX" y1="CYm6" x2="CX" y2="CYp7" stroke="#aed581" stroke-width="1.3"/><line x1="CXp11" y1="CYm6" x2="CXp11" y2="CYp7" stroke="#aed581" stroke-width="1.3"/>',
+    'มันฝรั่ง': '<ellipse cx="CX" cy="CYp2" rx="23" ry="16" fill="#c9a875" stroke="#8a6d3b" stroke-width="2"/><circle cx="CXm8" cy="CYm4" r="2" fill="#8a6d3b"/><circle cx="CXp6" cy="CYp4" r="2" fill="#8a6d3b"/><circle cx="CXp12" cy="CYm6" r="1.6" fill="#8a6d3b"/>',
+    'พริก': '<path d="M CXm15,CYm12 Q CXp15,CYm12 CXp13,CYp4 Q CXp9,CYp20 CXm2,CYp18 Q CXm13,CYp16 CXm15,CYm12" fill="#e53935" stroke="#a31515" stroke-width="2"/><path d="M CXm15,CYm12 q -3,-6 -7,-7" stroke="#4caf50" stroke-width="3" fill="none" stroke-linecap="round"/>',
+    'มะเขือเทศ': '<circle cx="CX" cy="CYp3" r="20" fill="#e53935" stroke="#a31515" stroke-width="2"/><path d="M CXm8,CYm14 L CXm4,CYm8 L CX,CYm15 L CXp4,CYm8 L CXp8,CYm14 L CXp5,CYm5 L CXm5,CYm5 Z" fill="#4caf50" stroke="#2e7d32" stroke-width="1.3"/>',
+    'ผักชี': '<path d="M CX,CYp22 L CX,CYm2" stroke="#33691e" stroke-width="2"/><circle cx="CXm11" cy="CYm9" r="8" fill="#7cb342"/><circle cx="CXp11" cy="CYm9" r="8" fill="#8bc34a"/><circle cx="CX" cy="CYm16" r="9" fill="#9ccc65"/><circle cx="CXm5" cy="CYm3" r="6" fill="#7cb342"/><circle cx="CXp5" cy="CYm3" r="6" fill="#8bc34a"/>',
+    'ฟักเขียว': '<ellipse cx="CX" cy="CYp2" rx="26" ry="15" fill="#2e7d32" stroke="#1b5e20" stroke-width="2"/><ellipse cx="CXm8" cy="CYm3" rx="7" ry="3" fill="#4caf50" opacity="0.5"/>',
+    'กล้วย': '<path d="M CXm18,CYm10 Q CXm12,CYp16 CXp10,CYp14 Q CXp22,CYp10 CXp19,CYm10 Q CXp14,CYp4 CXp4,CYp6 Q CXm10,CYp8 CXm18,CYm10 Z" fill="#ffd54f" stroke="#c8920f" stroke-width="2"/><path d="M CXp19,CYm10 l 2,-5" stroke="#7d5a1e" stroke-width="3" stroke-linecap="round"/>',
+    'ส้ม': '<circle cx="CX" cy="CYp2" r="20" fill="#ff9800" stroke="#c66900" stroke-width="2"/><circle cx="CX" cy="CYp2" r="20" fill="none" stroke="#ffcc80" stroke-width="1" opacity="0.6"/><ellipse cx="CXp3" cy="CYm17" rx="6" ry="3" fill="#4caf50"/>',
+    'แอปเปิล': '<path d="M CX,CYm8 Q CXm18,CYm12 CXm16,CYp4 Q CXm14,CYp20 CX,CYp18 Q CXp14,CYp20 CXp16,CYp4 Q CXp18,CYm12 CX,CYm8" fill="#e53935" stroke="#a31515" stroke-width="2"/><rect x="CXm1" y="CYm16" width="3" height="9" fill="#795548"/><ellipse cx="CXp7" cy="CYm13" rx="6" ry="3" fill="#4caf50"/>',
+    'องุ่น': '<g fill="#7e3ff2" stroke="#4a1f9e" stroke-width="1"><circle cx="CXm10" cy="CYm4" r="6"/><circle cx="CX" cy="CYm6" r="6"/><circle cx="CXp10" cy="CYm4" r="6"/><circle cx="CXm5" cy="CYp5" r="6"/><circle cx="CXp5" cy="CYp5" r="6"/><circle cx="CX" cy="CYp14" r="6"/></g><path d="M CX,CYm10 l 0,-6" stroke="#6b8e23" stroke-width="2"/>'
+  };
+  function produceSVG(name, cx, cy) {
+    var raw = PRODUCE_[name] || '<circle cx="CX" cy="CY" r="20" fill="#bdbdbd" stroke="#757575" stroke-width="2"/>';
+    return raw.replace(/CXm(\d+)/g, function (_, n) { return (cx - +n); }).replace(/CXp(\d+)/g, function (_, n) { return (cx + +n); })
+      .replace(/CYm(\d+)/g, function (_, n) { return (cy - +n); }).replace(/CYp(\d+)/g, function (_, n) { return (cy + +n); })
+      .replace(/CX/g, cx).replace(/CY/g, cy);
+  }
+  function scaleDial(name, w, showNeedle) {
+    function f(n) { return Math.round(n * 10) / 10; }
+    var cx = 75, cyD = 138, R = 52;
+    function pt(deg, r) { var a = deg * Math.PI / 180; return [cx + r * Math.sin(a), cyD - r * Math.cos(a)]; }
+    var s = produceSVG(name, cx, 36);
+    s += '<ellipse cx="' + cx + '" cy="64" rx="46" ry="6" fill="#d7d7e3" stroke="#6b6b80" stroke-width="2"/><rect x="' + (cx - 4) + '" y="64" width="8" height="16" fill="#b9b9cc" stroke="#6b6b80" stroke-width="1.5"/>';
+    s += '<path d="M ' + (cx - 34) + ',' + (cyD + R - 10) + ' L ' + (cx + 34) + ',' + (cyD + R - 10) + ' L ' + (cx + 40) + ',' + (cyD + R + 14) + ' L ' + (cx - 40) + ',' + (cyD + R + 14) + ' Z" fill="#9575cd" stroke="#5e35b1" stroke-width="2"/>';
+    s += '<circle cx="' + cx + '" cy="' + cyD + '" r="' + R + '" fill="#fff" stroke="#3a3a4a" stroke-width="2.5"/>';
+    for (var d = 0; d < 60; d++) { var mj = (d % 10 === 0), p1 = pt(d * 6, R - (mj ? 12 : 6)), p2 = pt(d * 6, R - 3); s += '<line x1="' + f(p1[0]) + '" y1="' + f(p1[1]) + '" x2="' + f(p2[0]) + '" y2="' + f(p2[1]) + '" stroke="#3a3a4a" stroke-width="' + (mj ? 2 : 1) + '"/>'; }
+    for (var k = 0; k < 6; k++) { var pn = pt(k * 60, R - 22); s += '<text x="' + f(pn[0]) + '" y="' + f(pn[1] + 5) + '" font-size="13" font-family="Arial" font-weight="bold" text-anchor="middle" fill="#2a2a38">' + k + '</text>'; }
+    s += '<text x="' + cx + '" y="' + f(cyD - R * 0.42) + '" font-size="7" font-family="Arial" text-anchor="middle" fill="#888">KILOG</text>';
+    if (showNeedle) { var np = pt(w * 6, R - 16), tl = pt(w * 6 + 180, 9); s += '<line x1="' + f(tl[0]) + '" y1="' + f(tl[1]) + '" x2="' + f(np[0]) + '" y2="' + f(np[1]) + '" stroke="#c0392b" stroke-width="2.4"/>'; }
+    s += '<circle cx="' + cx + '" cy="' + cyD + '" r="4" fill="' + (showNeedle ? '#c0392b' : '#777') + '"/>';
+    return '<svg viewBox="0 0 150 210" class="scale-svg">' + s + '</svg>';
   }
   var GEN = {
     arith: function (c) {
@@ -634,80 +675,32 @@
     },
     weigh: function (c) {
       var mode = c.mode || 'mix';
-      var foods = ['กล้วย', 'ส้ม', 'มังคุด', 'แครอท', 'สับปะรด', 'ชมพู่', 'เงาะ', 'ฟักทอง', 'มะม่วง', 'องุ่น', 'แอปเปิล', 'มะเขือเทศ', 'หอมแดง', 'มันฝรั่ง', 'ลำไย', 'น้อยหน่า', 'แตงกวา', 'มะนาว'];
+      var foods = ['กะหล่ำ', 'ฟักทอง', 'ถั่วฝักยาว', 'แครอท', 'มะเขือ', 'มะระ', 'หอมแดง', 'แตงกวา', 'มันฝรั่ง', 'พริก', 'มะเขือเทศ', 'ผักชี', 'ฟักเขียว', 'กล้วย', 'ส้ม', 'แอปเปิล', 'องุ่น'];
       for (var z = foods.length - 1; z > 0; z--) { var j = Math.floor(Math.random() * (z + 1)), t = foods[z]; foods[z] = foods[j]; foods[j] = t; }
-      function f(n) { return Math.round(n * 10) / 10; }
-      function dial(w, showNeedle) {
-        var cx = 85, cy = 85, R = 72;
-        function pt(deg, r) { var a = deg * Math.PI / 180; return [cx + r * Math.sin(a), cy - r * Math.cos(a)]; }
-        var s = '<circle cx="' + cx + '" cy="' + cy + '" r="' + R + '" fill="#fff" stroke="#3a3a4a" stroke-width="2.5"/><circle cx="' + cx + '" cy="' + cy + '" r="' + (R - 4) + '" fill="none" stroke="#bcbcd0" stroke-width="1"/>';
-        for (var d = 0; d < 60; d++) { var mj = (d % 10 === 0), p1 = pt(d * 6, R - (mj ? 15 : 8)), p2 = pt(d * 6, R - 3); s += '<line x1="' + f(p1[0]) + '" y1="' + f(p1[1]) + '" x2="' + f(p2[0]) + '" y2="' + f(p2[1]) + '" stroke="#3a3a4a" stroke-width="' + (mj ? 2 : 1) + '"/>'; }
-        for (var k = 0; k < 6; k++) { var pn = pt(k * 60, R - 28); s += '<text x="' + f(pn[0]) + '" y="' + f(pn[1] + 5) + '" font-size="15" font-family="Arial" font-weight="bold" text-anchor="middle" fill="#2a2a38">' + k + '</text>'; }
-        s += '<text x="' + cx + '" y="' + f(cy - R * 0.42) + '" font-size="8" font-family="Arial" text-anchor="middle" fill="#888" letter-spacing="1">KILOG</text>';
-        if (showNeedle) { var np = pt(w * 6, R - 20), tl = pt(w * 6 + 180, 12); s += '<line x1="' + f(tl[0]) + '" y1="' + f(tl[1]) + '" x2="' + f(np[0]) + '" y2="' + f(np[1]) + '" stroke="#c0392b" stroke-width="2.6"/>'; }
-        s += '<circle cx="' + cx + '" cy="' + cy + '" r="4.5" fill="#c0392b"/>';
-        return '<svg class="wscale" viewBox="0 0 170 170">' + s + '</svg>';
-      }
       var out = [], used = {};
       for (var i = 0; i < c.count; i++) {
         var w, guard = 0; do { w = ri(2, 29); guard++; } while (used[w] && guard < 40); used[w] = 1;
         var m = mode === 'mix' ? (ri(0, 1) ? 'read' : 'draw') : mode;
+        var food = foods[i % foods.length];
         if (m === 'read') {
-          out.push({ q: '<div class="wcard">' + dial(w, true) + '<div class="wlabel">น้ำหนัก <span class="wbl"></span> ขีด</div></div>', a: w + ' ขีด', noline: true, scale: true, grid: true });
+          out.push({ q: '<div class="wcard"><div class="wtitle">' + food + '</div>' + scaleDial(food, w, true) + '<div class="wlabel">น้ำหนัก <span class="wbl"></span> ขีด</div></div>', a: food + ' ' + w + ' ขีด', noline: true, scale: true, grid: true });
         } else {
-          var food = foods[i % foods.length];
-          out.push({ q: '<div class="wcard"><div class="wtitle">' + food + 'หนัก ' + w + ' ขีด</div>' + dial(w, false) + '<div class="wsub">วาดเข็มชี้น้ำหนัก</div></div>', a: food + ' ' + w + ' ขีด', noline: true, scale: true, grid: true });
+          out.push({ q: '<div class="wcard"><div class="wtitle">' + food + 'หนัก ' + w + ' ขีด</div>' + scaleDial(food, w, false) + '<div class="wsub">วาดเข็มชี้น้ำหนัก</div></div>', a: food + ' ' + w + ' ขีด (วาดเข็ม)', noline: true, scale: true, grid: true });
         }
       }
       return out;
     },
     weighcmp: function (c) {
-      var foods = ['ผักชี', 'มะระ', 'ฟักเขียว', 'แครอท', 'มะเขือ', 'ฟักทอง', 'หอมแดง', 'แตงกวา', 'มันฝรั่ง', 'พริก', 'กะหล่ำ', 'ถั่วฝักยาว', 'มะเขือเทศ'];
+      var foods = ['ผักชี', 'มะระ', 'ฟักเขียว', 'แครอท', 'มะเขือ', 'ฟักทอง', 'หอมแดง', 'แตงกวา', 'มันฝรั่ง', 'พริก', 'กะหล่ำ', 'ถั่วฝักยาว', 'มะเขือเทศ', 'กล้วย', 'ส้ม', 'แอปเปิล', 'องุ่น'];
       for (var z = foods.length - 1; z > 0; z--) { var j = Math.floor(Math.random() * (z + 1)), t = foods[z]; foods[z] = foods[j]; foods[j] = t; }
-      function f(n) { return Math.round(n * 10) / 10; }
-      function produce(name, cx, cy) {
-        var P = {
-          'กะหล่ำ': '<circle cx="CX" cy="CY" r="22" fill="#8bc34a" stroke="#4e7d22" stroke-width="2"/><path d="M CX,CYm22 Q CXm9,CY CX,CYp20 Q CXp9,CY CX,CYm22" fill="none" stroke="#4e7d22" stroke-width="1.3"/><circle cx="CX" cy="CY" r="6" fill="#cfe8a0"/>',
-          'ฟักทอง': '<ellipse cx="CX" cy="CYp2" rx="24" ry="18" fill="#f4901e" stroke="#b5560a" stroke-width="2"/><path d="M CXm12,CYm13 Q CXm16,CYp2 CXm12,CYp16" fill="none" stroke="#b5560a" stroke-width="1.3"/><path d="M CXp12,CYm13 Q CXp16,CYp2 CXp12,CYp16" fill="none" stroke="#b5560a" stroke-width="1.3"/><rect x="CXm3" y="CYm24" width="6" height="8" rx="2" fill="#6b8e23"/>',
-          'ถั่วฝักยาว': '<path d="M CXm20,CYm14 Q CXp6,CYm6 CXp18,CYp16" fill="none" stroke="#7cb342" stroke-width="5" stroke-linecap="round"/><path d="M CXm20,CYm7 Q CXp4,CY CXp20,CYp14" fill="none" stroke="#8bc34a" stroke-width="5" stroke-linecap="round"/><path d="M CXm18,CY Q CXp4,CYp8 CXp18,CYp20" fill="none" stroke="#689f38" stroke-width="5" stroke-linecap="round"/>',
-          'แครอท': '<polygon points="CXm13,CYm8 CXp13,CYm8 CX,CYp22" fill="#f4901e" stroke="#c4600a" stroke-width="2"/><path d="M CX,CYm8 L CXm8,CYm22 M CX,CYm8 L CX,CYm24 M CX,CYm8 L CXp8,CYm22" stroke="#4caf50" stroke-width="3" fill="none" stroke-linecap="round"/>',
-          'มะเขือ': '<path d="M CX,CYm16 Q CXp20,CYm12 CXp16,CYp8 Q CXp11,CYp22 CX,CYp22 Q CXm11,CYp22 CXm16,CYp8 Q CXm20,CYm12 CX,CYm16" fill="#7e3ff2" stroke="#4a1f9e" stroke-width="2"/><path d="M CXm8,CYm14 Q CX,CYm20 CXp8,CYm14" fill="#4caf50" stroke="#2e7d32" stroke-width="2"/><rect x="CXm2" y="CYm24" width="4" height="8" fill="#2e7d32"/>',
-          'มะระ': '<path d="M CXm20,CYm12 Q CX,CYm22 CXp20,CYp12 Q CX,CYp22 CXm20,CYm12" fill="#9ccc65" stroke="#558b2f" stroke-width="2"/><circle cx="CXm6" cy="CYm4" r="2" fill="#558b2f"/><circle cx="CXp4" cy="CYp4" r="2" fill="#558b2f"/><circle cx="CXp10" cy="CYm2" r="2" fill="#558b2f"/>',
-          'หอมแดง': '<path d="M CX,CYm18 Q CXp16,CYm6 CXp11,CYp11 Q CXp6,CYp22 CX,CYp22 Q CXm6,CYp22 CXm11,CYp11 Q CXm16,CYm6 CX,CYm18" fill="#b5532e" stroke="#7d2f16" stroke-width="2"/><path d="M CX,CYm18 L CXm4,CYm26 M CX,CYm18 L CXp4,CYm25" stroke="#8d6e63" stroke-width="2"/>',
-          'แตงกวา': '<rect x="CXm21" y="CYm8" width="42" height="17" rx="8" fill="#7cb342" stroke="#33691e" stroke-width="2"/><line x1="CXm11" y1="CYm6" x2="CXm11" y2="CYp7" stroke="#aed581" stroke-width="1.3"/><line x1="CX" y1="CYm6" x2="CX" y2="CYp7" stroke="#aed581" stroke-width="1.3"/><line x1="CXp11" y1="CYm6" x2="CXp11" y2="CYp7" stroke="#aed581" stroke-width="1.3"/>',
-          'มันฝรั่ง': '<ellipse cx="CX" cy="CYp2" rx="23" ry="16" fill="#c9a875" stroke="#8a6d3b" stroke-width="2"/><circle cx="CXm8" cy="CYm4" r="2" fill="#8a6d3b"/><circle cx="CXp6" cy="CYp4" r="2" fill="#8a6d3b"/><circle cx="CXp12" cy="CYm6" r="1.6" fill="#8a6d3b"/>',
-          'พริก': '<path d="M CXm15,CYm12 Q CXp15,CYm12 CXp13,CYp4 Q CXp9,CYp20 CXm2,CYp18 Q CXm13,CYp16 CXm15,CYm12" fill="#e53935" stroke="#a31515" stroke-width="2"/><path d="M CXm15,CYm12 q -3,-6 -7,-7" stroke="#4caf50" stroke-width="3" fill="none" stroke-linecap="round"/>',
-          'มะเขือเทศ': '<circle cx="CX" cy="CYp3" r="20" fill="#e53935" stroke="#a31515" stroke-width="2"/><path d="M CXm8,CYm14 L CXm4,CYm8 L CX,CYm15 L CXp4,CYm8 L CXp8,CYm14 L CXp5,CYm5 L CXm5,CYm5 Z" fill="#4caf50" stroke="#2e7d32" stroke-width="1.3"/>',
-          'ผักชี': '<path d="M CX,CYp22 L CX,CYm2" stroke="#33691e" stroke-width="2"/><circle cx="CXm11" cy="CYm9" r="8" fill="#7cb342"/><circle cx="CXp11" cy="CYm9" r="8" fill="#8bc34a"/><circle cx="CX" cy="CYm16" r="9" fill="#9ccc65"/><circle cx="CXm5" cy="CYm3" r="6" fill="#7cb342"/><circle cx="CXp5" cy="CYm3" r="6" fill="#8bc34a"/>',
-          'ฟักเขียว': '<ellipse cx="CX" cy="CYp2" rx="26" ry="15" fill="#2e7d32" stroke="#1b5e20" stroke-width="2"/><ellipse cx="CXm8" cy="CYm3" rx="7" ry="3" fill="#4caf50" opacity="0.5"/>'
-        };
-        var raw = P[name] || '<circle cx="CX" cy="CY" r="20" fill="#bdbdbd" stroke="#757575" stroke-width="2"/>';
-        return raw.replace(/CXm(\d+)/g, function (_, n) { return (cx - +n); }).replace(/CXp(\d+)/g, function (_, n) { return (cx + +n); })
-          .replace(/CYm(\d+)/g, function (_, n) { return (cy - +n); }).replace(/CYp(\d+)/g, function (_, n) { return (cy + +n); })
-          .replace(/CX/g, cx).replace(/CY/g, cy);
-      }
-      function scaleItem(name, w) {
-        var cx = 75, cyD = 138, R = 52;
-        function pt(deg, r) { var a = deg * Math.PI / 180; return [cx + r * Math.sin(a), cyD - r * Math.cos(a)]; }
-        var s = produce(name, cx, 36);
-        s += '<ellipse cx="' + cx + '" cy="64" rx="46" ry="6" fill="#d7d7e3" stroke="#6b6b80" stroke-width="2"/><rect x="' + (cx - 4) + '" y="64" width="8" height="16" fill="#b9b9cc" stroke="#6b6b80" stroke-width="1.5"/>';
-        s += '<path d="M ' + (cx - 34) + ',' + (cyD + R - 10) + ' L ' + (cx + 34) + ',' + (cyD + R - 10) + ' L ' + (cx + 40) + ',' + (cyD + R + 14) + ' L ' + (cx - 40) + ',' + (cyD + R + 14) + ' Z" fill="#9575cd" stroke="#5e35b1" stroke-width="2"/>';
-        s += '<circle cx="' + cx + '" cy="' + cyD + '" r="' + R + '" fill="#fff" stroke="#3a3a4a" stroke-width="2.5"/>';
-        for (var d = 0; d < 60; d++) { var mj = (d % 10 === 0), p1 = pt(d * 6, R - (mj ? 12 : 6)), p2 = pt(d * 6, R - 3); s += '<line x1="' + f(p1[0]) + '" y1="' + f(p1[1]) + '" x2="' + f(p2[0]) + '" y2="' + f(p2[1]) + '" stroke="#3a3a4a" stroke-width="' + (mj ? 2 : 1) + '"/>'; }
-        for (var k = 0; k < 6; k++) { var pn = pt(k * 60, R - 22); s += '<text x="' + f(pn[0]) + '" y="' + f(pn[1] + 5) + '" font-size="13" font-family="Arial" font-weight="bold" text-anchor="middle" fill="#2a2a38">' + k + '</text>'; }
-        s += '<text x="' + cx + '" y="' + f(cyD - R * 0.42) + '" font-size="7" font-family="Arial" text-anchor="middle" fill="#888">KILOG</text>';
-        var np = pt(w * 6, R - 16), tl = pt(w * 6 + 180, 9);
-        s += '<line x1="' + f(tl[0]) + '" y1="' + f(tl[1]) + '" x2="' + f(np[0]) + '" y2="' + f(np[1]) + '" stroke="#c0392b" stroke-width="2.4"/><circle cx="' + cx + '" cy="' + cyD + '" r="4" fill="#c0392b"/>';
-        return '<svg viewBox="0 0 150 210" class="wcmp-dial">' + s + '</svg>';
-      }
       var it = foods.slice(0, 3), wt = [], used = {};
       for (var i = 0; i < 3; i++) { var w, g = 0; do { w = ri(4, 28); g++; } while (used[w] && g < 40); used[w] = 1; wt.push(w); }
-      var dials = it.map(function (nm, i) { return '<div class="wcmp-one">' + scaleItem(nm, wt[i]) + '<div class="wcmp-cap">' + nm + '</div></div>'; }).join('');
+      var dials = it.map(function (nm, i) { return '<div class="wcmp-one">' + scaleDial(nm, wt[i], true) + '<div class="wcmp-cap">' + nm + '</div></div>'; }).join('');
       var reads = it.map(function (nm) { return '<span>' + nm + 'หนัก <span class="wcmp-bl wcmp-bn"></span> ขีด</span>'; }).join('');
       var pairs = [[0, 1], [0, 2], [1, 2]], rows = '', ansC = [];
       pairs.forEach(function (p) {
-        [[p[0], p[1]], [p[1], p[0]]].forEach(function (q) {
-          var A = it[q[0]], B = it[q[1]], word = wt[q[0]] > wt[q[1]] ? 'หนักกว่า' : 'เบากว่า', diff = Math.abs(wt[q[0]] - wt[q[1]]);
+        [[p[0], p[1]], [p[1], p[0]]].forEach(function (qq) {
+          var A = it[qq[0]], B = it[qq[1]], word = wt[qq[0]] > wt[qq[1]] ? 'หนักกว่า' : 'เบากว่า', diff = Math.abs(wt[qq[0]] - wt[qq[1]]);
           rows += '<div class="wcmp-r">' + A + ' <span class="wcmp-bl wcmp-bw"></span> ' + B + ' <span class="wcmp-bl wcmp-bn"></span> ขีด</div>';
           ansC.push(A + ' ' + word + ' ' + B + ' ' + diff + ' ขีด');
         });
@@ -735,7 +728,7 @@
   function buildProblems(ch, level, count) {
     var fn = GEN[ch.gen]; if (!fn) return [];
     var cfg = { level: level || 'easy', count: Math.max(4, Math.min(50, Number(count) || 12)) };
-    if (ch.ops && ch.ops.length) cfg.ops = ch.ops;
+    if (ch.ops && ch.ops.length) cfg.ops = String(ch.ops).split(',').filter(function (s) { return s; });
     if (ch.lv) { for (var kk in ch.lv) { if (kk === 'easy' || kk === 'medium' || kk === 'hard') continue; cfg[kk] = ch.lv[kk]; } }
     var ov = ch.lv && ch.lv[cfg.level]; if (ov) for (var k in ov) cfg[k] = ov[k];
     return fn(cfg);
