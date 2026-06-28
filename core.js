@@ -157,6 +157,11 @@
     var perCol = isFull ? 1 : (perHint ? perHint : (isBox ? 5 : (isScale ? 3 : (isNum ? 3 : (isClock ? 4 : (isOrd ? 8 : (isTall ? 5 : 15)))))));    // numwrite แถวสูง (4 บรรทัด) จำกัด 3/หน้า กันตก
     if (!isFull) perCol = Math.max(2, Math.round(perCol * fsFactor));   // ฟอนต์ใหญ่ = ข้อต่อหน้าน้อยลง กันตก
     var perPage = perCol * cols;
+    // หน้าแรก header สูง (มีชื่อ/คะแนน/คำชี้แจง ~72mm) ใส่ได้น้อยกว่าหน้าถัดไป (header ต่อ ~26mm)
+    // เฉพาะโจทย์การ์ดสูง (box/scale/wp/tall) ลดหน้าแรกลง 1 แถว กันข้อหล่นไปหน้าถัดไปแบบไม่เต็ม
+    var bigItem = isBox || isWp;
+    var perColFirst = bigItem ? Math.max(1, perCol - 1) : perCol;
+    var perPageFirst = perColFirst * cols;
     var scoreTotal = isFull ? (o.problems[0].pts || total) : total;   // เต็มหน้า: คะแนนเต็ม = จำนวนรูป/ข้อ
 
     function qitemHTML(p, i) {
@@ -180,10 +185,12 @@
     }
 
     var pages = [];
-    for (var st = 0; st < total; st += perPage) pages.push(o.problems.slice(st, st + perPage));
-    if (!pages.length) pages.push([]);
+    var st = 0, firstPage = true;
+    while (st < total) { var pp = firstPage ? perPageFirst : perPage; pages.push({ items: o.problems.slice(st, st + pp), start: st }); st += pp; firstPage = false; }
+    if (!pages.length) pages.push({ items: [], start: 0 });
 
-    var sheet = pages.map(function (chunk, pi) {
+    var sheet = pages.map(function (page, pi) {
+      var chunk = page.items, base = page.start;
       var rowsOnPage = Math.ceil(chunk.length / cols) || 1;
       var rowh = 185 / rowsOnPage; if (rowh > 24) rowh = 24; if (rowh < 9) rowh = 9;
       rowh = Math.round(rowh * 10) / 10;
@@ -192,14 +199,14 @@
         content = chunk.map(function (p) { return p.q; }).join('');
       } else if (isNum) {
         var rows = chunk.map(function (p, idx) {
-          return '<div class="nwrow"><div class="nwc nwpic"><span class="nwno">' + (pi * perPage + idx + 1) + ')</span>' + p.q + '</div>' +
+          return '<div class="nwrow"><div class="nwc nwpic"><span class="nwno">' + (base + idx + 1) + ')</span>' + p.q + '</div>' +
             '<div class="nwc nwblank"><span class="nwl"></span><span class="nwl"></span></div>' +
             '<div class="nwc nwblank"><span class="nwl"></span><span class="nwl"></span></div>' +
             '<div class="nwc nwblank nwword"><span class="nwl"></span><span class="nwl"></span><span class="nwl"></span><span class="nwl"></span></div></div>';
         }).join('');
         content = '<div class="nwtable"><div class="nwrow nwhead"><div class="nwc nwpic">ภาพ</div><div class="nwc">ตัวเลขฮินดูอารบิก</div><div class="nwc">ตัวเลขไทย</div><div class="nwc">ตัวหนังสือ</div></div>' + rows + '</div>';
       } else {
-        var items = chunk.map(function (p, idx) { return qitemHTML(p, pi * perPage + idx); }).join('');
+        var items = chunk.map(function (p, idx) { return qitemHTML(p, base + idx); }).join('');
         var isGrid = chunk[0] && chunk[0].grid;
         content = isGrid
           ? '<div class="qgrid ' + (cols === 2 ? 'c2' : '') + '">' + items + '</div>'
