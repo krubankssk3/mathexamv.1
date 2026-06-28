@@ -154,7 +154,7 @@
     var isScale = o.problems.length && o.problems[0].scale;
     var isBox = o.problems.length && o.problems[0].box;
     var perHint = o.problems.length && o.problems[0].per;
-    var perCol = isFull ? 1 : (perHint ? perHint : (isBox ? 5 : (isScale ? 3 : (isNum ? 3 : (isClock ? 4 : (isOrd ? 8 : (isTall ? 5 : 15)))))));    // numwrite แถวสูง (4 บรรทัด) จำกัด 3/หน้า กันตก
+    var perCol = isFull ? 1 : (perHint ? perHint : (isBox ? 5 : (isScale ? 3 : (isNum ? 999 : (isClock ? 4 : (isOrd ? 8 : (isTall ? 5 : 15)))))));    // numtable: ไหลต่อเนื่อง (ไม่ slice ตายตัว) ให้ break-inside:avoid จัดการแบ่งหน้าตอนพิมพ์
     if (!isFull) perCol = Math.max(2, Math.round(perCol * fsFactor));   // ฟอนต์ใหญ่ = ข้อต่อหน้าน้อยลง กันตก
     var perPage = perCol * cols;
     // หน้าแรก header สูง (มีชื่อ/คะแนน/คำชี้แจง ~72mm) ใส่ได้น้อยกว่าหน้าถัดไป (header ต่อ ~26mm)
