@@ -762,13 +762,15 @@
       var max = ({ easy: 50, medium: 100, hard: 100 }[c.level]) || 50;
       var out = [], lines = '<div class="ubox-lines">' + Array(6).join('<span></span>') + '</div>';
       for (var i = 0; i < c.count; i++) {
-        var pat = ri(0, 5), a, b, res, eq, ans, box = '<span class="ubox-sq"></span>';
+        var pat = ri(0, 7), a, b, res, eq, ans, box = '<span class="ubox-sq"></span>';
         if (pat === 0) { a = ri(2, max - 2); ans = ri(1, max - a); res = a + ans; eq = a + ' + ' + box + ' = ' + res; }
         else if (pat === 1) { b = ri(2, max - 2); ans = ri(1, max - b); res = ans + b; eq = box + ' + ' + b + ' = ' + res; }
         else if (pat === 2) { a = ri(3, max); ans = ri(1, a - 1); res = a - ans; eq = a + ' \u2212 ' + box + ' = ' + res; }
         else if (pat === 3) { b = ri(1, max - 2); res = ri(1, max - b); ans = res + b; eq = box + ' \u2212 ' + b + ' = ' + res; }
-        else if (pat === 4) { a = ri(2, max - 2); b = ri(1, max - a); ans = a + b; eq = a + ' + ' + b + ' = ' + box; }
-        else { a = ri(3, max); b = ri(1, a - 1); ans = a - b; eq = a + ' \u2212 ' + b + ' = ' + box; }
+        else if (pat === 4) { a = ri(2, max - 2); ans = ri(1, max - a); res = a + ans; eq = res + ' = ' + a + ' + ' + box; }
+        else if (pat === 5) { b = ri(2, max - 2); ans = ri(1, max - b); res = ans + b; eq = res + ' = ' + box + ' + ' + b; }
+        else if (pat === 6) { a = ri(3, max); ans = ri(1, a - 1); res = a - ans; eq = res + ' = ' + a + ' \u2212 ' + box; }
+        else { b = ri(1, max - 2); res = ri(1, max - b); ans = res + b; eq = res + ' = ' + box + ' \u2212 ' + b; }
         out.push({ q: '<div class="ubox-q"><div class="ubox-eq">' + eq + '</div>' + lines + '</div>', a: String(ans), noline: true, box: true, grid: true });
       }
       return out;
