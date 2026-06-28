@@ -131,7 +131,7 @@
         var selPicOps = (curGen === 'picture' && opsArr.length) ? opsArr.slice() : ['+'];
         var selAr = (curGen === 'arith' && opsArr.length) ? opsArr.slice() : ['+'];
         var selCarry = lvObj.carry || 'any';
-        var RANGES_ = [['0-20', '0–20'], ['1-20', '1–20'], ['10-20', '10–20'], ['21-100', '21–100'], ['1-100', '1–100'], ['1-200', '1–200'], ['100-200', '100–200'], ['100-1000', '100–1000']];
+        var RANGES_ = [['0-20', '0–20'], ['1-20', '1–20'], ['10-20', '10–20'], ['21-100', '21–100'], ['1-100', '1–100'], ['1-200', '1–200'], ['100-200', '100–200'], ['201-1000', '201–1,000'], ['100-1000', '100–1,000']];
         var selRange = (lvObj.range && lvObj.range.join('-')) || (curGen === 'numwrite' ? '21-100' : '10-20');
         var selColor = lvObj.color || 'orange';
         var selDir = lvObj.dir || 'asc';
