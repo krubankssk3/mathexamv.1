@@ -492,20 +492,22 @@
       var tens = ['', 'สิบ', 'ยี่สิบ', 'สามสิบ', 'สี่สิบ', 'ห้าสิบ', 'หกสิบ', 'เจ็ดสิบ', 'แปดสิบ', 'เก้าสิบ'];
       function thaiWord(n) {
         if (n === 0) return 'ศูนย์';
-        if (n === 100) return 'หนึ่งร้อย';
-        var t = Math.floor(n / 10), u = n % 10, s = '';
+        if (n === 1000) return 'หนึ่งพัน';
+        var h = Math.floor(n / 100), r = n % 100, t = Math.floor(r / 10), u = r % 10, s = '';
+        if (h > 0) s += ones[h] + 'ร้อย';
         if (t > 0) s += tens[t];
-        if (u > 0) s += (u === 1 && t > 0) ? 'เอ็ด' : ones[u];
+        if (u > 0) s += (u === 1 && (t > 0 || h > 0)) ? 'เอ็ด' : ones[u];
         return s;
       }
       function blocks(n) {
         var key = colMode === 'mix' ? CKEYS[Math.floor(Math.random() * CKEYS.length)] : (COLORS[colMode] ? colMode : 'orange');
         var cc = COLORS[key];
         var sty = '--bl:' + cc[0] + ';--bd:' + cc[1] + ';--bb:' + cc[2];
-        var t = Math.floor(n / 10), u = n % 10, rods = '', cubes = '', i;
+        var h = Math.floor(n / 100), t = Math.floor((n % 100) / 10), u = n % 10, flats = '', rods = '', cubes = '', i;
+        for (i = 0; i < h; i++) flats += '<span class="b-flat"></span>';
         for (i = 0; i < t; i++) rods += '<span class="b-rod"></span>';
         for (i = 0; i < u; i++) cubes += '<span class="b-cube"></span>';
-        return '<span class="blocks" style="' + sty + '">' + rods + (u ? '<span class="b-units">' + cubes + '</span>' : '') + '</span>';
+        return '<span class="blocks" style="' + sty + '">' + flats + rods + (u ? '<span class="b-units">' + cubes + '</span>' : '') + '</span>';
       }
       var out = [];
       for (var i = 0; i < max; i++) {
