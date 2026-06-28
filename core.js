@@ -152,7 +152,7 @@
     var fsFactor = fs === 'xl' ? 0.6 : (fs === 'lg' ? 0.78 : 1);
     var isScale = o.problems.length && o.problems[0].scale;
     var isBox = o.problems.length && o.problems[0].box;
-    var perCol = isFull ? 1 : (isBox ? 3 : (isScale ? 3 : (isNum ? 3 : (isClock ? 4 : (isOrd ? 8 : (isTall ? 5 : 15))))));    // numwrite แถวสูง (4 บรรทัด) จำกัด 3/หน้า กันตก
+    var perCol = isFull ? 1 : (isBox ? 5 : (isScale ? 3 : (isNum ? 3 : (isClock ? 4 : (isOrd ? 8 : (isTall ? 5 : 15))))));    // numwrite แถวสูง (4 บรรทัด) จำกัด 3/หน้า กันตก
     if (!isFull) perCol = Math.max(2, Math.round(perCol * fsFactor));   // ฟอนต์ใหญ่ = ข้อต่อหน้าน้อยลง กันตก
     var perPage = perCol * cols;
     var scoreTotal = isFull ? (o.problems[0].pts || total) : total;   // เต็มหน้า: คะแนนเต็ม = จำนวนรูป/ข้อ
