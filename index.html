@@ -177,11 +177,11 @@
   .b-units{display:inline-flex;flex-direction:column-reverse;gap:3px;margin-left:6px}
   .b-cube{width:15px;height:15px;background:linear-gradient(135deg,var(--bl,#f3c896),var(--bd,#e0a86b));border:1px solid var(--bb,#b07a4a);border-radius:2px}
   .b-flat{width:80px;height:80px;border:1px solid var(--bb,#b07a4a);border-radius:2px;background-image:repeating-linear-gradient(to right,var(--bb,#b07a4a) 0,var(--bb,#b07a4a) 1px,transparent 1px,transparent 10%),repeating-linear-gradient(to bottom,var(--bb,#b07a4a) 0,var(--bb,#b07a4a) 1px,transparent 1px,transparent 10%),linear-gradient(135deg,var(--bl,#f3c896),var(--bd,#e0a86b))}
-  .bk-sm{gap:3px;row-gap:5px}
-  .bk-sm .b-rod{width:9px;height:44px}
-  .bk-sm .b-flat{width:44px;height:44px}
-  .bk-sm .b-cube{width:9px;height:9px}
-  .bk-sm .b-units{margin-left:4px;gap:2px}
+  .bk-sm{gap:4px;row-gap:6px}
+  .bk-sm .b-rod{width:13px;height:64px}
+  .bk-sm .b-flat{width:64px;height:64px}
+  .bk-sm .b-cube{width:13px;height:13px}
+  .bk-sm .b-units{margin-left:5px;gap:3px}
   /* ตารางเขียนเลข */
   .nwtable{border:1.5px solid #2b2f3a;border-radius:8px;overflow:hidden;margin-top:6px}
   .nwrow{display:flex;border-bottom:1.5px solid #2b2f3a}
@@ -334,6 +334,9 @@
     #printArea .qitem{min-height:var(--rowh,auto);margin:0;font-size:16px;align-items:flex-start}
     #printArea .nwrow:not(.nwhead){min-height:50mm}
     #printArea .nwhead{font-size:14px}
+    #printArea .nwtable{overflow:visible;border:none;border-radius:0}
+    #printArea .nwrow{break-inside:avoid;page-break-inside:avoid;border:1.5px solid #2b2f3a;border-bottom:none}
+    #printArea .nwrow:last-child{border-bottom:1.5px solid #2b2f3a}
     #printArea .clock{width:30mm;height:30mm}
     #printArea .geofield{max-height:172mm}
     #printArea .geowrap{page-break-inside:avoid;break-inside:avoid}
