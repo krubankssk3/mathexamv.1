@@ -147,12 +147,14 @@
     var isClock = o.problems.length && o.problems[0].clock;         // นาฬิกา (สูง)
     var isGeo = o.problems.length && o.problems[0].geo;             // เรขาคณิตเต็มหน้า (ไม่แบ่งข้อ)
     var isFull = o.problems.length && (o.problems[0].geo || o.problems[0].full); // ใบงานเต็มหน้า (เรขา/วัดความยาว)
-    if (isNum || isFull) cols = 1;
+    var isWp = o.problems.length && o.problems[0].wp;               // โจทย์ปัญหา (การ์ดเต็มกว้าง)
+    if (isNum || isFull || isWp) cols = 1;
     var fs = o.fontSize || 'normal';
     var fsFactor = fs === 'xl' ? 0.6 : (fs === 'lg' ? 0.78 : 1);
     var isScale = o.problems.length && o.problems[0].scale;
     var isBox = o.problems.length && o.problems[0].box;
-    var perCol = isFull ? 1 : (isBox ? 5 : (isScale ? 3 : (isNum ? 3 : (isClock ? 4 : (isOrd ? 8 : (isTall ? 5 : 15))))));    // numwrite แถวสูง (4 บรรทัด) จำกัด 3/หน้า กันตก
+    var perHint = o.problems.length && o.problems[0].per;
+    var perCol = isFull ? 1 : (perHint ? perHint : (isBox ? 5 : (isScale ? 3 : (isNum ? 3 : (isClock ? 4 : (isOrd ? 8 : (isTall ? 5 : 15)))))));    // numwrite แถวสูง (4 บรรทัด) จำกัด 3/หน้า กันตก
     if (!isFull) perCol = Math.max(2, Math.round(perCol * fsFactor));   // ฟอนต์ใหญ่ = ข้อต่อหน้าน้อยลง กันตก
     var perPage = perCol * cols;
     var scoreTotal = isFull ? (o.problems[0].pts || total) : total;   // เต็มหน้า: คะแนนเต็ม = จำนวนรูป/ข้อ
@@ -353,14 +355,54 @@
       return out;
     },
     word: function (c) {
-      var names = ['น้องฟ้า', 'เด็กชายเอก', 'น้องมุก', 'พี่บาส'], items = ['ดินสอ', 'สมุด', 'ลูกอม', 'ส้ม'];
-      var R = c.range || ({ easy: [2, 12], medium: [5, 40], hard: [12, 120] }[c.level]); var out = [];
+      var style = c.wstyle || 'full';   // full | compact | plain | mix
+      var R = c.range || ({ easy: [2, 12], medium: [5, 40], hard: [10, 100] }[c.level]) || [2, 12];
+      var lo = R[0], hi = R[1], mid = Math.max(lo + 1, Math.floor(hi / 2));
+      var NAMES = ['พ่อ', 'แม่', 'พลอย', 'ขุน', 'แก้วตา', 'ใบบัว', 'มะลิ', 'ก้อง', 'ดาว', 'น้องฟ้า', 'พี่บาส', 'ปิติ', 'มานี', 'ชูใจ', 'สมศรี', 'ครูแอน', 'คุณยาย', 'น้องแพรว'];
+      function nm() { return pick(NAMES); }
+      function two() { var x = nm(), y = nm(), g = 0; while (y === x && g++ < 20) y = nm(); return [x, y]; }
+      function rn() { return ri(lo, hi); }
+      function subPair() { var a = ri(mid, hi), b = ri(lo, a - 1); return [a, b]; } // a>b
+      var BL = '<span class="wp-bl"></span>';
+      var T = [
+        function () { var it = pick(['มะนาว', 'ส้ม', 'มะม่วง', 'ฝรั่ง']), u = 'ผล', n = nm(), a = rn(), b = rn(); return { story: 'ตอนเช้า' + n + 'เก็บ' + it + 'ได้ ' + a + ' ' + u + ' ตอนเย็นเก็บ' + it + 'ได้ ' + b + ' ' + u + ' ' + n + 'เก็บ' + it + 'ได้ทั้งหมดกี่' + u, ask: n + 'เก็บ' + it + 'ได้ทั้งหมดกี่' + u, givens: ['ตอนเช้า' + n + 'เก็บ' + it + 'ได้ ' + BL + ' ' + u, 'ตอนเย็นเก็บ' + it + 'ได้ ' + BL + ' ' + u], sym: a + ' + ' + b, ans: a + b, ansS: n + 'เก็บ' + it + 'ได้ทั้งหมด ' + BL + ' ' + u, unit: u }; },
+        function () { var p = pick([['ดินสอ', 'แท่ง'], ['สมุด', 'เล่ม'], ['หนังสือ', 'เล่ม'], ['ไม้บรรทัด', 'อัน']]), it = p[0], u = p[1], n = nm(), a = rn(), b = rn(); return { story: n + 'มี' + it + ' ' + a + ' ' + u + ' แล้วซื้อ' + it + 'เพิ่มอีก ' + b + ' ' + u + ' ' + n + 'มี' + it + 'ทั้งหมดกี่' + u, ask: n + 'มี' + it + 'ทั้งหมดกี่' + u, givens: [n + 'มี' + it + ' ' + BL + ' ' + u, 'ซื้อ' + it + 'เพิ่มอีก ' + BL + ' ' + u], sym: a + ' + ' + b, ans: a + b, ansS: n + 'มี' + it + 'ทั้งหมด ' + BL + ' ' + u, unit: u }; },
+        function () { var p = pick([['ดอกไม้', 'ดอก'], ['ลูกแก้ว', 'ลูก'], ['สติกเกอร์', 'ดวง']]), it = p[0], u = p[1], t = two(), a = rn(), b = rn(); return { story: t[0] + 'มี' + it + ' ' + a + ' ' + u + ' ' + t[1] + 'มี' + it + ' ' + b + ' ' + u + ' ทั้งสองคนมี' + it + 'รวมกันกี่' + u, ask: t[0] + 'และ' + t[1] + 'มี' + it + 'รวมกันกี่' + u, givens: [t[0] + 'มี' + it + ' ' + BL + ' ' + u, t[1] + 'มี' + it + ' ' + BL + ' ' + u], sym: a + ' + ' + b, ans: a + b, ansS: t[0] + 'และ' + t[1] + 'มี' + it + 'รวมกัน ' + BL + ' ' + u, unit: u }; },
+        function () { var n = nm(), s = subPair(), a = s[0], b = s[1]; return { story: n + 'มีกระถาง ' + a + ' ใบ ใช้ปลูกพริก ' + b + ' ใบ ' + n + 'เหลือกระถางกี่ใบ', ask: n + 'เหลือกระถางกี่ใบ', givens: [n + 'มีกระถาง ' + BL + ' ใบ', 'ใช้ปลูกพริก ' + BL + ' ใบ'], sym: a + ' \u2212 ' + b, ans: a - b, ansS: n + 'เหลือกระถาง ' + BL + ' ใบ', unit: 'ใบ' }; },
+        function () { var p = pick([['ลูกอม', 'เม็ด'], ['ขนม', 'ชิ้น'], ['ส้ม', 'ผล']]), it = p[0], u = p[1], n = nm(), s = subPair(), a = s[0], b = s[1]; return { story: n + 'มี' + it + ' ' + a + ' ' + u + ' แบ่งให้เพื่อนไป ' + b + ' ' + u + ' ' + n + 'เหลือ' + it + 'กี่' + u, ask: n + 'เหลือ' + it + 'กี่' + u, givens: [n + 'มี' + it + ' ' + BL + ' ' + u, 'แบ่งให้เพื่อนไป ' + BL + ' ' + u], sym: a + ' \u2212 ' + b, ans: a - b, ansS: n + 'เหลือ' + it + ' ' + BL + ' ' + u, unit: u }; },
+        function () { var n = nm(), s = subPair(), a = s[0], b = s[1]; return { story: n + 'มีเงิน ' + a + ' บาท ซื้อขนมไป ' + b + ' บาท ' + n + 'เหลือเงินกี่บาท', ask: n + 'เหลือเงินกี่บาท', givens: [n + 'มีเงิน ' + BL + ' บาท', 'ซื้อขนมไป ' + BL + ' บาท'], sym: a + ' \u2212 ' + b, ans: a - b, ansS: n + 'เหลือเงิน ' + BL + ' บาท', unit: 'บาท' }; },
+        function () { var p = pick([['ลูกโป่ง', 'ลูก'], ['ดอกไม้', 'ดอก'], ['ลูกอม', 'เม็ด']]), it = p[0], u = p[1], n = nm(), cc = ri(mid, hi), b = ri(lo, cc - 1), ansv = cc - b; return { story: n + 'มี' + it + 'สีแดงและสีฟ้ารวมกัน ' + cc + ' ' + u + ' เป็น' + it + 'สีแดงกี่' + u + ' ถ้าเป็น' + it + 'สีฟ้า ' + b + ' ' + u, ask: 'เป็น' + it + 'สีแดงกี่' + u, givens: [it + 'สีแดงและสีฟ้ารวมกัน ' + BL + ' ' + u, 'เป็น' + it + 'สีฟ้า ' + BL + ' ' + u], sym: cc + ' \u2212 ' + b, ans: ansv, ansS: 'เป็น' + it + 'สีแดง ' + BL + ' ' + u, unit: u }; },
+        function () { var p = pick([['ขนมเปียกปูน', 'ชิ้น'], ['ดอกบัว', 'ดอก'], ['ข้าวต้มมัด', 'ห่อ']]), it = p[0], u = p[1], n = nm(), b = ri(lo, mid), cc = ri(lo, mid), ansv = b + cc; return { story: n + 'มี' + it + 'กี่' + u + ' ใส่บาตรไป ' + b + ' ' + u + ' แล้วเหลืออยู่ ' + cc + ' ' + u, ask: n + 'มี' + it + 'กี่' + u, givens: ['ใส่บาตรไป ' + BL + ' ' + u, 'เหลืออยู่ ' + BL + ' ' + u], sym: BL + ' \u2212 ' + b + ' = ' + cc, ans: ansv, ansS: n + 'มี' + it + ' ' + BL + ' ' + u, unit: u, symKey: ansv + ' \u2212 ' + b + ' = ' + cc }; },
+        function () { var p = pick([['ลูกอม', 'เม็ด'], ['สติกเกอร์', 'ดวง'], ['ขนม', 'ชิ้น']]), it = p[0], u = p[1], n = nm(), a = ri(mid, hi), cc = ri(lo, a - 1), ansv = a - cc; return { story: n + 'มี' + it + ' ' + a + ' ' + u + ' ให้เพื่อนไปแล้วเหลือ' + it + ' ' + cc + ' ' + u + ' ' + n + 'ให้' + it + 'เพื่อนไปกี่' + u, ask: n + 'ให้' + it + 'เพื่อนไปกี่' + u, givens: [n + 'มี' + it + ' ' + BL + ' ' + u, 'เหลือ' + it + ' ' + BL + ' ' + u], sym: a + ' \u2212 ' + BL + ' = ' + cc, ans: ansv, ansS: n + 'ให้' + it + 'เพื่อนไป ' + BL + ' ' + u, unit: u, symKey: a + ' \u2212 ' + ansv + ' = ' + cc }; },
+        function () { var p = pick([['ปลา', 'ตัว'], ['สติกเกอร์', 'ดวง'], ['หนังสือ', 'เล่ม']]), it = p[0], u = p[1], t = two(), s = subPair(), a = s[0], b = s[1]; return { story: t[0] + 'มี' + it + ' ' + a + ' ' + u + ' ' + t[1] + 'มี' + it + ' ' + b + ' ' + u + ' ' + t[0] + 'มี' + it + 'มากกว่า' + t[1] + 'กี่' + u, ask: t[0] + 'มี' + it + 'มากกว่า' + t[1] + 'กี่' + u, givens: [t[0] + 'มี' + it + ' ' + BL + ' ' + u, t[1] + 'มี' + it + ' ' + BL + ' ' + u], sym: a + ' \u2212 ' + b, ans: a - b, ansS: t[0] + 'มี' + it + 'มากกว่า' + t[1] + ' ' + BL + ' ' + u, unit: u }; },
+        function () { var p = pick([['ดอกไม้', 'ดอก'], ['ไข่', 'ฟอง'], ['ส้ม', 'ผล']]), it = p[0], u = p[1], n = nm(), a = rn(), b = rn(); return { story: n + 'มี' + it + ' ' + a + ' ' + u + ' ได้รับ' + it + 'เพิ่มอีก ' + b + ' ' + u + ' ' + n + 'มี' + it + 'รวมกี่' + u, ask: n + 'มี' + it + 'รวมกี่' + u, givens: [n + 'มี' + it + ' ' + BL + ' ' + u, 'ได้รับเพิ่มอีก ' + BL + ' ' + u], sym: a + ' + ' + b, ans: a + b, ansS: n + 'มี' + it + 'รวม ' + BL + ' ' + u, unit: u }; }
+      ];
+      function render(d, st) {
+        var symKey = (d.symKey || (d.sym + ' = ' + d.ans));
+        var head = '<div class="wp-story">' + d.story + '</div>';
+        var symRow = '<div class="wp-r"><span class="wp-lb">ประโยคสัญลักษณ์</span><span class="wp-line"></span></div>';
+        var ansRow = '<div class="wp-r"><span class="wp-lb wp-ans">ตอบ</span><span class="wp-tx">' + d.ansS + '</span></div>';
+        var inner;
+        if (st === 'full') {
+          var gv = d.givens.map(function (g) { return '<div class="wp-gv">' + g + '</div>'; }).join('');
+          inner = head +
+            '<div class="wp-r"><span class="wp-lb">โจทย์ถาม</span><span class="wp-tx">' + d.ask + '</span></div>' +
+            '<div class="wp-r"><span class="wp-lb">โจทย์บอก</span><span class="wp-tx">' + gv + '</span></div>' +
+            symRow + ansRow;
+        } else if (st === 'compact') {
+          inner = head + symRow + ansRow;
+        } else {
+          inner = head + ansRow;
+        }
+        return { html: '<div class="wp wp-' + st + '">' + inner + '</div>', a: symKey + '  \u2192  ตอบ ' + d.ans + ' ' + d.unit };
+      }
+      var per = { full: 3, compact: 4, plain: 6 };
+      var out = [];
       for (var i = 0; i < c.count; i++) {
-        var nm = pick(names), it = pick(items), a = ri(R[0], R[1]), b = ri(R[0], R[1]), t = ri(0, 2), q, ans;
-        if (t === 0) { q = nm + 'มี' + it + ' ' + a + ' ชิ้น ซื้อเพิ่มอีก ' + b + ' ชิ้น มีทั้งหมดกี่ชิ้น'; ans = a + b; }
-        else if (t === 1) { var bg = Math.max(a, b), sm = Math.min(a, b); q = nm + 'มี' + it + ' ' + bg + ' ชิ้น ให้เพื่อน ' + sm + ' ชิ้น เหลือกี่ชิ้น'; ans = bg - sm; }
-        else { q = nm + 'ซื้อ' + it + 'วันละ ' + a + ' ชิ้น เป็นเวลา ' + b + ' วัน รวมกี่ชิ้น'; ans = a * b; }
-        out.push({ q: q, a: ans + ' ชิ้น', n: ans, meta: { t: 'word', kind: t, nm: nm, it: it, a: a, b: b, ans: ans } });
+        var st = style === 'mix' ? pick(['full', 'compact']) : style;
+        var d = T[ri(0, T.length - 1)]();
+        var r = render(d, st);
+        out.push({ q: r.html, a: r.a, noline: true, wp: true, grid: true, tall: true, per: (style === 'mix' ? 3 : per[st]) });
       }
       return out;
     },
