@@ -503,11 +503,12 @@
         var key = colMode === 'mix' ? CKEYS[Math.floor(Math.random() * CKEYS.length)] : (COLORS[colMode] ? colMode : 'orange');
         var cc = COLORS[key];
         var sty = '--bl:' + cc[0] + ';--bd:' + cc[1] + ';--bb:' + cc[2];
+        var cls = (R[1] > 200) ? 'blocks bk-sm' : 'blocks';
         var h = Math.floor(n / 100), t = Math.floor((n % 100) / 10), u = n % 10, flats = '', rods = '', cubes = '', i;
         for (i = 0; i < h; i++) flats += '<span class="b-flat"></span>';
         for (i = 0; i < t; i++) rods += '<span class="b-rod"></span>';
         for (i = 0; i < u; i++) cubes += '<span class="b-cube"></span>';
-        return '<span class="blocks" style="' + sty + '">' + flats + rods + (u ? '<span class="b-units">' + cubes + '</span>' : '') + '</span>';
+        return '<span class="' + cls + '" style="' + sty + '">' + flats + rods + (u ? '<span class="b-units">' + cubes + '</span>' : '') + '</span>';
       }
       var out = [];
       for (var i = 0; i < max; i++) {
