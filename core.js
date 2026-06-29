@@ -713,15 +713,39 @@
       return out;
     },
     expand: function (c) {
-      var out = [], max = Math.min(50, c.count);
+      var R = c.range || [10, 99];
+      var mode = c.mode || 'full';
+      var max = Math.min(50, c.count);
+      function places(n) {
+        var h = Math.floor(n / 100), t = Math.floor((n % 100) / 10), u = n % 10, a = [];
+        if (n >= 100) a.push({ d: h, name: 'ร้อย', v: h * 100 });
+        a.push({ d: t, name: 'สิบ', v: t * 10 });
+        a.push({ d: u, name: 'หน่วย', v: u });
+        return a;
+      }
+      var out = [];
       for (var i = 0; i < max; i++) {
-        var t = ri(1, 9), o = ri(1, 9), n = t * 10 + o;
-        var q = '<div class="exp"><div class="exp-num">' + n + '</div><div class="exp-rows">' +
-          '<div class="exp-r"><span class="exp-bl"></span> ในหลักสิบ มีค่า <span class="exp-bl"></span></div>' +
-          '<div class="exp-r"><span class="exp-bl"></span> ในหลักหน่วย มีค่า <span class="exp-bl"></span></div>' +
-          '<div class="exp-r exp-sum">เขียนในรูปกระจาย <span class="exp-bl"></span> = <span class="exp-bl"></span> + <span class="exp-bl"></span></div>' +
-          '</div></div>';
-        out.push({ q: q, a: n + ' = ' + (t * 10) + ' + ' + o, noline: true, tall: true, grid: true });
+        var n = ri(R[0], R[1]), pv = places(n), j, rows = '', q, a;
+        var m = mode === 'mix' ? (ri(0, 1) ? 'value' : 'full') : mode;
+        if (m === 'expand') {
+          var bl = [];
+          for (j = 0; j < pv.length; j++) bl.push('<span class="exp-bl"></span>');
+          q = '<div class="exp-line"><span class="exp-lnum">' + n + '</span> = ' + bl.join(' + ') + '</div>';
+          a = n + ' = ' + pv.map(function (p) { return p.v; }).join(' + ');
+          out.push({ q: q, a: a, noline: true, grid: true });
+        } else if (m === 'value') {
+          for (j = 0; j < pv.length; j++) rows += '<div class="exp-r"><b class="exp-dg">' + pv[j].d + '</b> ในหลัก' + pv[j].name + ' มีค่า <span class="exp-bl"></span></div>';
+          q = '<div class="exp"><div class="exp-num">' + n + '</div><div class="exp-rows">' + rows + '</div></div>';
+          a = n + ' → ' + pv.map(function (p) { return p.name + ' ' + p.v; }).join(', ');
+          out.push({ q: q, a: a, noline: true, tall: true, grid: true });
+        } else {
+          var sbl = [];
+          for (j = 0; j < pv.length; j++) { rows += '<div class="exp-r"><span class="exp-bl"></span> ในหลัก' + pv[j].name + ' มีค่า <span class="exp-bl"></span></div>'; sbl.push('<span class="exp-bl"></span>'); }
+          rows += '<div class="exp-r exp-sum">เขียนในรูปกระจาย ' + n + ' = ' + sbl.join(' + ') + '</div>';
+          q = '<div class="exp"><div class="exp-num">' + n + '</div><div class="exp-rows">' + rows + '</div></div>';
+          a = n + ' = ' + pv.map(function (p) { return p.v; }).join(' + ');
+          out.push({ q: q, a: a, noline: true, tall: true, grid: true });
+        }
       }
       return out;
     },
