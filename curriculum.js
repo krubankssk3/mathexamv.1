@@ -132,7 +132,7 @@
         var selAr = (curGen === 'arith' && opsArr.length) ? opsArr.slice() : ['+'];
         var selCarry = lvObj.carry || 'any';
         var RANGES_ = [['0-20', '0–20'], ['1-20', '1–20'], ['10-20', '10–20'], ['21-100', '21–100'], ['1-100', '1–100'], ['1-200', '1–200'], ['100-200', '100–200'], ['201-1000', '201–1,000'], ['100-1000', '100–1,000']];
-        var selRange = (lvObj.range && lvObj.range.join('-')) || (curGen === 'numwrite' ? '21-100' : '10-20');
+        var selRange = (lvObj.range && lvObj.range.join('-')) || (curGen === 'numwrite' ? '21-100' : (curGen === 'expand' ? '100-1000' : '10-20'));
         var selColor = lvObj.color || 'orange';
         var selDir = lvObj.dir || 'asc';
         var selK = lvObj.k || 4;
@@ -142,6 +142,7 @@
         var selPrec = lvObj.prec || 'half';
         var selWMode = lvObj.mode || 'mix';
         var selWStyle = lvObj.wstyle || 'full';
+        var selExpMode = lvObj.mode || 'full';
         var instr0 = lvObj.instruction || '';
 
         function tglBtns(list, sel, cls) {
@@ -278,6 +279,16 @@
                 '</select>' +
                 '<div style="font-size:.8rem;color:#9aa8c8;margin-top:.3rem">โจทย์บวก-ลบหลากหลาย (เก็บผลไม้ ใช้จ่าย ให้เพื่อน เปรียบเทียบ ฯลฯ) สุ่มทุกข้อ</div>' +
               '</div>' +
+              '<div id="sw_expandWrap" style="display:none">' +
+                '<label style="font-size:.85rem;color:#9aa8c8">รูปแบบโจทย์ค่าประจำหลัก / การกระจาย</label>' +
+                '<select id="sw_expmode" style="' + INP + '">' +
+                  '<option value="value"' + (selExpMode === 'value' ? ' selected' : '') + '>เลขโดดให้มา → หาค่าประจำหลัก</option>' +
+                  '<option value="full"' + (selExpMode === 'full' ? ' selected' : '') + '>เติมเลขโดด + ค่า + เขียนกระจาย</option>' +
+                  '<option value="expand"' + (selExpMode === 'expand' ? ' selected' : '') + '>เขียนในรูปกระจายอย่างเดียว</option>' +
+                  '<option value="mix"' + (selExpMode === 'mix' ? ' selected' : '') + '>คละ (หาค่า + เติมเต็ม)</option>' +
+                '</select>' +
+                '<div style="font-size:.8rem;color:#9aa8c8;margin-top:.3rem">เลือก "ช่วงตัวเลข" ด้านบนเป็น 100–1,000 สำหรับ 3 หลัก · พิมพ์เลือก 2 คอลัมน์ได้</div>' +
+              '</div>' +
               '<div id="sw_noOps" style="display:none;font-size:.82rem;color:#9aa8c8;margin-top:.3rem">ชนิดนี้สร้างโจทย์ให้อัตโนมัติ ไม่ต้องตั้งตัวดำเนินการ</div>' +
             '</div>',
           showCancelButton: true, confirmButtonText: editing ? 'บันทึก' : 'เพิ่ม', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#6366f1',
@@ -288,7 +299,7 @@
               var v = sel.value;
               document.getElementById('sw_arithWrap').style.display = v === 'arith' ? 'block' : 'none';
               document.getElementById('sw_picWrap').style.display = v === 'picture' ? 'block' : 'none';
-              document.getElementById('sw_rangeWrap').style.display = (v === 'compare' || v === 'numwrite' || v === 'order') ? 'block' : 'none';
+              document.getElementById('sw_rangeWrap').style.display = (v === 'compare' || v === 'numwrite' || v === 'order' || v === 'expand') ? 'block' : 'none';
               document.getElementById('sw_colorWrap').style.display = v === 'numwrite' ? 'block' : 'none';
               document.getElementById('sw_dirWrap').style.display = v === 'order' ? 'block' : 'none';
               document.getElementById('sw_timeWrap').style.display = v === 'time' ? 'block' : 'none';
@@ -296,7 +307,8 @@
               document.getElementById('sw_mlWrap').style.display = v === 'measlen' ? 'block' : 'none';
               document.getElementById('sw_weighWrap').style.display = v === 'weigh' ? 'block' : 'none';
               document.getElementById('sw_wordWrap').style.display = v === 'word' ? 'block' : 'none';
-              document.getElementById('sw_noOps').style.display = (v === 'arith' || v === 'picture' || v === 'compare' || v === 'numwrite' || v === 'order' || v === 'time' || v === 'geometry' || v === 'measlen' || v === 'weigh' || v === 'word') ? 'none' : 'block';
+              document.getElementById('sw_expandWrap').style.display = v === 'expand' ? 'block' : 'none';
+              document.getElementById('sw_noOps').style.display = (v === 'arith' || v === 'picture' || v === 'compare' || v === 'numwrite' || v === 'order' || v === 'time' || v === 'geometry' || v === 'measlen' || v === 'weigh' || v === 'word' || v === 'expand') ? 'none' : 'block';
             }
             sel.addEventListener('change', toggle); toggle();
             var icurl = document.getElementById('sw_icurl');
@@ -363,6 +375,12 @@
             }
             if (gen === 'word') {
               return { chapterName: name, icon: icon, gen: gen, ops: '', lv: { wstyle: document.getElementById('sw_wstyle').value || 'full' }, hasLv: true };
+            }
+            if (gen === 'expand') {
+              var er = (document.getElementById('sw_range').value || '100-1000').split('-').map(Number);
+              lvObj.range = er;
+              lvObj.mode = document.getElementById('sw_expmode').value || 'full';
+              return { chapterName: name, icon: icon, gen: gen, ops: '', lv: lvObj, hasLv: true };
             }
             return { chapterName: name, icon: icon, gen: gen, ops: '' };
           }
