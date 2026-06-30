@@ -470,14 +470,24 @@
     },
     compare: function (c) {
       var R = c.range || ({ easy: [1, 20], medium: [10, 100], hard: [100, 1000] }[c.level]) || [1, 20];
+      var mode = c.mode || 'two';
       var max = Math.min(50, c.count);
+      function sg(x, y) { return x > y ? '>' : (x < y ? '<' : '='); }
+      function nm(x) { return '<span class="cmpnum">' + x + '</span>'; }
+      var BOX = '<span class="cmpbox"></span>';
       var out = [];
       for (var i = 0; i < max; i++) {
         var a = ri(R[0], R[1]), b = ri(R[0], R[1]);
-        if (ri(0, 5) === 0) b = a; // บางข้อให้เท่ากัน
-        var sym = a > b ? '>' : (a < b ? '<' : '=');
-        var q = '<span class="cmpwrap"><span class="cmpnum">' + a + '</span><span class="cmpbox"></span><span class="cmpnum">' + b + '</span></span>';
-        out.push({ q: q, a: sym, n: (a > b ? 1 : (a < b ? -1 : 0)), noline: true });
+        if (mode === 'three') {
+          var cc = ri(R[0], R[1]), e = ri(0, 5);
+          if (e === 0) b = a; else if (e === 1) cc = b;
+          var q = '<span class="cmpwrap cmp3">' + nm(a) + BOX + nm(b) + BOX + nm(cc) + '</span>';
+          out.push({ q: q, a: a + ' ' + sg(a, b) + ' ' + b + ' ' + sg(b, cc) + ' ' + cc, n: a, noline: true });
+        } else {
+          var g2 = 0; while (b === a && g2++ < 40) b = ri(R[0], R[1]); // 2 จำนวน: ไม่ให้เท่ากัน เหลือ > <
+          var q2 = '<span class="cmpwrap">' + nm(a) + BOX + nm(b) + '</span>';
+          out.push({ q: q2, a: sg(a, b), n: (a > b ? 1 : (a < b ? -1 : 0)), noline: true });
+        }
       }
       return out;
     },
