@@ -160,7 +160,8 @@
     // หน้าแรก header สูง (มีชื่อ/คะแนน/คำชี้แจง ~72mm) ใส่ได้น้อยกว่าหน้าถัดไป (header ต่อ ~26mm)
     // เฉพาะโจทย์การ์ดสูง (box/scale/wp/tall) ลดหน้าแรกลง 1 แถว กันข้อหล่นไปหน้าถัดไปแบบไม่เต็ม
     var bigItem = isBox || isWp;
-    var perColFirst = bigItem ? Math.max(1, perCol - 1) : perCol;
+    var isExp = o.problems.length && o.problems[0].exp;
+    var perColFirst = bigItem ? Math.max(1, perCol - 1) : (isExp ? Math.max(1, perCol - 2) : perCol);
     var perPageFirst = perColFirst * cols;
     var scoreTotal = isFull ? (o.problems[0].pts || total) : total;   // เต็มหน้า: คะแนนเต็ม = จำนวนรูป/ข้อ
 
@@ -716,6 +717,7 @@
       var R = c.range || [10, 99];
       var mode = c.mode || 'full';
       var max = Math.min(50, c.count);
+      var perH = mode === 'expand' ? 13 : (mode === 'value' ? 8 : 7);
       function places(n) {
         var h = Math.floor(n / 100), t = Math.floor((n % 100) / 10), u = n % 10, a = [];
         if (n >= 100) a.push({ d: h, name: 'ร้อย', v: h * 100 });
@@ -732,19 +734,19 @@
           for (j = 0; j < pv.length; j++) bl.push('<span class="exp-bl"></span>');
           q = '<div class="exp-line"><span class="exp-lnum">' + n + '</span> = ' + bl.join(' + ') + '</div>';
           a = n + ' = ' + pv.map(function (p) { return p.v; }).join(' + ');
-          out.push({ q: q, a: a, noline: true, grid: true });
+          out.push({ q: q, a: a, noline: true, grid: true, per: perH, exp: true });
         } else if (m === 'value') {
           for (j = 0; j < pv.length; j++) rows += '<div class="exp-r"><b class="exp-dg">' + pv[j].d + '</b> ในหลัก' + pv[j].name + ' มีค่า <span class="exp-bl"></span></div>';
           q = '<div class="exp"><div class="exp-num">' + n + '</div><div class="exp-rows">' + rows + '</div></div>';
           a = n + ' → ' + pv.map(function (p) { return p.name + ' ' + p.v; }).join(', ');
-          out.push({ q: q, a: a, noline: true, tall: true, grid: true });
+          out.push({ q: q, a: a, noline: true, tall: true, grid: true, per: perH, exp: true });
         } else {
           var sbl = [];
           for (j = 0; j < pv.length; j++) { rows += '<div class="exp-r"><span class="exp-bl"></span> ในหลัก' + pv[j].name + ' มีค่า <span class="exp-bl"></span></div>'; sbl.push('<span class="exp-bl"></span>'); }
           rows += '<div class="exp-r exp-sum">เขียนในรูปกระจาย ' + n + ' = ' + sbl.join(' + ') + '</div>';
           q = '<div class="exp"><div class="exp-num">' + n + '</div><div class="exp-rows">' + rows + '</div></div>';
           a = n + ' = ' + pv.map(function (p) { return p.v; }).join(' + ');
-          out.push({ q: q, a: a, noline: true, tall: true, grid: true });
+          out.push({ q: q, a: a, noline: true, tall: true, grid: true, per: perH, exp: true });
         }
       }
       return out;
