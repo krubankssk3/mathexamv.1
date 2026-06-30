@@ -745,7 +745,7 @@
           for (j = 0; j < pv.length; j++) { rows += '<div class="exp-r"><span class="exp-bl"></span> ในหลัก' + pv[j].name + ' มีค่า <span class="exp-bl"></span></div>'; sbl.push('<span class="exp-bl"></span>'); }
           rows += '<div class="exp-r exp-sum">เขียนในรูปกระจาย ' + n + ' = ' + sbl.join(' + ') + '</div>';
           q = '<div class="exp"><div class="exp-num">' + n + '</div><div class="exp-rows">' + rows + '</div></div>';
-          a = n + ' = ' + pv.map(function (p) { return p.v; }).join(' + ');
+          a = n + ' → ' + pv.map(function (p) { return 'หลัก' + p.name + ' ' + p.d + ' มีค่า ' + p.v; }).join(', ') + ' → กระจาย ' + n + ' = ' + pv.map(function (p) { return p.v; }).join(' + ');
           out.push({ q: q, a: a, noline: true, tall: true, grid: true, per: perH, exp: true });
         }
       }
