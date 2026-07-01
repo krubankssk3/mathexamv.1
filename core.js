@@ -853,6 +853,42 @@
         }
       }
       return out;
+    },
+
+    pattern: function (c) {
+      var R = c.range || [100, 999];
+      var step = Number(c.step) || 2;
+      var dir = c.dir || 'mix';
+      var layout = c.layout || 'fill';
+      var len = c.len || 6;
+      var max = Math.min(50, c.count);
+      function dw(d) { return d === 'up' ? 'เพิ่มขึ้น' : 'ลดลง'; }
+      function seq(start, d, st, n) { var a = [], v = start, s = d === 'up' ? 1 : -1, i; for (i = 0; i < n; i++) { a.push(v); v += s * st; } return a; }
+      function startFor(d, st, n) { var span = st * (n - 1); return d === 'up' ? ri(R[0], Math.max(R[0], R[1] - span)) : ri(Math.max(R[0], R[0] + span), R[1]); }
+      var out = [], i;
+      if (layout === 'mark') {
+        var pool = [1, 3, 10, 25, 50];
+        for (i = 0; i < max; i++) {
+          var roll = ri(0, 4), kind, d, st = step;
+          if (roll <= 1) { kind = 'up'; d = 'up'; }
+          else if (roll <= 3) { kind = 'down'; d = 'down'; }
+          else { kind = 'other'; d = ri(0, 1) ? 'up' : 'down'; st = pool[ri(0, pool.length - 1)]; var gg = 0; while (st === step && gg++ < 20) st = pool[ri(0, pool.length - 1)]; }
+          var arr = seq(startFor(d, st, len), d, st, len);
+          var nums = arr.map(function (x) { return '<span class="pt-n">' + x + '</span>'; }).join('');
+          var ans = kind === 'up' ? '✓ (เพิ่มขึ้นทีละ ' + step + ')' : (kind === 'down' ? '✗ (ลดลงทีละ ' + step + ')' : '— (ไม่ใช่ทีละ ' + step + ')');
+          out.push({ q: '<div class="pt-mark"><span class="pt-box"></span><span class="pt-seq">' + nums + '</span></div>', a: ans, noline: true, grid: true, per: 12, exp: true });
+        }
+      } else {
+        for (i = 0; i < max; i++) {
+          var d2 = dir === 'mix' ? (ri(0, 1) ? 'up' : 'down') : dir;
+          var arr2 = seq(startFor(d2, step, len), d2, step, len);
+          var hide = ri(1, len - 1);
+          var cells = arr2.map(function (x, idx) { return idx === hide ? '<span class="pt-blank"></span>' : '<span class="pt-n">' + x + '</span>'; }).join('');
+          var idline = '<div class="pt-id">แบบรูปของจำนวนที่ <span class="pt-ul"></span> ทีละ <span class="pt-ul pt-ul-sm"></span></div>';
+          out.push({ q: '<div class="pt-fill"><div class="pt-seq">' + cells + '</div>' + idline + '</div>', a: 'ช่องว่าง = ' + arr2[hide] + ' · ' + dw(d2) + 'ทีละ ' + step, noline: true, tall: true, grid: true, per: 6, exp: true });
+        }
+      }
+      return out;
     }
   };
   function buildProblems(ch, level, count) {
