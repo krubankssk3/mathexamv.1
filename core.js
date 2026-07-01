@@ -813,6 +813,46 @@
         out.push({ q: '<div class="ubox-q"><div class="ubox-eq">' + eq + '</div>' + lines + '</div>', a: String(ans), noline: true, box: true, grid: true });
       }
       return out;
+    },
+
+    evenodd: function (c) {
+      var R = c.range || [10, 999];
+      var layout = c.layout || 'row';
+      var target = c.target || 'even';
+      var max = Math.min(50, c.count);
+      function isEv(n) { return n % 2 === 0; }
+      function pickT() { return target === 'mix' ? (ri(0, 1) ? 'even' : 'odd') : target; }
+      function tn(t) { return t === 'even' ? 'คู่' : 'คี่'; }
+      function genSet(k) {
+        var arr, guard = 0;
+        do {
+          arr = []; var set = {}, g2 = 0;
+          while (arr.length < k && g2++ < 400) { var v = ri(R[0], R[1]); if (!set[v]) { set[v] = 1; arr.push(v); } }
+          guard++;
+        } while (guard < 25 && !(arr.some(isEv) && arr.some(function (x) { return !isEv(x); })));
+        return arr;
+      }
+      function ansOf(nums, t) { return 'จำนวน' + tn(t) + ': ' + nums.filter(function (v) { return t === 'even' ? isEv(v) : !isEv(v); }).join(', '); }
+      var out = [], i;
+      if (layout === 'grid') {
+        var gr = c.grows || 4, gc = c.gcols || 4, tot = gr * gc;
+        for (i = 0; i < max; i++) {
+          var t = pickT(), nums = genSet(tot);
+          var cells = nums.map(function (v) { return '<span class="eo-cell">' + v + '</span>'; }).join('');
+          var tag = (target === 'mix') ? '<div class="eo-tag">เขียน ✗ ทับจำนวน' + tn(t) + '</div>' : '';
+          var grid = '<div class="eo-grid" style="grid-template-columns:repeat(' + gc + ',1fr)">' + cells + '</div>';
+          out.push({ q: '<div class="eo-gridwrap">' + tag + grid + '</div>', a: ansOf(nums, t), noline: true, tall: true, grid: true, per: 2 });
+        }
+      } else {
+        var k = c.k || 4;
+        for (i = 0; i < max; i++) {
+          var t2 = pickT(), nums2 = genSet(k);
+          var cells2 = nums2.map(function (v) { return '<span class="eo-n">' + v + '</span>'; }).join('');
+          var tag2 = (target === 'mix') ? '<span class="eo-tag">วง' + tn(t2) + '</span>' : '';
+          out.push({ q: '<div class="eo-row">' + tag2 + '<span class="eo-nums">' + cells2 + '</span></div>', a: ansOf(nums2, t2), noline: true, grid: true, per: 12, exp: true });
+        }
+      }
+      return out;
     }
   };
   function buildProblems(ch, level, count) {
