@@ -145,6 +145,9 @@
         var selExpMode = lvObj.mode || 'full';
         var selEoTarget = lvObj.target || 'even';
         var selEoLayout = lvObj.layout || 'row';
+        var selPtStep = lvObj.step || 2;
+        var selPtDir = lvObj.dir || 'mix';
+        var selPtLayout = (curGen === 'pattern' ? (lvObj.layout || 'fill') : 'fill');
         var selCmpMode = lvObj.mode || 'two';
         var instr0 = lvObj.instruction || '';
 
@@ -314,6 +317,24 @@
                 '</select>' +
                 '<div style="font-size:.8rem;color:#9aa8c8;margin-top:.3rem">เลือก "ช่วงตัวเลข" ด้านบน · แนะนำพิมพ์แบบ 1 คอลัมน์</div>' +
               '</div>' +
+              '<div id="sw_patternWrap" style="display:none">' +
+                '<label style="font-size:.85rem;color:#9aa8c8">ผลต่าง (เพิ่ม/ลด ทีละ)</label>' +
+                '<select id="sw_ptstep" style="' + INP + '">' +
+                  [2, 3, 5, 10, 20, 25, 100].map(function (s) { return '<option value="' + s + '"' + (Number(selPtStep) === s ? ' selected' : '') + '>ทีละ ' + s + '</option>'; }).join('') +
+                '</select>' +
+                '<label style="font-size:.85rem;color:#9aa8c8;margin-top:.4rem;display:block">ทิศทาง (เฉพาะแบบเติมช่องว่าง)</label>' +
+                '<select id="sw_ptdir" style="' + INP + '">' +
+                  '<option value="up"' + (selPtDir === 'up' ? ' selected' : '') + '>เพิ่มขึ้น</option>' +
+                  '<option value="down"' + (selPtDir === 'down' ? ' selected' : '') + '>ลดลง</option>' +
+                  '<option value="mix"' + (selPtDir === 'mix' ? ' selected' : '') + '>คละ เพิ่ม/ลด</option>' +
+                '</select>' +
+                '<label style="font-size:.85rem;color:#9aa8c8;margin-top:.4rem;display:block">รูปแบบใบงาน</label>' +
+                '<select id="sw_ptlayout" style="' + INP + '">' +
+                  '<option value="fill"' + (selPtLayout === 'fill' ? ' selected' : '') + '>เติมจำนวนที่หายไป + บอกแบบรูป</option>' +
+                  '<option value="mark"' + (selPtLayout === 'mark' ? ' selected' : '') + '>เขียน ✓ / ✗ ว่าเพิ่มหรือลดทีละที่กำหนด</option>' +
+                '</select>' +
+                '<div style="font-size:.8rem;color:#9aa8c8;margin-top:.3rem">เลือก "ช่วงตัวเลข" ด้านบน · แบบมาร์กจะมีทั้งเพิ่ม/ลด/ไม่ใช่ ปนกัน · แนะนำพิมพ์ 1 คอลัมน์</div>' +
+              '</div>' +
               '<div id="sw_noOps" style="display:none;font-size:.82rem;color:#9aa8c8;margin-top:.3rem">ชนิดนี้สร้างโจทย์ให้อัตโนมัติ ไม่ต้องตั้งตัวดำเนินการ</div>' +
             '</div>',
           showCancelButton: true, confirmButtonText: editing ? 'บันทึก' : 'เพิ่ม', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#6366f1',
@@ -324,7 +345,7 @@
               var v = sel.value;
               document.getElementById('sw_arithWrap').style.display = v === 'arith' ? 'block' : 'none';
               document.getElementById('sw_picWrap').style.display = v === 'picture' ? 'block' : 'none';
-              document.getElementById('sw_rangeWrap').style.display = (v === 'compare' || v === 'numwrite' || v === 'order' || v === 'expand' || v === 'evenodd') ? 'block' : 'none';
+              document.getElementById('sw_rangeWrap').style.display = (v === 'compare' || v === 'numwrite' || v === 'order' || v === 'expand' || v === 'evenodd' || v === 'pattern') ? 'block' : 'none';
               document.getElementById('sw_colorWrap').style.display = v === 'numwrite' ? 'block' : 'none';
               document.getElementById('sw_dirWrap').style.display = v === 'order' ? 'block' : 'none';
               document.getElementById('sw_timeWrap').style.display = v === 'time' ? 'block' : 'none';
@@ -335,7 +356,8 @@
               document.getElementById('sw_expandWrap').style.display = v === 'expand' ? 'block' : 'none';
               document.getElementById('sw_compareWrap').style.display = v === 'compare' ? 'block' : 'none';
               document.getElementById('sw_evenoddWrap').style.display = v === 'evenodd' ? 'block' : 'none';
-              document.getElementById('sw_noOps').style.display = (v === 'arith' || v === 'picture' || v === 'compare' || v === 'numwrite' || v === 'order' || v === 'time' || v === 'geometry' || v === 'measlen' || v === 'weigh' || v === 'word' || v === 'expand' || v === 'evenodd') ? 'none' : 'block';
+              document.getElementById('sw_patternWrap').style.display = v === 'pattern' ? 'block' : 'none';
+              document.getElementById('sw_noOps').style.display = (v === 'arith' || v === 'picture' || v === 'compare' || v === 'numwrite' || v === 'order' || v === 'time' || v === 'geometry' || v === 'measlen' || v === 'weigh' || v === 'word' || v === 'expand' || v === 'evenodd' || v === 'pattern') ? 'none' : 'block';
             }
             sel.addEventListener('change', toggle); toggle();
             var icurl = document.getElementById('sw_icurl');
@@ -415,6 +437,14 @@
               lvObj.range = eor;
               lvObj.target = document.getElementById('sw_eotarget').value || 'even';
               lvObj.layout = document.getElementById('sw_eolayout').value || 'row';
+              return { chapterName: name, icon: icon, gen: gen, ops: '', lv: lvObj, hasLv: true };
+            }
+            if (gen === 'pattern') {
+              var pr = (document.getElementById('sw_range').value || '100-1000').split('-').map(Number);
+              lvObj.range = pr;
+              lvObj.step = Number(document.getElementById('sw_ptstep').value) || 2;
+              lvObj.dir = document.getElementById('sw_ptdir').value || 'mix';
+              lvObj.layout = document.getElementById('sw_ptlayout').value || 'fill';
               return { chapterName: name, icon: icon, gen: gen, ops: '', lv: lvObj, hasLv: true };
             }
             return { chapterName: name, icon: icon, gen: gen, ops: '' };
