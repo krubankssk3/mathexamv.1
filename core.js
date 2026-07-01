@@ -864,7 +864,7 @@
       var max = Math.min(50, c.count);
       function dw(d) { return d === 'up' ? 'เพิ่มขึ้น' : 'ลดลง'; }
       function seq(start, d, st, n) { var a = [], v = start, s = d === 'up' ? 1 : -1, i; for (i = 0; i < n; i++) { a.push(v); v += s * st; } return a; }
-      function startFor(d, st, n) { var span = st * (n - 1); return d === 'up' ? ri(R[0], Math.max(R[0], R[1] - span)) : ri(Math.max(R[0], R[0] + span), R[1]); }
+      function startFor(d, st, n) { var span = st * (n - 1); if (d === 'up') return ri(R[0], Math.max(R[0], R[1] - span)); var lo = R[0] + span, hi = Math.max(lo, R[1]); return ri(lo, hi); }
       var out = [], i;
       if (layout === 'mark') {
         var pool = [1, 3, 10, 25, 50];
