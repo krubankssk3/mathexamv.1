@@ -132,7 +132,7 @@
         var selAr = (curGen === 'arith' && opsArr.length) ? opsArr.slice() : ['+'];
         var selCarry = lvObj.carry || 'any';
         var RANGES_ = [['0-20', '0–20'], ['1-20', '1–20'], ['10-20', '10–20'], ['21-100', '21–100'], ['1-100', '1–100'], ['1-200', '1–200'], ['100-200', '100–200'], ['201-1000', '201–1,000'], ['100-1000', '100–1,000']];
-        var selRange = (lvObj.range && lvObj.range.join('-')) || (curGen === 'numwrite' ? '21-100' : (curGen === 'expand' ? '100-1000' : '10-20'));
+        var selRange = (lvObj.range && lvObj.range.join('-')) || (curGen === 'numwrite' ? '21-100' : ((curGen === 'expand' || curGen === 'evenodd') ? '100-1000' : '10-20'));
         var selColor = lvObj.color || 'orange';
         var selDir = lvObj.dir || 'asc';
         var selK = lvObj.k || 4;
@@ -143,6 +143,9 @@
         var selWMode = lvObj.mode || 'mix';
         var selWStyle = lvObj.wstyle || 'full';
         var selExpMode = lvObj.mode || 'full';
+        var selEoTarget = lvObj.target || 'even';
+        var selEoLayout = lvObj.layout || 'row';
+        var selCmpMode = lvObj.mode || 'two';
         var instr0 = lvObj.instruction || '';
 
         function tglBtns(list, sel, cls) {
@@ -289,6 +292,28 @@
                 '</select>' +
                 '<div style="font-size:.8rem;color:#9aa8c8;margin-top:.3rem">เลือก "ช่วงตัวเลข" ด้านบนเป็น 100–1,000 สำหรับ 3 หลัก · พิมพ์เลือก 2 คอลัมน์ได้</div>' +
               '</div>' +
+              '<div id="sw_compareWrap" style="display:none">' +
+                '<label style="font-size:.85rem;color:#9aa8c8">รูปแบบการเปรียบเทียบ</label>' +
+                '<select id="sw_cmpmode" style="' + INP + '">' +
+                  '<option value="two"' + (selCmpMode === 'two' ? ' selected' : '') + '>2 จำนวน (A ⬚ B)</option>' +
+                  '<option value="three"' + (selCmpMode === 'three' ? ' selected' : '') + '>3 จำนวน (A ⬚ B ⬚ C)</option>' +
+                '</select>' +
+                '<div style="font-size:.8rem;color:#9aa8c8;margin-top:.3rem">เติมเครื่องหมาย &gt; &lt; = · ทุกโหมดมีโอกาสเจอ = (เท่ากัน)</div>' +
+              '</div>' +
+              '<div id="sw_evenoddWrap" style="display:none">' +
+                '<label style="font-size:.85rem;color:#9aa8c8">เป้าหมาย</label>' +
+                '<select id="sw_eotarget" style="' + INP + '">' +
+                  '<option value="even"' + (selEoTarget === 'even' ? ' selected' : '') + '>จำนวนคู่</option>' +
+                  '<option value="odd"' + (selEoTarget === 'odd' ? ' selected' : '') + '>จำนวนคี่</option>' +
+                  '<option value="mix"' + (selEoTarget === 'mix' ? ' selected' : '') + '>คละ คู่/คี่ (มีป้ายบอกแต่ละข้อ)</option>' +
+                '</select>' +
+                '<label style="font-size:.85rem;color:#9aa8c8;margin-top:.4rem;display:block">รูปแบบใบงาน</label>' +
+                '<select id="sw_eolayout" style="' + INP + '">' +
+                  '<option value="row"' + (selEoLayout === 'row' ? ' selected' : '') + '>แถวพิลล์ — วงรอบ</option>' +
+                  '<option value="grid"' + (selEoLayout === 'grid' ? ' selected' : '') + '>ตารางกริด 4×4 — เขียน ✗ ทับ</option>' +
+                '</select>' +
+                '<div style="font-size:.8rem;color:#9aa8c8;margin-top:.3rem">เลือก "ช่วงตัวเลข" ด้านบน · แนะนำพิมพ์แบบ 1 คอลัมน์</div>' +
+              '</div>' +
               '<div id="sw_noOps" style="display:none;font-size:.82rem;color:#9aa8c8;margin-top:.3rem">ชนิดนี้สร้างโจทย์ให้อัตโนมัติ ไม่ต้องตั้งตัวดำเนินการ</div>' +
             '</div>',
           showCancelButton: true, confirmButtonText: editing ? 'บันทึก' : 'เพิ่ม', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#6366f1',
@@ -299,7 +324,7 @@
               var v = sel.value;
               document.getElementById('sw_arithWrap').style.display = v === 'arith' ? 'block' : 'none';
               document.getElementById('sw_picWrap').style.display = v === 'picture' ? 'block' : 'none';
-              document.getElementById('sw_rangeWrap').style.display = (v === 'compare' || v === 'numwrite' || v === 'order' || v === 'expand') ? 'block' : 'none';
+              document.getElementById('sw_rangeWrap').style.display = (v === 'compare' || v === 'numwrite' || v === 'order' || v === 'expand' || v === 'evenodd') ? 'block' : 'none';
               document.getElementById('sw_colorWrap').style.display = v === 'numwrite' ? 'block' : 'none';
               document.getElementById('sw_dirWrap').style.display = v === 'order' ? 'block' : 'none';
               document.getElementById('sw_timeWrap').style.display = v === 'time' ? 'block' : 'none';
@@ -308,7 +333,9 @@
               document.getElementById('sw_weighWrap').style.display = v === 'weigh' ? 'block' : 'none';
               document.getElementById('sw_wordWrap').style.display = v === 'word' ? 'block' : 'none';
               document.getElementById('sw_expandWrap').style.display = v === 'expand' ? 'block' : 'none';
-              document.getElementById('sw_noOps').style.display = (v === 'arith' || v === 'picture' || v === 'compare' || v === 'numwrite' || v === 'order' || v === 'time' || v === 'geometry' || v === 'measlen' || v === 'weigh' || v === 'word' || v === 'expand') ? 'none' : 'block';
+              document.getElementById('sw_compareWrap').style.display = v === 'compare' ? 'block' : 'none';
+              document.getElementById('sw_evenoddWrap').style.display = v === 'evenodd' ? 'block' : 'none';
+              document.getElementById('sw_noOps').style.display = (v === 'arith' || v === 'picture' || v === 'compare' || v === 'numwrite' || v === 'order' || v === 'time' || v === 'geometry' || v === 'measlen' || v === 'weigh' || v === 'word' || v === 'expand' || v === 'evenodd') ? 'none' : 'block';
             }
             sel.addEventListener('change', toggle); toggle();
             var icurl = document.getElementById('sw_icurl');
@@ -349,6 +376,7 @@
               var rr = (document.getElementById('sw_range').value || (gen === 'numwrite' ? '21-100' : '10-20')).split('-').map(Number);
               lvObj.range = rr;
               if (gen === 'numwrite') lvObj.color = document.getElementById('sw_color').value || 'orange';
+              if (gen === 'compare') lvObj.mode = document.getElementById('sw_cmpmode').value || 'two';
               return { chapterName: name, icon: icon, gen: gen, ops: '', lv: lvObj, hasLv: true };
             }
             if (gen === 'order') {
@@ -380,6 +408,13 @@
               var er = (document.getElementById('sw_range').value || '100-1000').split('-').map(Number);
               lvObj.range = er;
               lvObj.mode = document.getElementById('sw_expmode').value || 'full';
+              return { chapterName: name, icon: icon, gen: gen, ops: '', lv: lvObj, hasLv: true };
+            }
+            if (gen === 'evenodd') {
+              var eor = (document.getElementById('sw_range').value || '100-1000').split('-').map(Number);
+              lvObj.range = eor;
+              lvObj.target = document.getElementById('sw_eotarget').value || 'even';
+              lvObj.layout = document.getElementById('sw_eolayout').value || 'row';
               return { chapterName: name, icon: icon, gen: gen, ops: '', lv: lvObj, hasLv: true };
             }
             return { chapterName: name, icon: icon, gen: gen, ops: '' };
