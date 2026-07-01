@@ -180,6 +180,15 @@
   .eo-gridwrap{display:flex;flex-direction:column;gap:6px;width:100%}
   .eo-grid{display:grid;border:1.8px solid #e48aa6;border-radius:8px;overflow:hidden}
   .eo-cell{border:0.9px solid #e9a7bb;padding:18px 4px;text-align:center;font-size:20px;font-weight:600}
+  .pt-seq{display:flex;flex-wrap:wrap;gap:10px 22px;align-items:center;font-size:21px}
+  .pt-n{min-width:38px;text-align:center;font-weight:600}
+  .pt-blank{display:inline-block;min-width:64px;border-bottom:2px dotted #999;height:1.35em}
+  .pt-fill{border:1.8px solid #e48aa6;background:#fdeef2;border-radius:16px;padding:16px 20px;display:flex;flex-direction:column;gap:14px;width:100%}
+  .pt-id{font-size:15px;display:flex;align-items:center;gap:6px;flex-wrap:wrap;color:#333}
+  .pt-ul{display:inline-block;min-width:92px;border-bottom:1.5px dotted #999;height:1.2em}
+  .pt-ul-sm{min-width:46px}
+  .pt-mark{display:flex;align-items:center;gap:16px;padding:9px 6px}
+  .pt-box{flex:none;width:30px;height:30px;border:1.8px solid #e48aa6;background:#fdeef2;border-radius:5px}
   /* แท่งฐานสิบ */
   .blocks{display:inline-flex;align-items:flex-end;gap:4px;flex-wrap:wrap;row-gap:6px}
   .b-rod{width:16px;height:80px;border:1px solid var(--bb,#b07a4a);border-radius:2px;background-image:repeating-linear-gradient(to bottom, var(--bb,#b07a4a) 0, var(--bb,#b07a4a) 1px, transparent 1px, transparent 10%), linear-gradient(90deg,var(--bl,#f3c896),var(--bd,#e0a86b))}
@@ -289,6 +298,9 @@
   #printArea .eo-grid{border-color:#333}
   #printArea .eo-cell{border-color:#888}
   #printArea .eo-tag{color:#111}
+  #printArea .pt-fill{background:#fff;border-color:#333}
+  #printArea .pt-blank,#printArea .pt-ul{border-color:#333}
+  #printArea .pt-box{border-color:#111;background:#fff}
   .ans-line{display:inline-block;border-bottom:1px solid #999;min-width:70px;margin-left:6px}
   .frac{display:inline-flex;flex-direction:column;text-align:center;vertical-align:middle;line-height:1;margin:0 2px}
   .frac span:first-child{border-bottom:1.5px solid currentColor;padding:0 4px}
