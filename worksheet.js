@@ -156,12 +156,18 @@
         weigh: 'อ่านน้ำหนักจากหน้าปัดแล้วเติมคำตอบ และวาดเข็มชี้น้ำหนักตามที่กำหนด (หน่วยเป็นขีด)',
         weighcmp: 'อ่านน้ำหนักจากตาชั่ง เติมตัวเลข แล้วเติมคำว่า หนักกว่า หรือ เบากว่า และผลต่างเป็นขีด',
         findbox: 'หาค่าของตัวเลขในกรอบสี่เหลี่ยม แล้วแสดงวิธีทำลงในช่องว่าง',
-        word: 'อ่านโจทย์ปัญหาแต่ละข้อ แล้วเขียนประโยคสัญลักษณ์และหาคำตอบ พร้อมเติมหน่วยให้ถูกต้อง'
+        word: 'อ่านโจทย์ปัญหาแต่ละข้อ แล้วเขียนประโยคสัญลักษณ์และหาคำตอบ พร้อมเติมหน่วยให้ถูกต้อง',
+        evenodd: 'วงรอบ หรือเขียนเครื่องหมาย ✗ ทับ จำนวนคู่หรือจำนวนคี่ ตามที่กำหนดในแต่ละข้อ'
       };
       function makeSet() {
         var g = gradeOf(st.gradeId), ch = chapterOf(st.gradeId, st.chapterId);
         var res = svc.genProblems(ch, st.level, st.count);
         var instrText = (ch.lv && ch.lv.instruction) || DEF_INSTR[ch.gen] || '';
+        if (ch.gen === 'evenodd' && ch.lv && !(ch.lv.instruction)) {
+          var _a = ch.lv.layout === 'grid' ? 'เขียนเครื่องหมาย ✗ ทับ' : 'วงรอบ';
+          var _t = ch.lv.target === 'mix' ? 'จำนวนตามที่กำหนด' : ('จำนวน' + (ch.lv.target === 'odd' ? 'คี่' : 'คู่'));
+          instrText = _a + _t + 'ในแต่ละข้อ';
+        }
         return { setId: res.setId, subjectName: g.name + ' · ' + ch.name, problems: res.problems, level: st.level, cols: st.cols, title: st.title, instr: instrText, picture: ch.gen === 'picture' };
       }
       function sheetOpts(c, withKey, qr) {
