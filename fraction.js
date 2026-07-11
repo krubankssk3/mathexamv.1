@@ -196,6 +196,8 @@
 
   window.Platform.register({
     id: 'fraction',
+    title: 'แบบฝึกหัดเศษส่วน',
+    icon: 'ti-math-x-divide-y',
     mount: function (host, svc) {
       ensureCSS();
       var st = { kind: 'ff', same: false, count: 20, title: '', setId: '', showKey: false, probs: [] };
