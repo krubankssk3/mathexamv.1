@@ -116,7 +116,6 @@
       return t;
     }
     var bkt = '<td class="dbkt">)</td>', bkt0 = '<td class="dbkt"></td>';
-    function leftMinus() { var t = '', j; for (j = 0; j < DW; j++) t += '<td class="dvn' + (j === DW - 1 ? ' dk dminus' : '') + '">' + (j === DW - 1 ? '−' : '') + '</td>'; return t; }
     var rows = '', i;
     if (mode === 'short') {
       // ตัวหาร ) ตัวตั้ง (เส้นคู่ใต้ตัวตั้ง)
@@ -127,15 +126,25 @@
       rows += '<tr>' + divisorCells(false) + bkt0 + areaCells(qArrS, '', null, true) + remS + '</tr>';
       return '<div class="ld"><table class="dtab">' + rows + '</table></div>';
     }
-    // หารยาว: ผลลัพธ์บน → ตัวหาร)ตัวตั้ง(เส้นหนาเหนือ) → บรรทัดทำงาน
+    // หารยาว: สร้างรายการแถวก่อน (kind: q/dividend/sub/rem) เพื่อวาง − ทางขวาแบบ rowspan
     var qArr = showAns ? place(String(info.quotient), W - 1) : [];
-    rows += '<tr>' + divisorCells(false) + bkt0 + areaCells(qArr, '', null, true) + '</tr>';
-    rows += '<tr>' + divisorCells(true) + bkt + areaCells(ds.split(''), 'vtop', null, false) + '</tr>';
+    var rl = [];
+    rl.push({ left: divisorCells(false), bk: bkt0, area: areaCells(qArr, '', null, true), kind: 'q' });
+    rl.push({ left: divisorCells(true), bk: bkt, area: areaCells(ds.split(''), 'vtop', null, false), kind: 'dividend' });
     for (i = 0; i < info.lines.length; i++) {
       var ln = info.lines[i], arr = [], ul = null;
       if (showAns) { arr = place(ln.str, ln.rightCol); if (ln.underline) ul = [ln.rightCol - ln.str.length + 1, ln.rightCol]; }
-      var left = (showAns && ln.underline) ? leftMinus() : divisorCells(false);   // − หน้าบรรทัดที่นำมาลบ
-      rows += '<tr>' + left + bkt0 + areaCells(arr, '', ul, true) + '</tr>';
+      rl.push({ left: divisorCells(false), bk: bkt0, area: areaCells(arr, '', ul, true), kind: ln.underline ? 'sub' : 'rem' });
+    }
+    // ประกอบแถว + เซลล์ − ทางขวา (rowspan ครอบแถวตัวตั้งกับแถวตัวลบ กึ่งกลางแนวตั้ง)
+    for (i = 0; i < rl.length; i++) {
+      var right = '';
+      if (showAns) {
+        if (i + 1 < rl.length && rl[i + 1].kind === 'sub') right = '<td class="dminus" rowspan="2">−</td>';  // อยู่กึ่งกลางระหว่างตัวตั้งกับตัวลบ
+        else if (rl[i].kind === 'sub') right = '';                 // ถูก rowspan ครอบไว้
+        else right = '<td class="dsp"></td>';
+      }
+      rows += '<tr>' + rl[i].left + rl[i].bk + rl[i].area + right + '</tr>';
     }
     return '<div class="ld"><table class="dtab">' + rows + '</table></div>';
   }
@@ -184,6 +193,7 @@
       + '.dtab td.dk{color:' + ac + '}'
       + '.dtab td.drem{border:0;color:' + ac + ';font-weight:700;white-space:nowrap;padding-left:6px}'
       + '.dtab td.dsp{border:0}'
+      + '.dtab td.dminus{border:0;color:' + ac + ';font-weight:700;vertical-align:middle;text-align:center;padding:0 3px}'
       + '.foot{margin-top:12px;text-align:center;font-size:11px;color:#777;border-top:1px solid #eee;padding-top:6px}';
   }
 
@@ -213,7 +223,7 @@
     for (i = 0; i < o.probs.length; i++) {
       var pp = o.probs[i];
       if (isDiv) {
-        maxGC = Math.max(maxGC, pp.cols + String(pp.nums[1]).length + 1);   // ตัวตั้ง + ตัวหาร + วงเล็บ
+        maxGC = Math.max(maxGC, pp.cols + String(pp.nums[1]).length + 2);   // ตัวตั้ง + ตัวหาร + วงเล็บ + คอลัมน์ −
         maxRows = Math.max(maxRows, divProbRows(pp, o.mode));
       } else {
         maxGC = Math.max(maxGC, pp.cols);
@@ -235,6 +245,7 @@
       + '.dtab td.db{width:' + cell + 'mm;height:' + cell + 'mm;line-height:' + cell + 'mm;font-size:' + dfpx + 'px}'
       + '.dtab td.dvn{width:' + cell + 'mm;height:' + cell + 'mm;line-height:' + cell + 'mm;font-size:' + dfpx + 'px}'
       + '.dtab td.dbkt{font-size:' + (dfpx + 8) + 'px}'
+      + '.dtab td.dminus{font-size:' + (dfpx + 4) + 'px}'
       + '.dtab td.drem{font-size:' + dfpx + 'px}'
       + '.prob .no{font-size:' + Math.max(14, fpx - 2) + 'px}';
 
@@ -345,6 +356,7 @@
       + '.efadd-prob .dtab td.dbl{border-bottom:4px double var(--txt)}'
       + '.efadd-prob .dtab td.dul{border-bottom:2px solid var(--txt)}'
       + '.efadd-prob .dtab td.dk,.efadd-prob .dtab td.drem{color:var(--accent)}'
+      + '.efadd-prob .dtab td.dminus{color:var(--accent);font-weight:700;vertical-align:middle;padding:0 3px;font-size:20px}'
       + '.efadd-field{display:flex;flex-direction:column;gap:5px}'
       + '.efadd-field label{font-size:13px;color:var(--muted)}'
       + '.efadd-field select,.efadd-field input{padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt);font:inherit}'
