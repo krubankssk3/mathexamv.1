@@ -1,0 +1,287 @@
+/*** EduForge plugin — แบบฝึกหัดเศษส่วน *********************************
+ * แบ่งเป็น บวก / ลบ / คูณ / หาร (เศษส่วน) — เริ่มเปิดใช้ "การบวก" ก่อน
+ *
+ * การบวกเศษส่วน มี 3 ประเภท:
+ *   1) เศษส่วน + เศษส่วน   2) เศษส่วน + จำนวนคละ   3) จำนวนคละ + จำนวนคละ
+ * เศษส่วนธรรมดา = เศษแท้ (น<ส) หรือ เศษเกิน (น>ส) ก็ได้ · จำนวนคละมีเศษส่วนแท้
+ * เลือกตัวส่วน "เท่ากัน / ไม่เท่ากัน" · เฉลยบอกคำตอบ + ต่อท้ายรูปอย่างต่ำถ้าทอนได้
+ * A4 พอดีหน้า · เฉลย (inline/พิมพ์พร้อมเฉลย/QR) · จับเวลา · ช่องเวลาที่ใช้
+ ***********************************************************************/
+(function () {
+  var $ = function (s, r) { return (r || document).querySelector(s); };
+  var $$ = function (s, r) { return [].slice.call((r || document).querySelectorAll(s)); };
+  function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+  var LOGO = 'https://img2.pic.in.th/pic/Logo-7aecb8e321ff2955.png';
+  var FOOTER = 'พัฒนาโดย นายชิติพัทธ์ นิลวรรณ ครู สพป.ศรีสะเกษ เขต 3';
+  function rndI(a, b) { return Math.floor(Math.random() * (b - a + 1)) + a; }
+  function pad2(n) { return (n < 10 ? '0' : '') + n; }
+  function gcd(a, b) { a = Math.abs(a); b = Math.abs(b); while (b) { var t = b; b = a % b; a = t; } return a || 1; }
+  function lcm(a, b) { return a / gcd(a, b) * b; }
+
+  /* ---------- โครงเศษส่วน/จำนวนคละ + คำตอบ ---------- */
+  function toImproper(o) { return { n: (o.w || 0) * o.d + o.n, d: o.d }; }
+  function computeAnswer(a, b) {
+    var A = toImproper(a), B = toImproper(b), D = lcm(A.d, B.d);
+    var N = A.n * (D / A.d) + B.n * (D / B.d);
+    var isMixed = (a.type === 'mixed' || b.type === 'mixed');
+    var raw, red = null, g;
+    if (isMixed) {
+      var W = Math.floor(N / D), n = N % D;
+      raw = (n === 0) ? { t: 'whole', w: W } : { t: 'mixed', w: W, n: n, d: D };
+      if (n > 0) { g = gcd(n, D); if (g > 1) { var rn = n / g, rd = D / g; red = (rd === 1) ? { t: 'whole', w: W + rn } : { t: 'mixed', w: W, n: rn, d: rd }; } }
+    } else {
+      raw = { t: 'frac', n: N, d: D };
+      g = gcd(N, D);
+      if (g > 1) { var n2 = N / g, d2 = D / g; red = (d2 === 1) ? { t: 'whole', w: n2 } : { t: 'frac', n: n2, d: d2 }; }
+    }
+    return { raw: raw, red: red };
+  }
+
+  /* ---------- เรนเดอร์ HTML ---------- */
+  function fracHTML(n, d) { return '<span class="fr"><span class="fn">' + n + '</span><span class="fd">' + d + '</span></span>'; }
+  function mixedHTML(w, n, d) { return '<span class="mx"><span class="mw">' + w + '</span>' + fracHTML(n, d) + '</span>'; }
+  function operandHTML(o) { return o.type === 'mixed' ? mixedHTML(o.w, o.n, o.d) : fracHTML(o.n, o.d); }
+  function structHTML(s) {
+    if (s.t === 'whole') return '<span class="mw">' + s.w + '</span>';
+    if (s.t === 'mixed') return mixedHTML(s.w, s.n, s.d);
+    return fracHTML(s.n, s.d);
+  }
+  function answerHTML(ans) { return structHTML(ans.raw) + (ans.red ? '<span class="eq">=</span>' + structHTML(ans.red) : ''); }
+
+  /* ---------- สุ่มโจทย์ ---------- */
+  function genDen() { return rndI(2, 12); }
+  function genFrac(d) { var improper = Math.random() < 0.4; return { type: 'frac', n: improper ? rndI(d + 1, 2 * d - 1) : rndI(1, d - 1), d: d }; }
+  function genMixedNum(d) { return { type: 'mixed', w: rndI(1, 9), n: rndI(1, d - 1), d: d }; }
+  function genProblem(kind, sameDenom) {
+    var d1 = genDen(), d2;
+    if (sameDenom) d2 = d1; else { do { d2 = genDen(); } while (d2 === d1); }
+    var a, b;
+    if (kind === 'ff') { a = genFrac(d1); b = genFrac(d2); }
+    else if (kind === 'fm') { a = genFrac(d1); b = genMixedNum(d2); }
+    else { a = genMixedNum(d1); b = genMixedNum(d2); }
+    return { a: a, b: b, ans: computeAnswer(a, b) };
+  }
+
+  /* ---------- CSS เอกสารพิมพ์ ---------- */
+  function printCSS(ac) {
+    return ''
+      + '@page{size:A4 portrait;margin:9mm}'
+      + '*{box-sizing:border-box}'
+      + "body{font-family:'TH Sarabun New','Sarabun',sans-serif;color:#1a1a1a;margin:0;-webkit-print-color-adjust:exact;print-color-adjust:exact}"
+      + '.hd{border:2px solid ' + ac + ';border-radius:10px;padding:8px 12px;position:relative;margin-bottom:10px;background:linear-gradient(180deg,#fff,color-mix(in srgb,' + ac + ' 8%,#fff))}'
+      + '.hd .top{display:flex;align-items:center;gap:10px;padding-right:96px}'
+      + '.hd .logo{width:42px;height:42px;object-fit:contain;flex:0 0 auto}'
+      + '.hd .ttl{font-size:24px;font-weight:700;color:' + ac + ';line-height:1.1}'
+      + '.hd .nm{font-size:21px;margin-top:9px;padding-right:96px}'
+      + '.hd .meta{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:20px;margin-top:9px;align-items:center}'
+      + '.hd .meta .box{border:1px solid ' + ac + ';border-radius:6px;padding:3px 12px;text-align:center;color:' + ac + ';font-weight:600}'
+      + '.qr{position:absolute;top:8px;right:12px;width:80px;text-align:center}'
+      + '.qr img{width:80px;height:80px;display:block}.qr .cap{font-size:9px;color:#888}'
+      + '.dot{border-bottom:1px dotted #555;display:inline-block;min-width:60px}'
+      + '.page{position:relative;display:flex;flex-direction:column;height:277mm;overflow:hidden}'
+      + '.page.brk{page-break-before:always}'
+      + '.conthd{border-bottom:2px solid ' + ac + ';color:' + ac + ';font-weight:700;font-size:18px;padding-bottom:6px;margin-bottom:12px}'
+      + '.conthd span{font-weight:400;font-size:13px;color:#999}'
+      + '.grid{display:grid;gap:6px 20px;flex:1;align-content:space-evenly}'
+      + '.pb{display:flex;align-items:center;gap:8px;padding:4px 2px;break-inside:avoid}'
+      + '.pb .no{font-weight:700;color:' + ac + ';min-width:26px}'
+      + '.ex{display:flex;align-items:center;gap:7px;flex-wrap:wrap}'
+      + '.op{font-weight:700}'
+      + '.fr{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1.03}'
+      + '.fr .fn{padding:0 5px;border-bottom:2px solid currentColor}'
+      + '.fr .fd{padding:0 5px}'
+      + '.mx{display:inline-flex;align-items:center;gap:3px}.mx .mw{font-weight:600}'
+      + '.eq{margin:0 4px;font-weight:700}'
+      + '.ansbl{border-bottom:1px dotted #999;min-width:90px;display:inline-block}'
+      + '.ansk{color:' + ac + '}'
+      + '.foot{margin-top:10px;text-align:center;font-size:11px;color:#777;border-top:1px solid #eee;padding-top:6px}';
+  }
+  function headHTML(o) {
+    var qr = o.qrImg ? '<div class="qr"><img src="' + o.qrImg + '"><div class="cap">สแกนดูเฉลย</div></div>' : '';
+    return '<div class="hd">' + qr
+      + '<div class="top"><img class="logo" src="' + (o.logo || LOGO) + '"><div><div class="ttl">' + esc(o.title) + '</div>'
+      + '<div style="font-size:12px;color:' + o.accent + '">' + esc(o.org || '') + (o.org ? ' &middot; ' : '') + 'ชุดที่ ' + esc(o.setId) + ' &middot; ' + esc(o.sub) + '</div></div></div>'
+      + '<div class="nm">ชื่อ <span class="dot" style="min-width:200px"></span> ชั้น <span class="dot" style="min-width:50px"></span> เลขที่ <span class="dot" style="min-width:40px"></span></div>'
+      + '<div class="meta"><span>วันที่ <span class="dot" style="min-width:40px"></span> เดือน <span class="dot" style="min-width:80px"></span> พ.ศ. <span class="dot" style="min-width:50px"></span></span>'
+      + '<span class="box">เวลาที่ใช้ทำ <span class="dot" style="min-width:50px;border-color:' + o.accent + '"></span> นาที</span>'
+      + '<span class="box">คะแนนที่ได้ <span class="dot" style="min-width:55px;border-color:' + o.accent + '"></span></span></div></div>';
+  }
+  function sheetHTML(o, withKey) {
+    var PER = 20, i, cols = 2;
+    var fs = 22;   // ขนาดฟอนต์เศษส่วน
+    var dyn = '.ex{font-size:' + fs + 'px}.pb .no{font-size:' + (fs - 4) + 'px}.ansbl{height:' + fs + 'px}';
+    var pages = [];
+    for (i = 0; i < o.probs.length; i += PER) pages.push(o.probs.slice(i, i + PER));
+    var total = pages.length;
+    var body = pages.map(function (chunk, pi) {
+      var cells = chunk.map(function (p, j) {
+        var no = pi * PER + j + 1;
+        var ansCell = withKey ? '<span class="ansk">' + answerHTML(p.ans) + '</span>' : '<span class="ansbl"></span>';
+        return '<div class="pb"><span class="no">' + no + ')</span><span class="ex">' + operandHTML(p.a) + '<span class="op">+</span>' + operandHTML(p.b) + '<span class="eq">=</span>' + ansCell + '</span></div>';
+      }).join('');
+      var grid = '<div class="grid" style="grid-template-columns:repeat(' + cols + ',1fr)">' + cells + '</div>';
+      var header = pi === 0
+        ? headHTML(o) + (withKey ? '<div style="text-align:center;color:' + o.accent + ';font-weight:700;margin:2px 0 6px">★ ฉบับเฉลย ★</div>' : '')
+        : '<div class="conthd">' + esc(o.title) + ' <span>· ชุด ' + esc(o.setId) + ' · หน้า ' + (pi + 1) + '/' + total + '</span></div>';
+      var foot = (pi === total - 1) ? '<div class="foot">' + FOOTER + '</div>' : '';
+      return '<div class="page' + (pi > 0 ? ' brk' : '') + '">' + header + grid + foot + '</div>';
+    }).join('');
+    return '<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
+      + '<title>' + esc(o.title) + '</title><style>' + printCSS(o.accent) + dyn + '</style></head><body>' + body + '</body></html>';
+  }
+  function printDoc(html) {
+    var f = document.createElement('iframe');
+    f.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
+    document.body.appendChild(f);
+    var d = f.contentWindow.document; d.open(); d.write(html); d.close();
+    setTimeout(function () { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { } setTimeout(function () { if (f.parentNode) f.parentNode.removeChild(f); }, 1200); }, 450);
+  }
+
+  /* ---------- จับเวลาเต็มจอ (สไตล์เกม 24) ---------- */
+  var TM = { el: null, left: 0, run: false, iv: null, mins: 10, reset: null };
+  function tmOpen() {
+    if (!TM.el) {
+      var w = document.createElement('div');
+      w.style.cssText = 'position:fixed;inset:0;z-index:99999;display:none;flex-direction:column;align-items:center;justify-content:center;background:radial-gradient(120% 120% at 50% 0%,#101426,#05070f);color:#fff;font-family:inherit';
+      w.innerHTML = '<button id="fTmX" style="position:absolute;top:18px;right:22px;background:none;border:0;color:#7c8497;font-size:30px;cursor:pointer">&times;</button>'
+        + '<div id="fTmM" style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;justify-content:center"></div>'
+        + '<div id="fTmD" style="font-weight:800;font-size:clamp(72px,20vw,260px);line-height:1;color:#34d399;font-variant-numeric:tabular-nums">10:00</div>'
+        + '<div style="display:flex;gap:14px;margin-top:26px"><button id="fTmGo" style="font-size:22px;padding:14px 40px;border-radius:14px;border:0;background:#34d399;color:#04130d;font-weight:700;cursor:pointer">เริ่ม</button>'
+        + '<button id="fTmR" style="font-size:22px;padding:14px 34px;border-radius:14px;border:1px solid #3a4356;background:transparent;color:#cfd6e4;cursor:pointer">รีเซ็ต</button></div>';
+      document.body.appendChild(w);
+      var disp = $('#fTmD', w), go = $('#fTmGo', w);
+      function draw() { disp.textContent = pad2(Math.floor(TM.left / 60)) + ':' + pad2(TM.left % 60); }
+      function stop() { TM.run = false; if (TM.iv) { clearInterval(TM.iv); TM.iv = null; } go.textContent = 'เริ่ม'; go.style.background = '#34d399'; go.style.color = '#04130d'; }
+      function reset() { stop(); TM.left = TM.mins * 60; draw(); disp.style.color = '#34d399'; }
+      function tick() { if (TM.left <= 0) { stop(); disp.style.color = '#ef4444'; disp.textContent = '00:00'; return; } TM.left--; draw(); if (TM.left <= 30) disp.style.color = '#fbbf24'; if (TM.left <= 10) disp.style.color = '#ef4444'; }
+      var bar = $('#fTmM', w);
+      [5, 10, 15, 20, 30].forEach(function (m) { var b = document.createElement('button'); b.textContent = m + ' น.'; b.style.cssText = 'padding:7px 16px;border-radius:999px;border:1px solid #3a4356;background:transparent;color:#cfd6e4;cursor:pointer;font-size:14px'; b.onclick = function () { TM.mins = m; reset(); $$('#fTmM button', w).forEach(function (x) { x.style.background = 'transparent'; x.style.color = '#cfd6e4'; }); b.style.background = '#34d399'; b.style.color = '#04130d'; }; if (m === TM.mins) { b.style.background = '#34d399'; b.style.color = '#04130d'; } bar.appendChild(b); });
+      go.onclick = function () { if (TM.run) stop(); else { if (TM.left <= 0) reset(); TM.run = true; go.textContent = 'หยุด'; go.style.background = '#fbbf24'; go.style.color = '#1a1300'; TM.iv = setInterval(tick, 1000); } };
+      $('#fTmR', w).onclick = reset; $('#fTmX', w).onclick = function () { stop(); w.style.display = 'none'; };
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && w.style.display === 'flex') { stop(); w.style.display = 'none'; } });
+      TM.el = w; TM.reset = reset; reset();
+    }
+    TM.reset(); TM.el.style.display = 'flex';
+  }
+
+  /* ---------- CSS พรีวิวในแอป ---------- */
+  function ensureCSS() {
+    if ($('#efFracCSS')) return;
+    var s = document.createElement('style'); s.id = 'efFracCSS';
+    s.textContent = ''
+      + '.fr-field{display:flex;flex-direction:column;gap:5px}.fr-field label{font-size:13px;color:var(--muted)}'
+      + '.fr-field select,.fr-field input{padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt);font:inherit}'
+      + '.fr-prev{display:grid;gap:8px 18px;margin-top:14px;grid-template-columns:repeat(2,1fr)}'
+      + '.fr-pb{display:flex;align-items:center;gap:8px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--bg2);font-size:22px}'
+      + '.fr-pb .no{font-weight:700;color:var(--accent);min-width:24px;font-size:16px}'
+      + '.fr-pb .ex{display:flex;align-items:center;gap:6px;flex-wrap:wrap}'
+      + '.fr-pb .op{font-weight:700}.fr-pb .eq{margin:0 4px;font-weight:700}'
+      + '.fr-pb .fr{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1.03}'
+      + '.fr-pb .fr .fn{padding:0 5px;border-bottom:2px solid currentColor}.fr-pb .fr .fd{padding:0 5px}'
+      + '.fr-pb .mx{display:inline-flex;align-items:center;gap:3px}.fr-pb .mx .mw{font-weight:600}'
+      + '.fr-pb .ansbl{border-bottom:1px dotted var(--muted);min-width:80px;display:inline-block;height:22px}'
+      + '.fr-pb .ansk{color:var(--accent)}'
+      + '.frtile{--tile:var(--accent);position:relative;border:0;cursor:pointer;color:#fff;border-radius:22px;background:linear-gradient(150deg,var(--tile),color-mix(in srgb,var(--tile) 55%,#000));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;width:170px;height:170px}'
+      + '.frtile.on{animation:frBreathe 2.6s ease-in-out infinite}'
+      + '.frtile.sub{--tile:#16a34a}.frtile.mul{--tile:#7c3aed}.frtile.div{--tile:#2563eb}'
+      + '.frtile.soon{opacity:.45;cursor:not-allowed;filter:grayscale(.3)}'
+      + '.frtile .soon-tag{position:absolute;top:8px;right:10px;background:rgba(0,0,0,.35);border-radius:8px;font-size:11px;padding:2px 7px}'
+      + '@keyframes frBreathe{0%,100%{box-shadow:0 8px 22px color-mix(in srgb,var(--tile) 30%,transparent)}50%{box-shadow:0 10px 30px color-mix(in srgb,var(--tile) 45%,transparent),0 0 40px 6px color-mix(in srgb,var(--tile) 55%,transparent)}}'
+      + '@media (prefers-reduced-motion:reduce){.frtile.on{animation:none}}';
+    document.head.appendChild(s);
+  }
+
+  var OPS = { add: { op: '+', accent: '#c0392b', word: 'การบวก', pre: 'FA' } };  // เปิดใช้เฉพาะการบวกก่อน
+
+  window.Platform.register({
+    id: 'fraction',
+    mount: function (host, svc) {
+      ensureCSS();
+      var st = { kind: 'ff', same: false, count: 20, title: '', setId: '', showKey: false, probs: [] };
+
+      function newSetId() { var d = new Date(); return OPS.add.pre + String(d.getFullYear()).slice(2) + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + rndI(100, 999); }
+      function kindWord() { return st.kind === 'ff' ? 'เศษส่วน + เศษส่วน' : st.kind === 'fm' ? 'เศษส่วน + จำนวนคละ' : 'จำนวนคละ + จำนวนคละ'; }
+      function defTitle() { return st.title || ('แบบฝึกการบวกเศษส่วน (' + kindWord() + ')'); }
+      function opt(v, label, cur) { return '<option value="' + v + '"' + (v == cur ? ' selected' : '') + '>' + label + '</option>'; }
+
+      /* ---------- หน้าแรก: 4 ปุ่ม (เปิดเฉพาะบวก) ---------- */
+      function renderHome() {
+        function tile(kind, ic, label, active) {
+          return '<button class="frtile ' + kind + (active ? ' on' : ' soon') + '" data-op="' + kind + '"' + (active ? '' : ' disabled') + '>'
+            + (active ? '' : '<span class="soon-tag">เร็ว ๆ นี้</span>')
+            + '<i class="ti ' + ic + '" style="font-size:48px"></i><span style="font-size:1.05rem;font-weight:700">' + label + '</span></button>';
+        }
+        host.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:20px;padding:36px 16px;min-height:340px">'
+          + '<div class="eyebrow" style="text-align:center">แบบฝึกหัดเศษส่วน — เลือกการดำเนินการ</div>'
+          + '<div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center">'
+          + tile('add', 'ti-plus', 'การบวก', true) + tile('sub', 'ti-minus', 'การลบ', false)
+          + tile('mul', 'ti-x', 'การคูณ', false) + tile('div', 'ti-divide', 'การหาร', false)
+          + '</div><div style="color:var(--muted);font-size:.86rem;text-align:center">ตอนนี้เปิดใช้ “การบวก” ก่อน — ที่เหลือกำลังพัฒนา</div></div>';
+        $$('.frtile', host).forEach(function (b) {
+          b.onclick = function () { if (b.dataset.op === 'add') renderAdd(); else if (svc.toast) svc.toast('info', 'อยู่ระหว่างพัฒนา จะเปิดให้ใช้เร็ว ๆ นี้'); };
+        });
+      }
+
+      /* ---------- หน้าสร้างแบบฝึก (การบวก) ---------- */
+      function renderAdd() {
+        host.innerHTML = '<div style="margin-bottom:16px"><button class="btn btn-ghost" id="fBack"><i class="ti ti-arrow-left"></i> กลับ</button></div>'
+          + '<div class="grid-main" style="display:grid;gap:22px;grid-template-columns:340px 1fr">'
+          + '<section><div class="panel" style="padding:18px;display:flex;flex-direction:column;gap:14px">'
+          + '<div class="eyebrow">ตั้งค่าชุดแบบฝึกการบวกเศษส่วน</div>'
+          + '<div class="fr-field"><label>ประเภทโจทย์</label><select id="fKind">'
+          + opt('ff', 'เศษส่วน + เศษส่วน', st.kind) + opt('fm', 'เศษส่วน + จำนวนคละ', st.kind) + opt('mm', 'จำนวนคละ + จำนวนคละ', st.kind) + '</select></div>'
+          + '<div class="fr-field"><label>ตัวส่วน</label><select id="fSame">' + opt('0', 'ไม่เท่ากัน (หา ค.ร.น.)', st.same ? '1' : '0') + opt('1', 'เท่ากัน', st.same ? '1' : '0') + '</select></div>'
+          + '<div class="fr-field"><label>จำนวนข้อ</label><select id="fCount">' + [10, 20, 30, 40].map(function (n) { return opt(n, n + ' ข้อ', st.count); }).join('') + '</select></div>'
+          + '<div class="fr-field"><label>ชื่อชุด (เว้นว่างได้)</label><input id="fTitle" value="' + esc(st.title) + '" placeholder="เช่น การบวกเศษส่วน ชุดที่ 1"></div>'
+          + '<button class="btn btn-accent" id="fGen"><i class="ti ti-refresh"></i> สร้างชุดแบบฝึก</button>'
+          + '<button class="btn btn-ghost" id="fTimer"><i class="ti ti-clock"></i> จับเวลาเต็มจอ</button>'
+          + '</div></section><section id="fOut"></section></div>';
+        $('#fBack', host).onclick = renderHome;
+        $('#fTimer', host).onclick = tmOpen;
+        $('#fGen', host).onclick = function () {
+          st.kind = $('#fKind', host).value; st.same = $('#fSame', host).value === '1';
+          st.count = +$('#fCount', host).value; st.title = $('#fTitle', host).value.trim();
+          st.setId = newSetId(); st.showKey = false;
+          st.probs = []; for (var i = 0; i < st.count; i++) st.probs.push(genProblem(st.kind, st.same));
+          renderOut();
+          if (svc.toast) svc.toast('success', 'สร้าง ' + st.count + ' ข้อแล้ว');
+        };
+        renderOut();
+      }
+
+      function renderOut() {
+        var out = $('#fOut', host); if (!out) return;
+        if (!st.probs.length) { out.innerHTML = '<div class="panel" style="padding:30px;text-align:center;color:var(--muted)">เลือกค่าทางซ้าย แล้วกด “สร้างชุดแบบฝึก”</div>'; return; }
+        var cells = st.probs.map(function (p, i) {
+          var ansCell = st.showKey ? '<span class="ansk">' + answerHTML(p.ans) + '</span>' : '<span class="ansbl"></span>';
+          return '<div class="fr-pb"><span class="no">' + (i + 1) + ')</span><span class="ex">' + operandHTML(p.a) + '<span class="op">+</span>' + operandHTML(p.b) + '<span class="eq">=</span>' + ansCell + '</span></div>';
+        }).join('');
+        out.innerHTML = '<div class="panel" style="padding:18px">'
+          + '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:8px">'
+          + '<div><div class="eyebrow">ตัวอย่างก่อนพิมพ์</div><div class="font-display" style="font-weight:800;font-size:1.2rem">' + esc(defTitle()) + ' <span style="font-size:.78rem;color:var(--muted)">ชุด ' + esc(st.setId) + '</span></div></div>'
+          + '<div style="display:flex;gap:8px;flex-wrap:wrap">'
+          + '<button class="btn btn-ghost" id="fKey"><i class="ti ti-eye"></i> ' + (st.showKey ? 'ซ่อนเฉลย' : 'ดูเฉลย') + '</button>'
+          + '<button class="btn btn-ghost" id="fPrintK"><i class="ti ti-printer"></i> พิมพ์พร้อมเฉลย</button>'
+          + '<button class="btn btn-accent" id="fPrint"><i class="ti ti-printer"></i> พิมพ์ใบงาน</button></div></div>'
+          + '<div class="fr-prev">' + cells + '</div></div>';
+        $('#fKey', host).onclick = function () { st.showKey = !st.showKey; renderOut(); };
+        $('#fPrint', host).onclick = function () { doPrint(false); };
+        $('#fPrintK', host).onclick = function () { doPrint(true); };
+      }
+
+      function doPrint(withKey) {
+        var S = svc.settings || {}, K = OPS.add;
+        var o = { title: defTitle(), setId: st.setId, sub: 'การบวก · ' + kindWord() + ' · ตัวส่วน' + (st.same ? 'เท่ากัน' : 'ไม่เท่ากัน'),
+          accent: K.accent, org: S.org || '', logo: S.logo || LOGO, probs: st.probs, qrImg: '' };
+        var finish = function (qrImg) { o.qrImg = qrImg || ''; printDoc(sheetHTML(o, withKey)); if (svc.toast) svc.toast('success', withKey ? 'เปิดหน้าพิมพ์ฉบับเฉลยแล้ว' : 'เปิดหน้าพิมพ์ใบงานแล้ว'); };
+        if (!withKey && svc.makeQR && svc.keyURL) {
+          var answers = st.probs.map(function (p) { return answerHTML(p.ans).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(); });
+          svc.makeQR(svc.keyURL(o.title, st.setId, answers)).then(function (img) { finish(img); }, function () { finish(''); });
+        } else finish('');
+      }
+
+      renderHome();
+    }
+  });
+})();
