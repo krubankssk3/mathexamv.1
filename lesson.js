@@ -223,19 +223,21 @@
     for (i = 0; i < o.probs.length; i++) {
       var pp = o.probs[i];
       if (isDiv) {
-        maxGC = Math.max(maxGC, pp.cols + String(pp.nums[1]).length + 2);   // ตัวตั้ง + ตัวหาร + วงเล็บ + คอลัมน์ −
+        maxGC = Math.max(maxGC, pp.cols + String(pp.nums[1]).length);   // ช่องเต็ม = ตัวตั้ง + ตัวหาร (วงเล็บ/− แคบ เผื่อในระยะกันชน)
         maxRows = Math.max(maxRows, divProbRows(pp, o.mode));
       } else {
         maxGC = Math.max(maxGC, pp.cols);
         maxRows = Math.max(maxRows, pp.nums.length + ansRowCount(pp, o.op));  // แถวตัวเลข + แถวคำตอบ/ทำงาน
       }
     }
-    // ความกว้าง: ไม่ให้ล้นขอบกระดาษ (~192mm)
+    // ความกว้าง: ไม่ให้ล้นขอบกระดาษ (~192mm) — หารเผื่อวงเล็บ/เครื่องหมายลบเพิ่ม
     var perProb = (192 - 12 * (numCols - 1)) / numCols;
-    var widthCap = (perProb - 14) / maxGC;
-    // ความสูง: เผื่อหัวกระดาษ/ท้าย/ระยะกันชน ให้ทุกแถวพอดี 1 หน้าจริง (กันข้อตกหน้า)
+    var reserve = isDiv ? 24 : 14;
+    var widthCap = (perProb - reserve) / maxGC;
+    // ความสูง: ให้ทุกแถวพอดี 1 หน้าจริง (กันข้อตกหน้า) — หารเต็มหน้า 4 ข้อจึงเปิดเพดานสูงกว่า
     var rowsPerPage = Math.ceil(PER / numCols);
-    var heightCap = 200 / (rowsPerPage * maxRows);
+    var budget = isDiv ? 216 : 200;
+    var heightCap = budget / (rowsPerPage * maxRows);
     var cell = Math.min(15, widthCap, heightCap);
     cell = Math.max(6, Math.round(cell * 10) / 10);
     var fpx = Math.max(15, Math.round(cell * 2.3));
