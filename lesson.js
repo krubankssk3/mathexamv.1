@@ -103,7 +103,7 @@
     var vs = String(divisor), DW = vs.length;       // ตัวหาร (DW ช่อง)
     var info = longDivLines(ds, divisor);
     function place(str, rc) { var a = [], start = rc - str.length + 1, j; for (j = 0; j < W; j++) a.push((j >= start && j <= rc) ? str.charAt(j - start) : ''); return a; }
-    function divisorCells(fill) { var t = '', j; for (j = 0; j < DW; j++) t += '<td class="db">' + (fill ? esc(vs.charAt(j)) : '') + '</td>'; return t; }
+    function divisorCells(fill) { var t = '', j; for (j = 0; j < DW; j++) t += '<td class="dvn">' + (fill ? esc(vs.charAt(j)) : '') + '</td>'; return t; }
     // เซลล์ฝั่งตัวตั้ง (W ช่อง มีกรอบ) จาก array + คลาสพิเศษ (vinculum/เส้นคู่) + underline
     function areaCells(arr, extraCls, ul, isAns) {
       var t = '', j;
@@ -174,6 +174,7 @@
       + '.dtab{border-collapse:collapse}'
       + '.dtab td{text-align:center;font-weight:600;padding:0;vertical-align:middle}'
       + '.dtab td.db{border:1px solid #333}'
+      + '.dtab td.dvn{border:0;font-weight:600}'
       + '.dtab td.dbkt{border:0;font-weight:700;color:#111;padding:0 1px}'
       + '.dtab td.vtop{border-top:2.5px solid #111}'
       + '.dtab td.dbl{border-bottom:4px double #111}'
@@ -230,6 +231,7 @@
     var dyn = '.agrid td{width:' + cell + 'mm;height:' + cell + 'mm;line-height:' + cell + 'mm;font-size:' + fpx + 'px}'
       + '.agrid td.op{font-size:' + (fpx + 3) + 'px}'
       + '.dtab td.db{width:' + cell + 'mm;height:' + cell + 'mm;line-height:' + cell + 'mm;font-size:' + dfpx + 'px}'
+      + '.dtab td.dvn{width:' + cell + 'mm;height:' + cell + 'mm;line-height:' + cell + 'mm;font-size:' + dfpx + 'px}'
       + '.dtab td.dbkt{font-size:' + (dfpx + 8) + 'px}'
       + '.dtab td.drem{font-size:' + dfpx + 'px}'
       + '.prob .no{font-size:' + Math.max(14, fpx - 2) + 'px}';
@@ -335,6 +337,7 @@
       + '.efadd-prob td.k{color:var(--accent)}'
       + '.efadd-prob .dtab td{border:0;width:auto;height:28px;color:var(--txt);vertical-align:middle}'
       + '.efadd-prob .dtab td.db{border:1px solid var(--line);width:28px;height:28px}'
+      + '.efadd-prob .dtab td.dvn{border:0;width:28px;height:28px;font-weight:600}'
       + '.efadd-prob .dtab td.dbkt{font-weight:700;font-size:20px}'
       + '.efadd-prob .dtab td.vtop{border-top:2px solid var(--txt)}'
       + '.efadd-prob .dtab td.dbl{border-bottom:4px double var(--txt)}'
