@@ -96,8 +96,9 @@
     if (mode === 'short') return 2;
     return 2 + longDivLines(String(p.nums[0]), p.nums[1]).lines.length;   // ผลหาร + ตัวตั้ง + บรรทัดทำงาน
   }
-  // เรนเดอร์โจทย์หารแบบตารางช่องมีกรอบ (mode: 'long' | 'short')
-  function divGrid(p, showAns, mode) {
+  // เรนเดอร์โจทย์หารแบบตารางช่องมีกรอบ (mode: 'long' | 'short') · cu=ขนาดช่อง, u=หน่วย
+  function divGrid(p, showAns, mode, cu, u) {
+    cu = cu || 8; u = u || 'mm';
     var dividend = p.nums[0], divisor = p.nums[1];
     var ds = String(dividend), W = ds.length;      // ตัวตั้ง (n ช่อง)
     var vs = String(divisor), DW = vs.length;       // ตัวหาร (DW ช่อง)
@@ -126,27 +127,27 @@
       rows += '<tr>' + divisorCells(false) + bkt0 + areaCells(qArrS, '', null, true) + remS + '</tr>';
       return '<div class="ld"><table class="dtab">' + rows + '</table></div>';
     }
-    // หารยาว: สร้างรายการแถวก่อน (kind: q/dividend/sub/rem) เพื่อวาง − ทางขวาแบบ rowspan
+    // หารยาว: ผลลัพธ์บน → ตัวหาร)ตัวตั้ง(เส้นหนา) → บรรทัดทำงาน
     var qArr = showAns ? place(String(info.quotient), W - 1) : [];
-    var rl = [];
-    rl.push({ left: divisorCells(false), bk: bkt0, area: areaCells(qArr, '', null, true), kind: 'q' });
-    rl.push({ left: divisorCells(true), bk: bkt, area: areaCells(ds.split(''), 'vtop', null, false), kind: 'dividend' });
+    rows += '<tr>' + divisorCells(false) + bkt0 + areaCells(qArr, '', null, true) + '</tr>';
+    rows += '<tr>' + divisorCells(true) + bkt + areaCells(ds.split(''), 'vtop', null, false) + '</tr>';
     for (i = 0; i < info.lines.length; i++) {
       var ln = info.lines[i], arr = [], ul = null;
       if (showAns) { arr = place(ln.str, ln.rightCol); if (ln.underline) ul = [ln.rightCol - ln.str.length + 1, ln.rightCol]; }
-      rl.push({ left: divisorCells(false), bk: bkt0, area: areaCells(arr, '', ul, true), kind: ln.underline ? 'sub' : 'rem' });
+      rows += '<tr>' + divisorCells(false) + bkt0 + areaCells(arr, '', ul, true) + '</tr>';
     }
-    // ประกอบแถว + เซลล์ − ทางขวา (rowspan ครอบแถวตัวตั้งกับแถวตัวลบ กึ่งกลางแนวตั้ง)
-    for (i = 0; i < rl.length; i++) {
-      var right = '';
-      if (showAns) {
-        if (i + 1 < rl.length && rl[i + 1].kind === 'sub') right = '<td class="dminus" rowspan="2">−</td>';  // อยู่กึ่งกลางระหว่างตัวตั้งกับตัวลบ
-        else if (rl[i].kind === 'sub') right = '';                 // ถูก rowspan ครอบไว้
-        else right = '<td class="dsp"></td>';
+    // วางเครื่องหมายลบ (สีแดง) แบบ overlay: กึ่งกลางแนวตั้งของคู่ที่ลบกัน · ขวาของตัวเลขที่ลบ (บนเส้นตาราง)
+    var overlays = '';
+    if (showAns) {
+      var x0 = (DW + 0.62) * cu;   // ระยะจากซ้าย = ช่องตัวหาร + วงเล็บ
+      for (i = 0; i < info.lines.length; i++) {
+        if (!info.lines[i].underline) continue;      // เฉพาะบรรทัดตัวลบ
+        var ck = info.lines[i].rightCol, Rk = 2 + i; // แถวที่ i ของ lines = แถวตาราง 2+i
+        var left = x0 + (ck + 1) * cu, top = Rk * cu;
+        overlays += '<span class="dmr" style="left:' + left + u + ';top:' + top + u + '">−</span>';
       }
-      rows += '<tr>' + rl[i].left + rl[i].bk + rl[i].area + right + '</tr>';
     }
-    return '<div class="ld"><table class="dtab">' + rows + '</table></div>';
+    return '<div class="ld">' + overlays + '<table class="dtab">' + rows + '</table></div>';
   }
 
   /* CSS เอกสารพิมพ์ (ฝังในเอกสารพิมพ์เอง — ไม่ชนกับ CSS ของระบบ) */
@@ -181,19 +182,19 @@
       + '.agrid tr.sumf td{border-top:2px solid #111}'
       + '.agrid tr.sum td.op,.agrid tr.sumf td.op{border-top:0}'
       + '.agrid td.k{color:' + ac + '}'
-      + '.ld{display:inline-block}'
+      + '.ld{display:inline-block;position:relative}'
       + '.dtab{border-collapse:collapse}'
       + '.dtab td{text-align:center;font-weight:600;padding:0;vertical-align:middle}'
       + '.dtab td.db{border:1px solid #333}'
       + '.dtab td.dvn{border:0;font-weight:600}'
-      + '.dtab td.dbkt{border:0;font-weight:700;color:#111;padding:0 1px}'
+      + '.dtab td.dbkt{border:0;font-weight:700;color:#111;padding:0}'
       + '.dtab td.vtop{border-top:2.5px solid #111}'
       + '.dtab td.dbl{border-bottom:4px double #111}'
       + '.dtab td.dul{border-bottom:2px solid #111}'
       + '.dtab td.dk{color:' + ac + '}'
       + '.dtab td.drem{border:0;color:' + ac + ';font-weight:700;white-space:nowrap;padding-left:6px}'
       + '.dtab td.dsp{border:0}'
-      + '.dtab td.dminus{border:0;color:' + ac + ';font-weight:700;vertical-align:middle;text-align:center;padding:0 3px}'
+      + '.ld .dmr{position:absolute;transform:translate(-50%,-50%);color:#e11d48;font-weight:700;line-height:1}'
       + '.foot{margin-top:12px;text-align:center;font-size:11px;color:#777;border-top:1px solid #eee;padding-top:6px}';
   }
 
@@ -246,9 +247,9 @@
       + '.agrid td.op{font-size:' + (fpx + 3) + 'px}'
       + '.dtab td.db{width:' + cell + 'mm;height:' + cell + 'mm;line-height:' + cell + 'mm;font-size:' + dfpx + 'px}'
       + '.dtab td.dvn{width:' + cell + 'mm;height:' + cell + 'mm;line-height:' + cell + 'mm;font-size:' + dfpx + 'px}'
-      + '.dtab td.dbkt{font-size:' + (dfpx + 8) + 'px}'
-      + '.dtab td.dminus{font-size:' + (dfpx + 4) + 'px}'
+      + '.dtab td.dbkt{width:' + (Math.round(cell * 0.62 * 10) / 10) + 'mm;font-size:' + (dfpx + 8) + 'px}'
       + '.dtab td.drem{font-size:' + dfpx + 'px}'
+      + '.ld .dmr{font-size:' + (dfpx + 4) + 'px}'
       + '.prob .no{font-size:' + Math.max(14, fpx - 2) + 'px}';
 
     var ac = o.accent || '#c0392b';
@@ -260,7 +261,7 @@
     var body = pages.map(function (chunk, pi) {
       var cells = chunk.map(function (p, j) {
         var no = pi * PER + j + 1;
-        var g = isDiv ? divGrid(p, withKey, o.mode) : addGrid(p, withKey, o.op);
+        var g = isDiv ? divGrid(p, withKey, o.mode, cell, 'mm') : addGrid(p, withKey, o.op);
         return '<div class="prob"><span class="no">' + no + ')</span>' + g + '</div>';
       }).join('');
       var grid = '<div class="grid" style="grid-template-columns:repeat(' + numCols + ',1fr)">' + cells + '</div>';
@@ -353,12 +354,13 @@
       + '.efadd-prob .dtab td{border:0;width:auto;height:28px;color:var(--txt);vertical-align:middle}'
       + '.efadd-prob .dtab td.db{border:1px solid var(--line);width:28px;height:28px}'
       + '.efadd-prob .dtab td.dvn{border:0;width:28px;height:28px;font-weight:600}'
-      + '.efadd-prob .dtab td.dbkt{font-weight:700;font-size:20px}'
+      + '.efadd-prob .dtab td.dbkt{font-weight:700;font-size:20px;width:17px}'
       + '.efadd-prob .dtab td.vtop{border-top:2px solid var(--txt)}'
       + '.efadd-prob .dtab td.dbl{border-bottom:4px double var(--txt)}'
       + '.efadd-prob .dtab td.dul{border-bottom:2px solid var(--txt)}'
       + '.efadd-prob .dtab td.dk,.efadd-prob .dtab td.drem{color:var(--accent)}'
-      + '.efadd-prob .dtab td.dminus{color:var(--accent);font-weight:700;vertical-align:middle;padding:0 3px;font-size:20px}'
+      + '.efadd-prob .ld{position:relative}'
+      + '.efadd-prob .ld .dmr{position:absolute;transform:translate(-50%,-50%);color:#e11d48;font-weight:700;font-size:18px;line-height:1}'
       + '.efadd-field{display:flex;flex-direction:column;gap:5px}'
       + '.efadd-field label{font-size:13px;color:var(--muted)}'
       + '.efadd-field select,.efadd-field input{padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt);font:inherit}'
@@ -564,7 +566,7 @@
           return;
         }
         var cells = ast.probs.map(function (p, i) {
-          var g = ast.kind === 'div' ? divGrid(p, ast.showKey, ast.mode) : addGrid(p, ast.showKey, KINDS[ast.kind].op);
+          var g = ast.kind === 'div' ? divGrid(p, ast.showKey, ast.mode, 28, 'px') : addGrid(p, ast.showKey, KINDS[ast.kind].op);
           return '<div class="efadd-prob"><span class="no">' + (i + 1) + ')</span>' + g + '</div>';
         }).join('');
         out.innerHTML =
