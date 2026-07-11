@@ -143,7 +143,7 @@
       for (i = 0; i < info.lines.length; i++) {
         if (!info.lines[i].underline) continue;      // เฉพาะบรรทัดตัวลบ
         var ck = info.lines[i].rightCol, Rk = 2 + i; // แถวที่ i ของ lines = แถวตาราง 2+i
-        var left = x0 + (ck + 1) * cu, top = Rk * cu;
+        var left = x0 + (ck + 0.7) * cu, top = Rk * cu;   // ชิดหลังตัวเลขที่ลบ (เยื้องซ้ายจากเส้นกริดเล็กน้อย)
         overlays += '<span class="dmr" style="left:' + left + u + ';top:' + top + u + '">−</span>';
       }
     }
@@ -249,7 +249,7 @@
       + '.dtab td.dvn{width:' + cell + 'mm;height:' + cell + 'mm;line-height:' + cell + 'mm;font-size:' + dfpx + 'px}'
       + '.dtab td.dbkt{width:' + (Math.round(cell * 0.62 * 10) / 10) + 'mm;font-size:' + (dfpx + 8) + 'px}'
       + '.dtab td.drem{font-size:' + dfpx + 'px}'
-      + '.ld .dmr{font-size:' + (dfpx + 4) + 'px}'
+      + '.ld .dmr{font-size:' + (dfpx + 12) + 'px}'
       + '.prob .no{font-size:' + Math.max(14, fpx - 2) + 'px}';
 
     var ac = o.accent || '#c0392b';
@@ -360,7 +360,7 @@
       + '.efadd-prob .dtab td.dul{border-bottom:2px solid var(--txt)}'
       + '.efadd-prob .dtab td.dk,.efadd-prob .dtab td.drem{color:var(--accent)}'
       + '.efadd-prob .ld{position:relative}'
-      + '.efadd-prob .ld .dmr{position:absolute;transform:translate(-50%,-50%);color:#e11d48;font-weight:700;font-size:18px;line-height:1}'
+      + '.efadd-prob .ld .dmr{position:absolute;transform:translate(-50%,-50%);color:#e11d48;font-weight:700;font-size:26px;line-height:1}'
       + '.efadd-field{display:flex;flex-direction:column;gap:5px}'
       + '.efadd-field label{font-size:13px;color:var(--muted)}'
       + '.efadd-field select,.efadd-field input{padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt);font:inherit}'
