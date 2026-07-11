@@ -96,39 +96,46 @@
     if (mode === 'short') return 2;
     return 2 + longDivLines(String(p.nums[0]), p.nums[1]).lines.length;   // ผลหาร + ตัวตั้ง + บรรทัดทำงาน
   }
-  // เรนเดอร์โจทย์หาร (mode: 'long' | 'short')
+  // เรนเดอร์โจทย์หารแบบตารางช่องมีกรอบ (mode: 'long' | 'short')
   function divGrid(p, showAns, mode) {
-    var dividend = p.nums[0], divisor = p.nums[1], ds = String(dividend), W = ds.length;
+    var dividend = p.nums[0], divisor = p.nums[1];
+    var ds = String(dividend), W = ds.length;      // ตัวตั้ง (n ช่อง)
+    var vs = String(divisor), DW = vs.length;       // ตัวหาร (DW ช่อง)
     var info = longDivLines(ds, divisor);
     function place(str, rc) { var a = [], start = rc - str.length + 1, j; for (j = 0; j < W; j++) a.push((j >= start && j <= rc) ? str.charAt(j - start) : ''); return a; }
-    function numCells(arr, lineCls, ul, isAns) {
-      var tds = '', j;
+    function divisorCells(fill) { var t = '', j; for (j = 0; j < DW; j++) t += '<td class="db">' + (fill ? esc(vs.charAt(j)) : '') + '</td>'; return t; }
+    // เซลล์ฝั่งตัวตั้ง (W ช่อง มีกรอบ) จาก array + คลาสพิเศษ (vinculum/เส้นคู่) + underline
+    function areaCells(arr, extraCls, ul, isAns) {
+      var t = '', j;
       for (j = 0; j < W; j++) {
-        var ch = arr[j] || '', cls = lineCls || '';
-        if (ch && isAns) cls += (cls ? ' ' : '') + 'dk';
-        if (ul && j >= ul[0] && j <= ul[1]) cls += (cls ? ' ' : '') + 'dul';
-        tds += '<td' + (cls ? ' class="' + cls + '"' : '') + '>' + esc(ch) + '</td>';
+        var ch = arr[j] || '', cls = 'db' + (extraCls ? ' ' + extraCls : '');
+        if (ch && isAns) cls += ' dk';
+        if (ul && j >= ul[0] && j <= ul[1]) cls += ' dul';
+        t += '<td class="' + cls + '">' + esc(ch) + '</td>';
       }
-      return tds;
+      return t;
     }
-    var rowsHtml = '', i;
+    var bkt = '<td class="dbkt">)</td>', bkt0 = '<td class="dbkt"></td>';
+    var rows = '', i;
     if (mode === 'short') {
-      rowsHtml += '<tr><td class="dv">' + esc(String(divisor)) + '</td><td class="dbrk">)</td>' + numCells(ds.split(''), 'qline', null, false) + '<td></td></tr>';
-      var qArr = showAns ? place(String(info.quotient), W - 1) : [];
-      var rem = (showAns && info.remainder > 0) ? '<td class="drem">เศษ ' + info.remainder + '</td>' : '<td></td>';
-      rowsHtml += '<tr><td></td><td class="dbrk"></td>' + numCells(qArr, '', null, true) + rem + '</tr>';
-      return '<div class="ld"><table class="dtab">' + rowsHtml + '</table></div>';
+      // ตัวหาร ) ตัวตั้ง (เส้นคู่ใต้ตัวตั้ง)
+      rows += '<tr>' + divisorCells(true) + bkt + areaCells(ds.split(''), 'dbl', null, false) + '<td class="dsp"></td></tr>';
+      // ผลลัพธ์ใต้เส้น (+ เศษ)
+      var qArrS = showAns ? place(String(info.quotient), W - 1) : [];
+      var remS = (showAns && info.remainder > 0) ? '<td class="drem">เศษ ' + info.remainder + '</td>' : '<td class="dsp"></td>';
+      rows += '<tr>' + divisorCells(false) + bkt0 + areaCells(qArrS, '', null, true) + remS + '</tr>';
+      return '<div class="ld"><table class="dtab">' + rows + '</table></div>';
     }
-    // หารยาว
+    // หารยาว: ผลลัพธ์บน → ตัวหาร)ตัวตั้ง(เส้นหนาเหนือ) → บรรทัดทำงาน
     var qArr = showAns ? place(String(info.quotient), W - 1) : [];
-    rowsHtml += '<tr><td class="dv2"></td><td class="dbrktop"></td>' + numCells(qArr, 'qline', null, true) + '</tr>';
-    rowsHtml += '<tr><td class="dv">' + esc(String(divisor)) + '</td><td class="dbrk">)</td>' + numCells(ds.split(''), '', null, false) + '</tr>';
+    rows += '<tr>' + divisorCells(false) + bkt0 + areaCells(qArr, '', null, true) + '</tr>';
+    rows += '<tr>' + divisorCells(true) + bkt + areaCells(ds.split(''), 'vtop', null, false) + '</tr>';
     for (i = 0; i < info.lines.length; i++) {
       var ln = info.lines[i], arr = [], ul = null;
       if (showAns) { arr = place(ln.str, ln.rightCol); if (ln.underline) ul = [ln.rightCol - ln.str.length + 1, ln.rightCol]; }
-      rowsHtml += '<tr><td></td><td class="dbrk"></td>' + numCells(arr, '', ul, true) + '</tr>';
+      rows += '<tr>' + divisorCells(false) + bkt0 + areaCells(arr, '', ul, true) + '</tr>';
     }
-    return '<div class="ld"><table class="dtab">' + rowsHtml + '</table></div>';
+    return '<div class="ld"><table class="dtab">' + rows + '</table></div>';
   }
 
   /* CSS เอกสารพิมพ์ (ฝังในเอกสารพิมพ์เอง — ไม่ชนกับ CSS ของระบบ) */
@@ -166,12 +173,14 @@
       + '.ld{display:inline-block}'
       + '.dtab{border-collapse:collapse}'
       + '.dtab td{text-align:center;font-weight:600;padding:0;vertical-align:middle}'
-      + '.dtab td.dv{font-weight:700;white-space:nowrap;padding-right:3px;text-align:right}'
-      + '.dtab td.dbrk{border-right:2px solid #333;font-weight:700;text-align:center}'
-      + '.dtab td.qline{border-bottom:2px solid #333}'
-      + '.dtab td.dul{border-bottom:2px solid #333}'
+      + '.dtab td.db{border:1px solid #333}'
+      + '.dtab td.dbkt{border:0;font-weight:700;color:#111;padding:0 1px}'
+      + '.dtab td.vtop{border-top:2.5px solid #111}'
+      + '.dtab td.dbl{border-bottom:4px double #111}'
+      + '.dtab td.dul{border-bottom:2px solid #111}'
       + '.dtab td.dk{color:' + ac + '}'
-      + '.dtab td.drem{color:' + ac + ';font-weight:700;white-space:nowrap;padding-left:6px}'
+      + '.dtab td.drem{border:0;color:' + ac + ';font-weight:700;white-space:nowrap;padding-left:6px}'
+      + '.dtab td.dsp{border:0}'
       + '.foot{margin-top:12px;text-align:center;font-size:11px;color:#777;border-top:1px solid #eee;padding-top:6px}';
   }
 
@@ -220,8 +229,9 @@
     var dfpx = Math.max(13, Math.round(cell * 2.0));   // ฟอนต์การหาร (เล็กกว่านิดเพราะแถวเยอะ)
     var dyn = '.agrid td{width:' + cell + 'mm;height:' + cell + 'mm;line-height:' + cell + 'mm;font-size:' + fpx + 'px}'
       + '.agrid td.op{font-size:' + (fpx + 3) + 'px}'
-      + '.dtab td{width:' + cell + 'mm;height:' + cell + 'mm;line-height:' + cell + 'mm;font-size:' + dfpx + 'px}'
-      + '.dtab td.dv,.dtab td.drem{font-size:' + dfpx + 'px}'
+      + '.dtab td.db{width:' + cell + 'mm;height:' + cell + 'mm;line-height:' + cell + 'mm;font-size:' + dfpx + 'px}'
+      + '.dtab td.dbkt{font-size:' + (dfpx + 8) + 'px}'
+      + '.dtab td.drem{font-size:' + dfpx + 'px}'
       + '.prob .no{font-size:' + Math.max(14, fpx - 2) + 'px}';
 
     var ac = o.accent || '#c0392b';
@@ -323,10 +333,11 @@
       + '.efadd-prob tr.sumf td{border-top:2px solid var(--txt)}'
       + '.efadd-prob tr.sum td.op,.efadd-prob tr.sumf td.op{border-top:0}'
       + '.efadd-prob td.k{color:var(--accent)}'
-      + '.efadd-prob .dtab td{border:0;width:auto;min-width:26px;height:26px;color:var(--txt)}'
-      + '.efadd-prob .dtab td.dv{font-weight:700;padding-right:3px;text-align:right}'
-      + '.efadd-prob .dtab td.dbrk{border-right:2px solid var(--txt)}'
-      + '.efadd-prob .dtab td.qline{border-bottom:2px solid var(--txt)}'
+      + '.efadd-prob .dtab td{border:0;width:auto;height:28px;color:var(--txt);vertical-align:middle}'
+      + '.efadd-prob .dtab td.db{border:1px solid var(--line);width:28px;height:28px}'
+      + '.efadd-prob .dtab td.dbkt{font-weight:700;font-size:20px}'
+      + '.efadd-prob .dtab td.vtop{border-top:2px solid var(--txt)}'
+      + '.efadd-prob .dtab td.dbl{border-bottom:4px double var(--txt)}'
       + '.efadd-prob .dtab td.dul{border-bottom:2px solid var(--txt)}'
       + '.efadd-prob .dtab td.dk,.efadd-prob .dtab td.drem{color:var(--accent)}'
       + '.efadd-field{display:flex;flex-direction:column;gap:5px}'
@@ -482,7 +493,7 @@
               '<div class="efadd-field"><label>จำนวนหลักของตัวตั้ง</label><select id="ad-dtop">' + digOpts(ast.dTop, K.dMaxTop) + '</select></div>' +
               '<div class="efadd-field"><label>จำนวนหลักของ' + t2label + '</label><select id="ad-dbot">' + digOpts(ast.dBot, maxBot) + '</select></div>' + subNote +
               '<div class="efadd-field"><label>จำนวนข้อ (' + per + ' ข้อ/หน้า)</label><select id="ad-count">' +
-                [1, 2, 3, 4, 5].map(function (k) { return opt(k * per, (k * per) + ' ข้อ', ast.count); }).join('') + '</select></div>' +
+                (function () { var maxK = (ast.kind === 'div') ? Math.round(40 / per) : 5, o = '', k; for (k = 1; k <= maxK; k++) o += opt(k * per, (k * per) + ' ข้อ', ast.count); return o; })() + '</select></div>' +
               (isDiv ? '' :
                 '<div class="efadd-field"><label>คอลัมน์ต่อหน้า</label><select id="ad-cols">' +
                 opt(2, '2 คอลัมน์', ast.cols) + opt(3, '3 คอลัมน์', ast.cols) + opt(4, '4 คอลัมน์', ast.cols) + '</select></div>') +
