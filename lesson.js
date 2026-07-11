@@ -116,6 +116,7 @@
       return t;
     }
     var bkt = '<td class="dbkt">)</td>', bkt0 = '<td class="dbkt"></td>';
+    function leftMinus() { var t = '', j; for (j = 0; j < DW; j++) t += '<td class="dvn' + (j === DW - 1 ? ' dk dminus' : '') + '">' + (j === DW - 1 ? '−' : '') + '</td>'; return t; }
     var rows = '', i;
     if (mode === 'short') {
       // ตัวหาร ) ตัวตั้ง (เส้นคู่ใต้ตัวตั้ง)
@@ -133,7 +134,8 @@
     for (i = 0; i < info.lines.length; i++) {
       var ln = info.lines[i], arr = [], ul = null;
       if (showAns) { arr = place(ln.str, ln.rightCol); if (ln.underline) ul = [ln.rightCol - ln.str.length + 1, ln.rightCol]; }
-      rows += '<tr>' + divisorCells(false) + bkt0 + areaCells(arr, '', ul, true) + '</tr>';
+      var left = (showAns && ln.underline) ? leftMinus() : divisorCells(false);   // − หน้าบรรทัดที่นำมาลบ
+      rows += '<tr>' + left + bkt0 + areaCells(arr, '', ul, true) + '</tr>';
     }
     return '<div class="ld"><table class="dtab">' + rows + '</table></div>';
   }
