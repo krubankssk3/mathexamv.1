@@ -75,6 +75,62 @@
     return '<table class="agrid">' + rows + '</table>';
   }
 
+  /* ---------- การหาร: ขั้นตอนหารยาว ---------- */
+  function longDivLines(ds, divisor) {
+    var W = ds.length, i, lines = [], q = '', cur = 0, started = false;
+    for (i = 0; i < W; i++) {
+      cur = cur * 10 + (+ds.charAt(i));
+      if (cur >= divisor || started) {
+        started = true;
+        var qd = Math.floor(cur / divisor); q += qd;
+        var prod = qd * divisor, rem = cur - prod;
+        lines.push({ str: String(prod), rightCol: i, underline: true });
+        if (i < W - 1) { lines.push({ str: String(rem * 10 + (+ds.charAt(i + 1))), rightCol: i + 1, underline: false }); cur = rem; }
+        else { lines.push({ str: String(rem), rightCol: i, underline: false }); cur = rem; }
+      }
+    }
+    return { quotient: q === '' ? '0' : q, remainder: cur, lines: lines };
+  }
+  // จำนวนแถวของโจทย์หาร (ไว้คำนวณขนาด/แถวว่าง)
+  function divProbRows(p, mode) {
+    if (mode === 'short') return 2;
+    return 2 + longDivLines(String(p.nums[0]), p.nums[1]).lines.length;   // ผลหาร + ตัวตั้ง + บรรทัดทำงาน
+  }
+  // เรนเดอร์โจทย์หาร (mode: 'long' | 'short')
+  function divGrid(p, showAns, mode) {
+    var dividend = p.nums[0], divisor = p.nums[1], ds = String(dividend), W = ds.length;
+    var info = longDivLines(ds, divisor);
+    function place(str, rc) { var a = [], start = rc - str.length + 1, j; for (j = 0; j < W; j++) a.push((j >= start && j <= rc) ? str.charAt(j - start) : ''); return a; }
+    function numCells(arr, lineCls, ul, isAns) {
+      var tds = '', j;
+      for (j = 0; j < W; j++) {
+        var ch = arr[j] || '', cls = lineCls || '';
+        if (ch && isAns) cls += (cls ? ' ' : '') + 'dk';
+        if (ul && j >= ul[0] && j <= ul[1]) cls += (cls ? ' ' : '') + 'dul';
+        tds += '<td' + (cls ? ' class="' + cls + '"' : '') + '>' + esc(ch) + '</td>';
+      }
+      return tds;
+    }
+    var rowsHtml = '', i;
+    if (mode === 'short') {
+      rowsHtml += '<tr><td class="dv">' + esc(String(divisor)) + '</td><td class="dbrk">)</td>' + numCells(ds.split(''), 'qline', null, false) + '<td></td></tr>';
+      var qArr = showAns ? place(String(info.quotient), W - 1) : [];
+      var rem = (showAns && info.remainder > 0) ? '<td class="drem">เศษ ' + info.remainder + '</td>' : '<td></td>';
+      rowsHtml += '<tr><td></td><td class="dbrk"></td>' + numCells(qArr, '', null, true) + rem + '</tr>';
+      return '<div class="ld"><table class="dtab">' + rowsHtml + '</table></div>';
+    }
+    // หารยาว
+    var qArr = showAns ? place(String(info.quotient), W - 1) : [];
+    rowsHtml += '<tr><td class="dv2"></td><td class="dbrktop"></td>' + numCells(qArr, 'qline', null, true) + '</tr>';
+    rowsHtml += '<tr><td class="dv">' + esc(String(divisor)) + '</td><td class="dbrk">)</td>' + numCells(ds.split(''), '', null, false) + '</tr>';
+    for (i = 0; i < info.lines.length; i++) {
+      var ln = info.lines[i], arr = [], ul = null;
+      if (showAns) { arr = place(ln.str, ln.rightCol); if (ln.underline) ul = [ln.rightCol - ln.str.length + 1, ln.rightCol]; }
+      rowsHtml += '<tr><td></td><td class="dbrk"></td>' + numCells(arr, '', ul, true) + '</tr>';
+    }
+    return '<div class="ld"><table class="dtab">' + rowsHtml + '</table></div>';
+  }
+
   /* CSS เอกสารพิมพ์ (ฝังในเอกสารพิมพ์เอง — ไม่ชนกับ CSS ของระบบ) */
   function addPrintCSS(ac) {
     ac = ac || '#c0392b';
@@ -107,6 +163,15 @@
       + '.agrid tr.sumf td{border-top:2px solid #111}'
       + '.agrid tr.sum td.op,.agrid tr.sumf td.op{border-top:0}'
       + '.agrid td.k{color:' + ac + '}'
+      + '.ld{display:inline-block}'
+      + '.dtab{border-collapse:collapse}'
+      + '.dtab td{text-align:center;font-weight:600;padding:0;vertical-align:middle}'
+      + '.dtab td.dv{font-weight:700;white-space:nowrap;padding-right:3px;text-align:right}'
+      + '.dtab td.dbrk{border-right:2px solid #333;font-weight:700;text-align:center}'
+      + '.dtab td.qline{border-bottom:2px solid #333}'
+      + '.dtab td.dul{border-bottom:2px solid #333}'
+      + '.dtab td.dk{color:' + ac + '}'
+      + '.dtab td.drem{color:' + ac + ';font-weight:700;white-space:nowrap;padding-left:6px}'
       + '.foot{margin-top:12px;text-align:center;font-size:11px;color:#777;border-top:1px solid #eee;padding-top:6px}';
   }
 
@@ -129,12 +194,19 @@
   }
 
   function addSheet(o, withKey) {
-    var PER = o.per || 10;        // ข้อ/หน้า (คูณ=4, บวก-ลบ=10)
+    var PER = o.per || 10;        // ข้อ/หน้า
+    var isDiv = (o.kind === 'div');
     var numCols = o.cols, i, j;
     var maxGC = 1, maxRows = 1;
     for (i = 0; i < o.probs.length; i++) {
-      maxGC = Math.max(maxGC, o.probs[i].cols);
-      maxRows = Math.max(maxRows, o.probs[i].nums.length + ansRowCount(o.probs[i], o.op));  // แถวตัวเลข + แถวคำตอบ/ทำงาน
+      var pp = o.probs[i];
+      if (isDiv) {
+        maxGC = Math.max(maxGC, pp.cols + String(pp.nums[1]).length + 1);   // ตัวตั้ง + ตัวหาร + วงเล็บ
+        maxRows = Math.max(maxRows, divProbRows(pp, o.mode));
+      } else {
+        maxGC = Math.max(maxGC, pp.cols);
+        maxRows = Math.max(maxRows, pp.nums.length + ansRowCount(pp, o.op));  // แถวตัวเลข + แถวคำตอบ/ทำงาน
+      }
     }
     // ความกว้าง: ไม่ให้ล้นขอบกระดาษ (~192mm)
     var perProb = (192 - 12 * (numCols - 1)) / numCols;
@@ -145,8 +217,11 @@
     var cell = Math.min(15, widthCap, heightCap);
     cell = Math.max(6, Math.round(cell * 10) / 10);
     var fpx = Math.max(15, Math.round(cell * 2.3));
+    var dfpx = Math.max(13, Math.round(cell * 2.0));   // ฟอนต์การหาร (เล็กกว่านิดเพราะแถวเยอะ)
     var dyn = '.agrid td{width:' + cell + 'mm;height:' + cell + 'mm;line-height:' + cell + 'mm;font-size:' + fpx + 'px}'
       + '.agrid td.op{font-size:' + (fpx + 3) + 'px}'
+      + '.dtab td{width:' + cell + 'mm;height:' + cell + 'mm;line-height:' + cell + 'mm;font-size:' + dfpx + 'px}'
+      + '.dtab td.dv,.dtab td.drem{font-size:' + dfpx + 'px}'
       + '.prob .no{font-size:' + Math.max(14, fpx - 2) + 'px}';
 
     var ac = o.accent || '#c0392b';
@@ -158,7 +233,8 @@
     var body = pages.map(function (chunk, pi) {
       var cells = chunk.map(function (p, j) {
         var no = pi * PER + j + 1;
-        return '<div class="prob"><span class="no">' + no + ')</span>' + addGrid(p, withKey, o.op) + '</div>';
+        var g = isDiv ? divGrid(p, withKey, o.mode) : addGrid(p, withKey, o.op);
+        return '<div class="prob"><span class="no">' + no + ')</span>' + g + '</div>';
       }).join('');
       var grid = '<div class="grid" style="grid-template-columns:repeat(' + numCols + ',1fr)">' + cells + '</div>';
       var header = pi === 0
@@ -247,6 +323,12 @@
       + '.efadd-prob tr.sumf td{border-top:2px solid var(--txt)}'
       + '.efadd-prob tr.sum td.op,.efadd-prob tr.sumf td.op{border-top:0}'
       + '.efadd-prob td.k{color:var(--accent)}'
+      + '.efadd-prob .dtab td{border:0;width:auto;min-width:26px;height:26px;color:var(--txt)}'
+      + '.efadd-prob .dtab td.dv{font-weight:700;padding-right:3px;text-align:right}'
+      + '.efadd-prob .dtab td.dbrk{border-right:2px solid var(--txt)}'
+      + '.efadd-prob .dtab td.qline{border-bottom:2px solid var(--txt)}'
+      + '.efadd-prob .dtab td.dul{border-bottom:2px solid var(--txt)}'
+      + '.efadd-prob .dtab td.dk,.efadd-prob .dtab td.drem{color:var(--accent)}'
       + '.efadd-field{display:flex;flex-direction:column;gap:5px}'
       + '.efadd-field label{font-size:13px;color:var(--muted)}'
       + '.efadd-field select,.efadd-field input{padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt);font:inherit}'
@@ -256,6 +338,7 @@
       + 'width:200px;height:200px;animation:efBreathe 2.6s ease-in-out infinite}'
       + '.efadd-tile.sub{--tile:#16a34a}'
       + '.efadd-tile.mul{--tile:#7c3aed}'
+      + '.efadd-tile.div{--tile:#2563eb}'
       + '.efadd-tile:hover{filter:brightness(1.08)}'
       + '.efadd-tile:active{transform:scale(.97)}'
       + '@keyframes efBreathe{'
@@ -275,16 +358,43 @@
       var KINDS = {
         add: { op: '+', accent: '#c0392b', word: 'การบวก', t2: 'ตัวบวก', verb: 'ตั้งบวก', pre: 'A', dMaxTop: 8, dMaxBot: 8, per: 10 },
         sub: { op: '−', accent: '#16a34a', word: 'การลบ', t2: 'ตัวลบ', verb: 'ตั้งลบ', pre: 'S', dMaxTop: 8, dMaxBot: 8, per: 10 },
-        mul: { op: '×', accent: '#7c3aed', word: 'การคูณ', t2: 'ตัวคูณ', verb: 'ตั้งคูณ', pre: 'M', dMaxTop: 4, dMaxBot: 3, per: 6 }
+        mul: { op: '×', accent: '#7c3aed', word: 'การคูณ', t2: 'ตัวคูณ', verb: 'ตั้งคูณ', pre: 'M', dMaxTop: 4, dMaxBot: 3, per: 6 },
+        div: { op: '÷', accent: '#2563eb', word: 'การหาร', t2: 'ตัวหาร', verb: 'หาร', pre: 'D', dMaxTop: 6, dMaxBot: 3, per: 6 }
       };
-      var ast = { kind: 'add', dTop: 3, dBot: 3, count: 10, cols: 2, title: '', setId: '', showKey: false, mixed: false, probs: [] };
+      var ast = { kind: 'add', dTop: 3, dBot: 3, count: 10, cols: 2, title: '', setId: '', showKey: false, mixed: false, mode: 'long', exact: true, probs: [] };
+
+      // ข้อ/หน้า: การหารขึ้นกับโหมด (หารยาวสูง = 4 ข้อ, หารสั้น = 8 ข้อ)
+      function perOf() { return ast.kind === 'div' ? (ast.mode === 'long' ? 4 : 8) : KINDS[ast.kind].per; }
 
       function newSetId() {
         var d = new Date();
         return KINDS[ast.kind].pre + String(d.getFullYear()).slice(2) + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + rndI(100, 999);
       }
-      // สุ่มคู่จำนวนตามชนิด — ลบ: ตัวตั้ง>ตัวลบเสมอ · คูณ: หลักตัวคูณไม่เกินตัวตั้ง
+      // สุ่มโจทย์หาร — ลงตัว/ไม่ลงตัว, ตัวหาร≥2, ตัวหาร≤ตัวตั้ง
+      function genDiv(dt, db) {
+        var db2 = Math.min(db, dt);
+        var loT = (dt === 1) ? 1 : Math.pow(10, dt - 1), hiT = Math.pow(10, dt) - 1;
+        var loD = (db2 === 1) ? 2 : Math.pow(10, db2 - 1), hiD = Math.pow(10, db2) - 1;
+        var divisor, dividend, guard = 0;
+        if (ast.exact) {
+          divisor = rndI(loD, hiD);
+          var qlo = Math.max(1, Math.ceil(loT / divisor)), qhi = Math.max(1, Math.floor(hiT / divisor));
+          if (qlo > qhi) qlo = qhi;
+          dividend = divisor * rndI(qlo, qhi);
+        } else {
+          do {
+            dividend = rndI(Math.max(loT, 3), hiT);
+            var hd = Math.min(hiD, dividend - 1);
+            divisor = rndI(loD, Math.max(loD, hd));
+            guard++;
+          } while ((divisor < loD || divisor > dividend || dividend % divisor === 0) && guard < 300);
+          if (dividend % divisor === 0) dividend += rndI(1, divisor - 1);
+        }
+        return { nums: [dividend, divisor], ans: Math.floor(dividend / divisor), rem: dividend % divisor, cols: String(dividend).length };
+      }
+      // สุ่มคู่จำนวนตามชนิด — ลบ: ตัวตั้ง>ตัวลบเสมอ · คูณ: หลักตัวคูณไม่เกินตัวตั้ง · หาร: ดู genDiv
       function genPair(dt, db) {
+        if (ast.kind === 'div') return genDiv(dt, db);
         var top, bot, ans;
         if (ast.kind === 'sub') {
           var d2 = Math.min(db, dt);                       // ตัวลบหลักไม่เกินตัวตั้ง
@@ -305,12 +415,13 @@
       function buildAddSet() { var p = [], i; for (i = 0; i < ast.count; i++) p.push(genPair(ast.dTop, ast.dBot)); return p; }
       function buildAutoSet() { var p = [], i, K = KINDS[ast.kind]; for (i = 0; i < ast.count; i++) p.push(genPair(rndI(1, K.dMaxTop), rndI(1, K.dMaxBot))); return p; }
 
-      function effDb() { return ast.kind === 'add' ? ast.dBot : Math.min(ast.dBot, ast.dTop); }   // ลบ/คูณ: ตัวล่างหลักไม่เกินตัวตั้ง
+      function effDb() { return ast.kind === 'add' ? ast.dBot : Math.min(ast.dBot, ast.dTop); }   // ลบ/คูณ/หาร: ตัวล่างหลักไม่เกินตัวตั้ง
       function opt(v, label, cur) { return '<option value="' + v + '"' + (v == cur ? ' selected' : '') + '>' + label + '</option>'; }
       function digOpts(cur, maxN) { var o = '', n; for (n = 1; n <= maxN; n++) o += opt(n, n + ' หลัก', cur); return o; }
       function defTitle() {
         if (ast.title) return ast.title;
         var K = KINDS[ast.kind];
+        if (ast.kind === 'div') return 'แบบฝึกการหาร' + (ast.mode === 'long' ? 'ยาว' : 'สั้น') + ' ' + ast.dTop + ' หลัก ÷ ' + effDb() + ' หลัก' + (ast.exact ? ' (ลงตัว)' : ' (มีเศษ)');
         return ast.mixed ? ('แบบฝึก' + K.word + ' (คละจำนวนหลัก)') : ('แบบฝึก' + K.word + ' ' + ast.dTop + ' หลัก ' + K.op + ' ' + effDb() + ' หลัก');
       }
 
@@ -329,13 +440,14 @@
               tileBtn('add', 'ti-square-rounded-plus', 'สร้างแบบฝึก<br>การบวก') +
               tileBtn('sub', 'ti-square-rounded-minus', 'สร้างแบบฝึก<br>การลบ') +
               tileBtn('mul', 'ti-square-rounded-x', 'สร้างแบบฝึก<br>การคูณ') +
+              tileBtn('div', 'ti-divide', 'สร้างแบบฝึก<br>การหาร') +
             '</div>' +
-            '<div style="color:var(--muted);font-size:.86rem;text-align:center">กดเลือกประเภทเพื่อสร้างใบงาน (ตั้งบวก / ตั้งลบ / ตั้งคูณ)</div>' +
+            '<div style="color:var(--muted);font-size:.86rem;text-align:center">กดเลือกประเภทเพื่อสร้างใบงาน (ตั้งบวก / ตั้งลบ / ตั้งคูณ / หาร)</div>' +
           '</div>';
         $$('.efadd-tile', host).forEach(function (b) {
           b.onclick = function () {
-            ast.kind = b.dataset.kind; ast.mixed = false; ast.probs = [];
-            ast.count = KINDS[ast.kind].per; ast.cols = 2;   // คูณ: 4 ข้อ/หน้า · บวก-ลบ: 10 ข้อ/หน้า
+            ast.kind = b.dataset.kind; ast.mixed = false; ast.probs = []; ast.cols = 2;
+            ast.count = perOf();
             renderAdd();
           };
         });
@@ -351,28 +463,43 @@
         var note = '';
         if (ast.kind === 'sub') note = '* ตัวตั้งจะถูกสุ่มให้มีค่ามากกว่าตัวลบเสมอ (ผลลบไม่ติดลบ)';
         else if (ast.kind === 'mul') note = '* ตัวตั้งสูงสุด 4 หลัก · ตัวคูณสูงสุด 3 หลัก และหลักตัวคูณไม่เกินหลักตัวตั้ง';
+        else if (ast.kind === 'div') note = '* ตัวตั้งสูงสุด 6 หลัก · ตัวหารสูงสุด 3 หลัก และหลักตัวหารไม่เกินหลักตัวตั้ง';
         var subNote = note ? '<div style="font-size:12px;color:var(--muted);margin-top:-6px">' + note + '</div>' : '';
+        var isDiv = (ast.kind === 'div');
+        var per = perOf();
+        var divFields = isDiv ?
+          '<div class="efadd-field"><label>รูปแบบการหาร</label><select id="ad-mode">' +
+            opt('long', 'หารยาว (แสดงวิธีทำ)', ast.mode) + opt('short', 'หารสั้น (บอกผลลัพธ์)', ast.mode) + '</select></div>' +
+          '<div class="efadd-field"><label>ลักษณะการหาร</label><select id="ad-exact">' +
+            opt('1', 'หารลงตัว', ast.exact ? '1' : '0') + opt('0', 'หารไม่ลงตัว (มีเศษ)', ast.exact ? '1' : '0') + '</select></div>' : '';
+        var t2label = isDiv ? 'ตัวหาร' : K.t2;
         host.innerHTML =
           '<div style="margin-bottom:16px"><button class="btn btn-ghost" id="ad-back"><i class="ti ti-arrow-left"></i> กลับ</button></div>' +
           '<div class="grid-main" style="display:grid;gap:22px;grid-template-columns:340px 1fr">' +
             '<section><div class="panel" style="padding:18px;display:flex;flex-direction:column;gap:14px">' +
               '<div class="eyebrow">ตั้งค่าชุดแบบฝึก' + K.word + '</div>' +
+              divFields +
               '<div class="efadd-field"><label>จำนวนหลักของตัวตั้ง</label><select id="ad-dtop">' + digOpts(ast.dTop, K.dMaxTop) + '</select></div>' +
-              '<div class="efadd-field"><label>จำนวนหลักของ' + K.t2 + '</label><select id="ad-dbot">' + digOpts(ast.dBot, maxBot) + '</select></div>' + subNote +
-              '<div class="efadd-field"><label>จำนวนข้อ (' + K.per + ' ข้อ/หน้า)</label><select id="ad-count">' +
-                [1, 2, 3, 4, 5].map(function (k) { return opt(k * K.per, (k * K.per) + ' ข้อ', ast.count); }).join('') + '</select></div>' +
-              '<div class="efadd-field"><label>คอลัมน์ต่อหน้า</label><select id="ad-cols">' +
-                opt(2, '2 คอลัมน์', ast.cols) + opt(3, '3 คอลัมน์', ast.cols) + opt(4, '4 คอลัมน์', ast.cols) + '</select></div>' +
-              '<div class="efadd-field"><label>ชื่อชุด (เว้นว่างได้)</label><input id="ad-title" value="' + esc(ast.title) + '" placeholder="เช่น ' + K.word + ' 3 หลัก ชุดที่ 1"></div>' +
+              '<div class="efadd-field"><label>จำนวนหลักของ' + t2label + '</label><select id="ad-dbot">' + digOpts(ast.dBot, maxBot) + '</select></div>' + subNote +
+              '<div class="efadd-field"><label>จำนวนข้อ (' + per + ' ข้อ/หน้า)</label><select id="ad-count">' +
+                [1, 2, 3, 4, 5].map(function (k) { return opt(k * per, (k * per) + ' ข้อ', ast.count); }).join('') + '</select></div>' +
+              (isDiv ? '' :
+                '<div class="efadd-field"><label>คอลัมน์ต่อหน้า</label><select id="ad-cols">' +
+                opt(2, '2 คอลัมน์', ast.cols) + opt(3, '3 คอลัมน์', ast.cols) + opt(4, '4 คอลัมน์', ast.cols) + '</select></div>') +
+              '<div class="efadd-field"><label>ชื่อชุด (เว้นว่างได้)</label><input id="ad-title" value="' + esc(ast.title) + '" placeholder="เช่น ' + K.word + ' ชุดที่ 1"></div>' +
               '<button class="btn btn-accent" id="ad-gen"><i class="ti ti-refresh"></i> สร้างชุดแบบฝึก</button>' +
-              '<button class="btn btn-ghost" id="ad-auto"><i class="ti ti-arrows-shuffle"></i> สุ่มอัตโนมัติ (คละหลัก)</button>' +
+              (isDiv ? '' : '<button class="btn btn-ghost" id="ad-auto"><i class="ti ti-arrows-shuffle"></i> สุ่มอัตโนมัติ (คละหลัก)</button>') +
               '<button class="btn btn-ghost" id="ad-timer"><i class="ti ti-clock"></i> จับเวลาเต็มจอ</button>' +
             '</div></section>' +
             '<section id="ad-out"></section>' +
           '</div>';
 
         $('#ad-back', host).onclick = function () { renderHome(); };
-        // เปลี่ยนหลักตัวตั้ง → ปรับเพดานหลักตัวล่าง (ลบ/คูณ ห้ามเกินตัวตั้ง)
+        if (isDiv) {
+          $('#ad-mode', host).onchange = function () { ast.mode = this.value; ast.count = perOf(); ast.probs = []; renderAdd(); };
+          $('#ad-exact', host).onchange = function () { ast.exact = (this.value === '1'); };
+        }
+        // เปลี่ยนหลักตัวตั้ง → ปรับเพดานหลักตัวล่าง (ลบ/คูณ/หาร ห้ามเกินตัวตั้ง)
         $('#ad-dtop', host).onchange = function () {
           ast.dTop = +this.value;
           var mb = (ast.kind === 'add') ? K.dMaxBot : Math.min(K.dMaxBot, ast.dTop);
@@ -383,7 +510,7 @@
           ast.dTop = +$('#ad-dtop', host).value;
           ast.dBot = +$('#ad-dbot', host).value;
           ast.count = +$('#ad-count', host).value;
-          ast.cols = +$('#ad-cols', host).value;
+          if ($('#ad-cols', host)) ast.cols = +$('#ad-cols', host).value;
           ast.title = $('#ad-title', host).value.trim();
         }
         $('#ad-gen', host).onclick = function () {
@@ -391,7 +518,7 @@
           renderAddOut();
           if (svc.toast) svc.toast('success', 'สร้าง ' + ast.count + ' ข้อแล้ว');
         };
-        $('#ad-auto', host).onclick = function () {
+        if ($('#ad-auto', host)) $('#ad-auto', host).onclick = function () {
           readUI(); ast.setId = newSetId(); ast.mixed = true; ast.probs = buildAutoSet(); ast.showKey = false;
           renderAddOut();
           if (svc.toast) svc.toast('success', 'สุ่มคละหลัก ' + ast.count + ' ข้อแล้ว');
@@ -407,7 +534,8 @@
           return;
         }
         var cells = ast.probs.map(function (p, i) {
-          return '<div class="efadd-prob"><span class="no">' + (i + 1) + ')</span>' + addGrid(p, ast.showKey, KINDS[ast.kind].op) + '</div>';
+          var g = ast.kind === 'div' ? divGrid(p, ast.showKey, ast.mode) : addGrid(p, ast.showKey, KINDS[ast.kind].op);
+          return '<div class="efadd-prob"><span class="no">' + (i + 1) + ')</span>' + g + '</div>';
         }).join('');
         out.innerHTML =
           '<div class="panel" style="padding:18px">' +
@@ -427,12 +555,15 @@
 
       function doAddPrint(withKey) {
         var S = svc.settings || {}, K = KINDS[ast.kind];
-        var subTxt = ast.mixed
-          ? (K.verb + ' คละจำนวนหลัก (สุ่ม 1–8 หลัก)')
-          : (K.verb + ' ' + ast.dTop + ' หลัก ' + K.op + ' ' + effDb() + ' หลัก');
+        var subTxt;
+        if (ast.kind === 'div') {
+          subTxt = (ast.mode === 'long' ? 'หารยาว' : 'หารสั้น') + ' ' + ast.dTop + ' หลัก ÷ ' + effDb() + ' หลัก · ' + (ast.exact ? 'ลงตัว' : 'มีเศษ');
+        } else {
+          subTxt = ast.mixed ? (K.verb + ' คละจำนวนหลัก (สุ่ม 1–8 หลัก)') : (K.verb + ' ' + ast.dTop + ' หลัก ' + K.op + ' ' + effDb() + ' หลัก');
+        }
         var o = {
           title: defTitle(), setId: ast.setId, sub: subTxt,
-          op: K.op, accent: K.accent, per: K.per,
+          kind: ast.kind, mode: ast.mode, op: K.op, accent: K.accent, per: perOf(),
           org: S.org || '', logo: S.logo || LOGO,
           probs: ast.probs, cols: ast.cols, qrImg: ''
         };
@@ -443,7 +574,9 @@
         };
         // QR เฉลยมุมบนขวา (เฉพาะใบงาน) — ใช้บริการกลางถ้ามี
         if (!withKey && svc.makeQR && svc.keyURL) {
-          var answers = ast.probs.map(function (p) { return String(p.ans); });
+          var answers = ast.probs.map(function (p) {
+            return ast.kind === 'div' ? (String(p.ans) + (p.rem ? ' เศษ ' + p.rem : '')) : String(p.ans);
+          });
           var url = svc.keyURL(o.title, ast.setId, answers);
           svc.makeQR(url).then(function (img) { finish(img); }, function () { finish(''); });
         } else { finish(''); }
