@@ -139,12 +139,17 @@
     // วางเครื่องหมายลบ (สีแดง) แบบ overlay: กึ่งกลางแนวตั้งของคู่ที่ลบกัน · ขวาของตัวเลขที่ลบ (บนเส้นตาราง)
     var overlays = '';
     if (showAns) {
-      var x0 = (DW + 0.62) * cu;   // ระยะจากซ้าย = ช่องตัวหาร + วงเล็บ
+      var x0 = (DW + 0.62) * cu;                       // ระยะจากซ้าย = ช่องตัวหาร + วงเล็บ
+      var vinT = (u === 'mm') ? 0.7 : 2.5;             // ความหนาเส้นหนาเหนือตัวตั้ง (vinculum)
+      var lineT = (u === 'mm') ? 0.55 : 2;            // ความหนาเส้นใต้แต่ละครั้งที่ลบ
+      var subSeen = 0;
       for (i = 0; i < info.lines.length; i++) {
-        if (!info.lines[i].underline) continue;      // เฉพาะบรรทัดตัวลบ
-        var ck = info.lines[i].rightCol, Rk = 2 + i; // แถวที่ i ของ lines = แถวตาราง 2+i
-        var left = x0 + (ck + 0.7) * cu, top = Rk * cu;   // ชิดหลังตัวเลขที่ลบ (เยื้องซ้ายจากเส้นกริดเล็กน้อย)
+        if (!info.lines[i].underline) continue;        // เฉพาะบรรทัดตัวลบ
+        var ck = info.lines[i].rightCol, Rk = 2 + i;   // แถวที่ i ของ lines = แถวตาราง 2+i
+        var yoff = vinT + subSeen * lineT;             // ออฟเซ็ตสะสมของเส้นเหนือคู่นี้ (กันลอยสูงทับเลข)
+        var left = x0 + (ck + 0.7) * cu, top = Rk * cu + yoff;
         overlays += '<span class="dmr" style="left:' + left + u + ';top:' + top + u + '">−</span>';
+        subSeen++;
       }
     }
     return '<div class="ld">' + overlays + '<table class="dtab">' + rows + '</table></div>';
