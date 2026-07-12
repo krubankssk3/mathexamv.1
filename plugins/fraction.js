@@ -51,7 +51,7 @@
 
   /* ---------- สุ่มโจทย์ ---------- */
   function coprime(a, b) { return gcd(a, b) === 1; }
-  function genDenSame(level) { var m = level === 'easy' ? 20 : level === 'medium' ? 50 : 100; return rndI(2, m); }
+      function genDenSame(level) { var m = level === 'easy' ? 20 : level === 'medium' ? 40 : 80; return rndI(2, m); }
   // ตัวส่วนต่างกันตามระดับ — ง่าย: พหุคูณ ≤50 (เปลี่ยนตัวหนึ่งเป็นอีกตัว)
   //   กลาง: ค.ร.น. ต้องคิด ≤500 · ยาก: ≤1000 (คุม cofactor เล็กให้ยังคิดไหว)
   function genDenPairDiff(level) {
@@ -60,7 +60,7 @@
       var big = base * rndI(2, kmax);
       return Math.random() < 0.5 ? [base, big] : [big, base];
     }
-    var max = level === 'hard' ? 1000 : 500, coMax = level === 'hard' ? 16 : 10;
+    var max = level === 'hard' ? 499 : 99, coMax = level === 'hard' ? 12 : 9;
     var gMax = Math.max(2, Math.floor(max / coMax)), g, a, b, guard = 0;
     do {
       g = rndI(2, gMax);
@@ -255,8 +255,8 @@
           + '<div class="fr-field"><label>ตัวส่วน</label><select id="fSame">' + opt('0', 'ไม่เท่ากัน (หา ค.ร.น.)', st.same ? '1' : '0') + opt('1', 'เท่ากัน', st.same ? '1' : '0') + '</select></div>'
           + '<div class="fr-field"><label>ระดับความยาก (ตัวส่วน)</label><select id="fLevel">'
           + opt('easy', 'ง่าย — เปลี่ยนตัวส่วนได้ตรง ๆ (≤ 50)', st.level)
-          + opt('medium', 'ปานกลาง — ต้องหา ค.ร.น. (≤ 500)', st.level)
-          + opt('hard', 'ยาก — หา ค.ร.น. เลขใหญ่ (≤ 1,000)', st.level) + '</select></div>'
+          + opt('medium', 'ปานกลาง — ต้องหา ค.ร.น. (< 100)', st.level)
+          + opt('hard', 'ยาก — หา ค.ร.น. เลขใหญ่ (< 500)', st.level) + '</select></div>'
           + '<div class="fr-field"><label>จำนวนข้อ</label><select id="fCount">' + [10, 20, 30, 40].map(function (n) { return opt(n, n + ' ข้อ', st.count); }).join('') + '</select></div>'
           + '<div class="fr-field"><label>ชื่อชุด (เว้นว่างได้)</label><input id="fTitle" value="' + esc(st.title) + '" placeholder="เช่น การบวกเศษส่วน ชุดที่ 1"></div>'
           + '<button class="btn btn-accent" id="fGen"><i class="ti ti-refresh"></i> สร้างชุดแบบฝึก</button>'
