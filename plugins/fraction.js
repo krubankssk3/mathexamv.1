@@ -71,9 +71,19 @@
   }
   function genFrac(d) { var im = Math.random() < 0.4; return { type: 'frac', n: im ? rndI(d + 1, 2 * d - 1) : rndI(1, d - 1), d: d }; }
   function genMixedNum(d) { return { type: 'mixed', w: rndI(1, 9), n: rndI(1, d - 1), d: d }; }
-  function genProblem(kind, sameDenom, level) {
+  // กำหนดช่วงเอง: เลือกตัวประกอบร่วม g ที่มีพหุคูณ ≥2 ตัวในช่วง แล้วหยิบ 2 พหุคูณต่างกัน → gcd>1 และอยู่ในช่วงเสมอ
+  function genDenPairCustom(min, max) {
+    if (min < 2) min = 2; if (max < min) max = min;
+    var gs = []; [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].forEach(function (g) { if (Math.floor(max / g) - Math.ceil(min / g) >= 1) gs.push(g); });
+    if (!gs.length) { var x = rndI(min, max), y = x === max ? x - 1 : x + 1; return [x, Math.max(min, Math.min(max, y))]; }
+    var g = gs[rndI(0, gs.length - 1)], lo = Math.ceil(min / g), hi = Math.floor(max / g);
+    var k1 = rndI(lo, hi), k2 = rndI(lo, hi), guard = 0; while (k2 === k1 && guard < 50) { k2 = rndI(lo, hi); guard++; }
+    return [g * k1, g * k2];
+  }
+  function genProblem(kind, sameDenom, level, dmin, dmax) {
     var d1, d2;
-    if (sameDenom) { d1 = genDenSame(level); d2 = d1; } else { var pr = genDenPairDiff(level); d1 = pr[0]; d2 = pr[1]; }
+    if (sameDenom) { var d = (level === 'custom') ? rndI(dmin, dmax) : genDenSame(level); d1 = d; d2 = d; }
+    else { var pr = (level === 'custom') ? genDenPairCustom(dmin, dmax) : genDenPairDiff(level); d1 = pr[0]; d2 = pr[1]; }
     var a, b;
     if (kind === 'ff') { a = genFrac(d1); b = genFrac(d2); }
     else if (kind === 'fm') { a = genFrac(d1); b = genMixedNum(d2); }
@@ -218,11 +228,11 @@
     icon: 'ti-math-x-divide-y',
     mount: function (host, svc) {
       ensureCSS();
-      var st = { kind: 'ff', same: false, level: 'medium', count: 20, title: '', setId: '', showKey: false, probs: [] };
+      var st = { kind: 'ff', same: false, level: 'medium', dmin: 2, dmax: 20, count: 20, title: '', setId: '', showKey: false, probs: [] };
 
       function newSetId() { var d = new Date(); return OPS.add.pre + String(d.getFullYear()).slice(2) + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + rndI(100, 999); }
       function kindWord() { return st.kind === 'ff' ? 'เศษส่วน + เศษส่วน' : st.kind === 'fm' ? 'เศษส่วน + จำนวนคละ' : 'จำนวนคละ + จำนวนคละ'; }
-      function levelWord() { return st.level === 'easy' ? 'ง่าย' : st.level === 'medium' ? 'ปานกลาง' : 'ยาก'; }
+      function levelWord() { return st.level === 'easy' ? 'ง่าย' : st.level === 'medium' ? 'ปานกลาง' : st.level === 'hard' ? 'ยาก' : ('กำหนดเอง ' + st.dmin + '–' + st.dmax); }
       function defTitle() { return st.title || ('แบบฝึกการบวกเศษส่วน (' + kindWord() + ')'); }
       function opt(v, label, cur) { return '<option value="' + v + '"' + (v == cur ? ' selected' : '') + '>' + label + '</option>'; }
 
@@ -256,7 +266,10 @@
           + '<div class="fr-field"><label>ระดับความยาก (ตัวส่วน)</label><select id="fLevel">'
           + opt('easy', 'ง่าย — เปลี่ยนตัวส่วนได้ตรง ๆ (≤ 50)', st.level)
           + opt('medium', 'ปานกลาง — ต้องหา ค.ร.น. (< 100)', st.level)
-          + opt('hard', 'ยาก — หา ค.ร.น. เลขใหญ่ (< 500)', st.level) + '</select></div>'
+          + opt('hard', 'ยาก — หา ค.ร.น. เลขใหญ่ (< 500)', st.level)
+          + opt('custom', 'กำหนดเอง — ระบุช่วงตัวส่วน', st.level) + '</select></div>'
+          + '<div class="fr-field" id="fRangeBox"' + (st.level === 'custom' ? '' : ' style="display:none"') + '><label>กำหนดตัวส่วนเอง</label>'
+          + '<div style="display:flex;gap:8px;align-items:center;color:var(--muted)">ตั้งแต่ <input id="fMin" type="number" min="2" max="999" value="' + st.dmin + '" style="width:80px;padding:9px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt)"> ถึง <input id="fMax" type="number" min="2" max="999" value="' + st.dmax + '" style="width:80px;padding:9px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt)"></div></div>'
           + '<div class="fr-field"><label>จำนวนข้อ</label><select id="fCount">' + [10, 20, 30, 40].map(function (n) { return opt(n, n + ' ข้อ', st.count); }).join('') + '</select></div>'
           + '<div class="fr-field"><label>ชื่อชุด (เว้นว่างได้)</label><input id="fTitle" value="' + esc(st.title) + '" placeholder="เช่น การบวกเศษส่วน ชุดที่ 1"></div>'
           + '<button class="btn btn-accent" id="fGen"><i class="ti ti-refresh"></i> สร้างชุดแบบฝึก</button>'
@@ -264,12 +277,19 @@
           + '</div></section><section id="fOut"></section></div>';
         $('#fBack', host).onclick = renderHome;
         $('#fTimer', host).onclick = tmOpen;
+        $('#fLevel', host).onchange = function () { var b = $('#fRangeBox', host); if (b) b.style.display = this.value === 'custom' ? '' : 'none'; };
         $('#fGen', host).onclick = function () {
           st.kind = $('#fKind', host).value; st.same = $('#fSame', host).value === '1';
           st.level = $('#fLevel', host).value;
+          if (st.level === 'custom') {
+            var mn = Math.max(2, Math.min(999, parseInt($('#fMin', host).value, 10) || 2));
+            var mx = Math.max(2, Math.min(999, parseInt($('#fMax', host).value, 10) || mn));
+            if (mx < mn) { var t = mn; mn = mx; mx = t; }
+            st.dmin = mn; st.dmax = mx;
+          }
           st.count = +$('#fCount', host).value; st.title = $('#fTitle', host).value.trim();
           st.setId = newSetId(); st.showKey = false;
-          st.probs = []; for (var i = 0; i < st.count; i++) st.probs.push(genProblem(st.kind, st.same, st.level));
+          st.probs = []; for (var i = 0; i < st.count; i++) st.probs.push(genProblem(st.kind, st.same, st.level, st.dmin, st.dmax));
           renderOut();
           if (svc.toast) svc.toast('success', 'สร้าง ' + st.count + ' ข้อแล้ว');
         };
