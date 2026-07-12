@@ -51,25 +51,29 @@
 
   /* ---------- สุ่มโจทย์ ---------- */
   function coprime(a, b) { return gcd(a, b) === 1; }
-  function genDenSame() { var p = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 18, 20, 24]; return p[rndI(0, p.length - 1)]; }
-  // ตัวส่วนต่างกันแบบ ค.ร.น. ต้องคิด (ไม่ใช่คูณตรง ๆ): พหุคูณ หรือ มีตัวประกอบร่วม
-  function genDenPairDiff() {
-    var d1, d2;
-    if (Math.random() < 0.4) {                       // ตัวหนึ่งเป็นพหุคูณของอีกตัว (เช่น 8 กับ 16)
-      var base = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12][rndI(0, 9)], big = base * rndI(2, 3);
-      if (Math.random() < 0.5) { d1 = base; d2 = big; } else { d1 = big; d2 = base; }
-    } else {                                          // มีตัวประกอบร่วม (เช่น 16 กับ 24, 15 กับ 12)
-      var g = [2, 3, 4, 5, 6, 8][rndI(0, 5)], aa, bb;
-      do { aa = rndI(2, 5); bb = rndI(2, 5); } while (aa === bb || !coprime(aa, bb));
-      d1 = g * aa; d2 = g * bb;
+  function genDenSame(level) { var m = level === 'easy' ? 20 : level === 'medium' ? 50 : 100; return rndI(2, m); }
+  // ตัวส่วนต่างกันตามระดับ — ง่าย: พหุคูณ ≤50 (เปลี่ยนตัวหนึ่งเป็นอีกตัว)
+  //   กลาง: ค.ร.น. ต้องคิด ≤500 · ยาก: ≤1000 (คุม cofactor เล็กให้ยังคิดไหว)
+  function genDenPairDiff(level) {
+    if (level === 'easy') {
+      var base = rndI(2, 24), kmax = Math.min(6, Math.floor(50 / base)); if (kmax < 2) kmax = 2;
+      var big = base * rndI(2, kmax);
+      return Math.random() < 0.5 ? [base, big] : [big, base];
     }
-    return [d1, d2];
+    var max = level === 'hard' ? 1000 : 500, coMax = level === 'hard' ? 16 : 10;
+    var gMax = Math.max(2, Math.floor(max / coMax)), g, a, b, guard = 0;
+    do {
+      g = rndI(2, gMax);
+      do { a = rndI(2, coMax); b = rndI(2, coMax); } while (a === b || !coprime(a, b));
+      guard++;
+    } while ((g * a > max || g * b > max) && guard < 400);
+    return [g * a, g * b];
   }
   function genFrac(d) { var im = Math.random() < 0.4; return { type: 'frac', n: im ? rndI(d + 1, 2 * d - 1) : rndI(1, d - 1), d: d }; }
   function genMixedNum(d) { return { type: 'mixed', w: rndI(1, 9), n: rndI(1, d - 1), d: d }; }
-  function genProblem(kind, sameDenom) {
+  function genProblem(kind, sameDenom, level) {
     var d1, d2;
-    if (sameDenom) { d1 = genDenSame(); d2 = d1; } else { var pr = genDenPairDiff(); d1 = pr[0]; d2 = pr[1]; }
+    if (sameDenom) { d1 = genDenSame(level); d2 = d1; } else { var pr = genDenPairDiff(level); d1 = pr[0]; d2 = pr[1]; }
     var a, b;
     if (kind === 'ff') { a = genFrac(d1); b = genFrac(d2); }
     else if (kind === 'fm') { a = genFrac(d1); b = genMixedNum(d2); }
@@ -214,10 +218,11 @@
     icon: 'ti-math-x-divide-y',
     mount: function (host, svc) {
       ensureCSS();
-      var st = { kind: 'ff', same: false, count: 20, title: '', setId: '', showKey: false, probs: [] };
+      var st = { kind: 'ff', same: false, level: 'medium', count: 20, title: '', setId: '', showKey: false, probs: [] };
 
       function newSetId() { var d = new Date(); return OPS.add.pre + String(d.getFullYear()).slice(2) + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + rndI(100, 999); }
       function kindWord() { return st.kind === 'ff' ? 'เศษส่วน + เศษส่วน' : st.kind === 'fm' ? 'เศษส่วน + จำนวนคละ' : 'จำนวนคละ + จำนวนคละ'; }
+      function levelWord() { return st.level === 'easy' ? 'ง่าย' : st.level === 'medium' ? 'ปานกลาง' : 'ยาก'; }
       function defTitle() { return st.title || ('แบบฝึกการบวกเศษส่วน (' + kindWord() + ')'); }
       function opt(v, label, cur) { return '<option value="' + v + '"' + (v == cur ? ' selected' : '') + '>' + label + '</option>'; }
 
@@ -248,6 +253,10 @@
           + '<div class="fr-field"><label>ประเภทโจทย์</label><select id="fKind">'
           + opt('ff', 'เศษส่วน + เศษส่วน', st.kind) + opt('fm', 'เศษส่วน + จำนวนคละ', st.kind) + opt('mm', 'จำนวนคละ + จำนวนคละ', st.kind) + '</select></div>'
           + '<div class="fr-field"><label>ตัวส่วน</label><select id="fSame">' + opt('0', 'ไม่เท่ากัน (หา ค.ร.น.)', st.same ? '1' : '0') + opt('1', 'เท่ากัน', st.same ? '1' : '0') + '</select></div>'
+          + '<div class="fr-field"><label>ระดับความยาก (ตัวส่วน)</label><select id="fLevel">'
+          + opt('easy', 'ง่าย — เปลี่ยนตัวส่วนได้ตรง ๆ (≤ 50)', st.level)
+          + opt('medium', 'ปานกลาง — ต้องหา ค.ร.น. (≤ 500)', st.level)
+          + opt('hard', 'ยาก — หา ค.ร.น. เลขใหญ่ (≤ 1,000)', st.level) + '</select></div>'
           + '<div class="fr-field"><label>จำนวนข้อ</label><select id="fCount">' + [10, 20, 30, 40].map(function (n) { return opt(n, n + ' ข้อ', st.count); }).join('') + '</select></div>'
           + '<div class="fr-field"><label>ชื่อชุด (เว้นว่างได้)</label><input id="fTitle" value="' + esc(st.title) + '" placeholder="เช่น การบวกเศษส่วน ชุดที่ 1"></div>'
           + '<button class="btn btn-accent" id="fGen"><i class="ti ti-refresh"></i> สร้างชุดแบบฝึก</button>'
@@ -257,9 +266,10 @@
         $('#fTimer', host).onclick = tmOpen;
         $('#fGen', host).onclick = function () {
           st.kind = $('#fKind', host).value; st.same = $('#fSame', host).value === '1';
+          st.level = $('#fLevel', host).value;
           st.count = +$('#fCount', host).value; st.title = $('#fTitle', host).value.trim();
           st.setId = newSetId(); st.showKey = false;
-          st.probs = []; for (var i = 0; i < st.count; i++) st.probs.push(genProblem(st.kind, st.same));
+          st.probs = []; for (var i = 0; i < st.count; i++) st.probs.push(genProblem(st.kind, st.same, st.level));
           renderOut();
           if (svc.toast) svc.toast('success', 'สร้าง ' + st.count + ' ข้อแล้ว');
         };
@@ -288,7 +298,7 @@
 
       function doPrint(withKey) {
         var S = svc.settings || {}, K = OPS.add;
-        var o = { title: defTitle(), setId: st.setId, sub: 'การบวก · ' + kindWord() + ' · ตัวส่วน' + (st.same ? 'เท่ากัน' : 'ไม่เท่ากัน'),
+        var o = { title: defTitle(), setId: st.setId, sub: 'การบวก · ' + kindWord() + ' · ตัวส่วน' + (st.same ? 'เท่ากัน' : 'ไม่เท่ากัน') + ' · ระดับ' + levelWord(),
           accent: K.accent, org: S.org || '', logo: S.logo || LOGO, probs: st.probs, qrImg: '' };
         var finish = function (qrImg) { o.qrImg = qrImg || ''; printDoc(sheetHTML(o, withKey)); if (svc.toast) svc.toast('success', withKey ? 'เปิดหน้าพิมพ์ฉบับเฉลยแล้ว' : 'เปิดหน้าพิมพ์ใบงานแล้ว'); };
         if (!withKey && svc.makeQR && svc.keyURL) {
