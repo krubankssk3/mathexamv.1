@@ -24,18 +24,18 @@
   function computeAnswer(a, b) {
     var A = toImproper(a), B = toImproper(b), D = lcm(A.d, B.d);
     var N = A.n * (D / A.d) + B.n * (D / B.d);
-    var isMixed = (a.type === 'mixed' || b.type === 'mixed');
-    var raw, red = null, g;
+    var isMixed = (a.type === 'mixed' || b.type === 'mixed'), chain = [], g;
     if (isMixed) {
       var W = Math.floor(N / D), n = N % D;
-      raw = (n === 0) ? { t: 'whole', w: W } : { t: 'mixed', w: W, n: n, d: D };
-      if (n > 0) { g = gcd(n, D); if (g > 1) { var rn = n / g, rd = D / g; red = (rd === 1) ? { t: 'whole', w: W + rn } : { t: 'mixed', w: W, n: rn, d: rd }; } }
+      chain.push(n === 0 ? { t: 'whole', w: W } : { t: 'mixed', w: W, n: n, d: D });
+      if (n > 0) { g = gcd(n, D); if (g > 1) chain.push(D / g === 1 ? { t: 'whole', w: W + n / g } : { t: 'mixed', w: W, n: n / g, d: D / g }); }
     } else {
-      raw = { t: 'frac', n: N, d: D };
-      g = gcd(N, D);
-      if (g > 1) { var n2 = N / g, d2 = D / g; red = (d2 === 1) ? { t: 'whole', w: n2 } : { t: 'frac', n: n2, d: d2 }; }
+      chain.push({ t: 'frac', n: N, d: D });                 // คำตอบดิบ (บนตัวส่วนร่วม)
+      g = gcd(N, D); var Nr = N, Dr = D;
+      if (g > 1) { Nr = N / g; Dr = D / g; chain.push(Dr === 1 ? { t: 'whole', w: Nr } : { t: 'frac', n: Nr, d: Dr }); }  // ทอนอย่างต่ำ
+      if (Dr > 1 && Nr > Dr) chain.push({ t: 'mixed', w: Math.floor(Nr / Dr), n: Nr % Dr, d: Dr });                    // เศษเกิน → จำนวนคละ
     }
-    return { raw: raw, red: red };
+    return { chain: chain };
   }
 
   /* ---------- เรนเดอร์ HTML ---------- */
@@ -47,15 +47,29 @@
     if (s.t === 'mixed') return mixedHTML(s.w, s.n, s.d);
     return fracHTML(s.n, s.d);
   }
-  function answerHTML(ans) { return structHTML(ans.raw) + (ans.red ? '<span class="eq">=</span>' + structHTML(ans.red) : ''); }
+  function answerHTML(ans) { return ans.chain.map(structHTML).join('<span class="eq">=</span>'); }
 
   /* ---------- สุ่มโจทย์ ---------- */
-  function genDen() { return rndI(2, 12); }
-  function genFrac(d) { var improper = Math.random() < 0.4; return { type: 'frac', n: improper ? rndI(d + 1, 2 * d - 1) : rndI(1, d - 1), d: d }; }
+  function coprime(a, b) { return gcd(a, b) === 1; }
+  function genDenSame() { var p = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 14, 15, 16, 18, 20, 24]; return p[rndI(0, p.length - 1)]; }
+  // ตัวส่วนต่างกันแบบ ค.ร.น. ต้องคิด (ไม่ใช่คูณตรง ๆ): พหุคูณ หรือ มีตัวประกอบร่วม
+  function genDenPairDiff() {
+    var d1, d2;
+    if (Math.random() < 0.4) {                       // ตัวหนึ่งเป็นพหุคูณของอีกตัว (เช่น 8 กับ 16)
+      var base = [2, 3, 4, 5, 6, 7, 8, 9, 10, 12][rndI(0, 9)], big = base * rndI(2, 3);
+      if (Math.random() < 0.5) { d1 = base; d2 = big; } else { d1 = big; d2 = base; }
+    } else {                                          // มีตัวประกอบร่วม (เช่น 16 กับ 24, 15 กับ 12)
+      var g = [2, 3, 4, 5, 6, 8][rndI(0, 5)], aa, bb;
+      do { aa = rndI(2, 5); bb = rndI(2, 5); } while (aa === bb || !coprime(aa, bb));
+      d1 = g * aa; d2 = g * bb;
+    }
+    return [d1, d2];
+  }
+  function genFrac(d) { var im = Math.random() < 0.4; return { type: 'frac', n: im ? rndI(d + 1, 2 * d - 1) : rndI(1, d - 1), d: d }; }
   function genMixedNum(d) { return { type: 'mixed', w: rndI(1, 9), n: rndI(1, d - 1), d: d }; }
   function genProblem(kind, sameDenom) {
-    var d1 = genDen(), d2;
-    if (sameDenom) d2 = d1; else { do { d2 = genDen(); } while (d2 === d1); }
+    var d1, d2;
+    if (sameDenom) { d1 = genDenSame(); d2 = d1; } else { var pr = genDenPairDiff(); d1 = pr[0]; d2 = pr[1]; }
     var a, b;
     if (kind === 'ff') { a = genFrac(d1); b = genFrac(d2); }
     else if (kind === 'fm') { a = genFrac(d1); b = genMixedNum(d2); }
