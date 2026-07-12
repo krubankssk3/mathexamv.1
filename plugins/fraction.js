@@ -21,21 +21,25 @@
 
   /* ---------- โครงเศษส่วน/จำนวนคละ + คำตอบ ---------- */
   function toImproper(o) { return { n: (o.w || 0) * o.d + o.n, d: o.d }; }
-  function computeAnswer(a, b) {
+  function fracVal(o) { var I = toImproper(o); return I.n / I.d; }
+  function computeAnswer(a, b, op) {
+    op = op || 'add';
+    if (op === 'sub' && fracVal(a) < fracVal(b)) { var t = a; a = b; b = t; }   // ลบ: ให้ตัวตั้ง ≥ ตัวลบ (กันติดลบ)
     var A = toImproper(a), B = toImproper(b), D = lcm(A.d, B.d);
-    var N = A.n * (D / A.d) + B.n * (D / B.d);
+    var N = (op === 'sub') ? (A.n * (D / A.d) - B.n * (D / B.d)) : (A.n * (D / A.d) + B.n * (D / B.d));
     var isMixed = (a.type === 'mixed' || b.type === 'mixed'), chain = [], g;
+    if (N === 0) { chain.push({ t: 'whole', w: 0 }); return { a: a, b: b, chain: chain }; }
     if (isMixed) {
       var W = Math.floor(N / D), n = N % D;
-      chain.push(n === 0 ? { t: 'whole', w: W } : { t: 'mixed', w: W, n: n, d: D });
-      if (n > 0) { g = gcd(n, D); if (g > 1) chain.push(D / g === 1 ? { t: 'whole', w: W + n / g } : { t: 'mixed', w: W, n: n / g, d: D / g }); }
+      chain.push(n === 0 ? { t: 'whole', w: W } : (W === 0 ? { t: 'frac', n: n, d: D } : { t: 'mixed', w: W, n: n, d: D }));
+      if (n > 0) { g = gcd(n, D); if (g > 1) chain.push(D / g === 1 ? { t: 'whole', w: W + n / g } : (W === 0 ? { t: 'frac', n: n / g, d: D / g } : { t: 'mixed', w: W, n: n / g, d: D / g })); }
     } else {
       chain.push({ t: 'frac', n: N, d: D });                 // คำตอบดิบ (บนตัวส่วนร่วม)
       g = gcd(N, D); var Nr = N, Dr = D;
       if (g > 1) { Nr = N / g; Dr = D / g; chain.push(Dr === 1 ? { t: 'whole', w: Nr } : { t: 'frac', n: Nr, d: Dr }); }  // ทอนอย่างต่ำ
       if (Dr > 1 && Nr > Dr) chain.push({ t: 'mixed', w: Math.floor(Nr / Dr), n: Nr % Dr, d: Dr });                    // เศษเกิน → จำนวนคละ
     }
-    return { chain: chain };
+    return { a: a, b: b, chain: chain };
   }
 
   /* ---------- เรนเดอร์ HTML ---------- */
@@ -80,7 +84,7 @@
     var k1 = rndI(lo, hi), k2 = rndI(lo, hi), guard = 0; while (k2 === k1 && guard < 50) { k2 = rndI(lo, hi); guard++; }
     return [g * k1, g * k2];
   }
-  function genProblem(kind, sameDenom, level, dmin, dmax) {
+  function genProblem(kind, sameDenom, level, dmin, dmax, op) {
     var d1, d2;
     if (sameDenom) { var d = (level === 'custom') ? rndI(dmin, dmax) : genDenSame(level); d1 = d; d2 = d; }
     else { var pr = (level === 'custom') ? genDenPairCustom(dmin, dmax) : genDenPairDiff(level); d1 = pr[0]; d2 = pr[1]; }
@@ -88,7 +92,8 @@
     if (kind === 'ff') { a = genFrac(d1); b = genFrac(d2); }
     else if (kind === 'fm') { a = genFrac(d1); b = genMixedNum(d2); }
     else { a = genMixedNum(d1); b = genMixedNum(d2); }
-    return { a: a, b: b, ans: computeAnswer(a, b) };
+    var res = computeAnswer(a, b, op);       // อาจสลับ a,b (กรณีลบ กันติดลบ)
+    return { a: res.a, b: res.b, ans: { chain: res.chain } };
   }
 
   /* ---------- CSS เอกสารพิมพ์ ---------- */
@@ -146,7 +151,7 @@
       var cells = chunk.map(function (p, j) {
         var no = pi * PER + j + 1;
         var ansCell = withKey ? '<span class="ansk">' + answerHTML(p.ans) + '</span>' : '<span class="ansbl"></span>';
-        return '<div class="pb"><span class="no">' + no + ')</span><span class="ex">' + operandHTML(p.a) + '<span class="op">+</span>' + operandHTML(p.b) + '<span class="eq">=</span>' + ansCell + '</span></div>';
+        return '<div class="pb"><span class="no">' + no + ')</span><span class="ex">' + operandHTML(p.a) + '<span class="op">' + (o.opSym || '+') + '</span>' + operandHTML(p.b) + '<span class="eq">=</span>' + ansCell + '</span></div>';
       }).join('');
       var grid = '<div class="grid" style="grid-template-columns:repeat(' + cols + ',1fr)">' + cells + '</div>';
       var header = pi === 0
@@ -220,7 +225,10 @@
     document.head.appendChild(s);
   }
 
-  var OPS = { add: { op: '+', accent: '#c0392b', word: 'การบวก', pre: 'FA' } };  // เปิดใช้เฉพาะการบวกก่อน
+  var OPS = {
+    add: { op: '+', accent: '#c0392b', word: 'การบวก', pre: 'FA' },
+    sub: { op: '−', accent: '#16a34a', word: 'การลบ', pre: 'FS' }
+  };
 
   window.Platform.register({
     id: 'fraction',
@@ -228,15 +236,17 @@
     icon: 'ti-math-x-divide-y',
     mount: function (host, svc) {
       ensureCSS();
-      var st = { kind: 'ff', same: false, level: 'medium', dmin: 2, dmax: 20, count: 20, title: '', setId: '', showKey: false, probs: [] };
+      var st = { op: 'add', kind: 'ff', same: false, level: 'medium', dmin: 2, dmax: 20, count: 20, title: '', setId: '', showKey: false, probs: [] };
 
-      function newSetId() { var d = new Date(); return OPS.add.pre + String(d.getFullYear()).slice(2) + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + rndI(100, 999); }
-      function kindWord() { return st.kind === 'ff' ? 'เศษส่วน + เศษส่วน' : st.kind === 'fm' ? 'เศษส่วน + จำนวนคละ' : 'จำนวนคละ + จำนวนคละ'; }
+      function K() { return OPS[st.op]; }
+      function newSetId() { var d = new Date(); return K().pre + String(d.getFullYear()).slice(2) + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + rndI(100, 999); }
+      function joinWord() { return st.op === 'sub' ? ' − ' : ' + '; }
+      function kindWord() { var w = st.kind === 'ff' ? 'เศษส่วน' + joinWord() + 'เศษส่วน' : st.kind === 'fm' ? 'เศษส่วน' + joinWord() + 'จำนวนคละ' : 'จำนวนคละ' + joinWord() + 'จำนวนคละ'; return w; }
       function levelWord() { return st.level === 'easy' ? 'ง่าย' : st.level === 'medium' ? 'ปานกลาง' : st.level === 'hard' ? 'ยาก' : ('กำหนดเอง ' + st.dmin + '–' + st.dmax); }
-      function defTitle() { return st.title || ('แบบฝึกการบวกเศษส่วน (' + kindWord() + ')'); }
+      function defTitle() { return st.title || ('แบบฝึก' + K().word + 'เศษส่วน (' + kindWord() + ')'); }
       function opt(v, label, cur) { return '<option value="' + v + '"' + (v == cur ? ' selected' : '') + '>' + label + '</option>'; }
 
-      /* ---------- หน้าแรก: 4 ปุ่ม (เปิดเฉพาะบวก) ---------- */
+      /* ---------- หน้าแรก: 4 ปุ่ม (เปิดบวก/ลบ) ---------- */
       function renderHome() {
         function tile(kind, ic, label, active) {
           return '<button class="frtile ' + kind + (active ? ' on' : ' soon') + '" data-op="' + kind + '"' + (active ? '' : ' disabled') + '>'
@@ -246,11 +256,11 @@
         host.innerHTML = '<div style="display:flex;flex-direction:column;align-items:center;gap:20px;padding:36px 16px;min-height:340px">'
           + '<div class="eyebrow" style="text-align:center">แบบฝึกหัดเศษส่วน — เลือกการดำเนินการ</div>'
           + '<div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center">'
-          + tile('add', 'ti-plus', 'การบวก', true) + tile('sub', 'ti-minus', 'การลบ', false)
+          + tile('add', 'ti-plus', 'การบวก', true) + tile('sub', 'ti-minus', 'การลบ', true)
           + tile('mul', 'ti-x', 'การคูณ', false) + tile('div', 'ti-divide', 'การหาร', false)
-          + '</div><div style="color:var(--muted);font-size:.86rem;text-align:center">ตอนนี้เปิดใช้ “การบวก” ก่อน — ที่เหลือกำลังพัฒนา</div></div>';
+          + '</div><div style="color:var(--muted);font-size:.86rem;text-align:center">เปิดใช้ “การบวก” และ “การลบ” แล้ว — คูณ/หาร กำลังพัฒนา</div></div>';
         $$('.frtile', host).forEach(function (b) {
-          b.onclick = function () { if (b.dataset.op === 'add') renderAdd(); else if (svc.toast) svc.toast('info', 'อยู่ระหว่างพัฒนา จะเปิดให้ใช้เร็ว ๆ นี้'); };
+          b.onclick = function () { var o = b.dataset.op; if (o === 'add' || o === 'sub') { st.op = o; st.probs = []; renderAdd(); } else if (svc.toast) svc.toast('info', 'อยู่ระหว่างพัฒนา จะเปิดให้ใช้เร็ว ๆ นี้'); };
         });
       }
 
@@ -259,9 +269,9 @@
         host.innerHTML = '<div style="margin-bottom:16px"><button class="btn btn-ghost" id="fBack"><i class="ti ti-arrow-left"></i> กลับ</button></div>'
           + '<div class="grid-main" style="display:grid;gap:22px;grid-template-columns:340px 1fr">'
           + '<section><div class="panel" style="padding:18px;display:flex;flex-direction:column;gap:14px">'
-          + '<div class="eyebrow">ตั้งค่าชุดแบบฝึกการบวกเศษส่วน</div>'
+          + '<div class="eyebrow">ตั้งค่าชุดแบบฝึก' + K().word + 'เศษส่วน</div>'
           + '<div class="fr-field"><label>ประเภทโจทย์</label><select id="fKind">'
-          + opt('ff', 'เศษส่วน + เศษส่วน', st.kind) + opt('fm', 'เศษส่วน + จำนวนคละ', st.kind) + opt('mm', 'จำนวนคละ + จำนวนคละ', st.kind) + '</select></div>'
+          + opt('ff', 'เศษส่วน' + K().op + 'เศษส่วน', st.kind) + opt('fm', 'เศษส่วน' + K().op + 'จำนวนคละ', st.kind) + opt('mm', 'จำนวนคละ' + K().op + 'จำนวนคละ', st.kind) + '</select></div>'
           + '<div class="fr-field"><label>ตัวส่วน</label><select id="fSame">' + opt('0', 'ไม่เท่ากัน (หา ค.ร.น.)', st.same ? '1' : '0') + opt('1', 'เท่ากัน', st.same ? '1' : '0') + '</select></div>'
           + '<div class="fr-field"><label>ระดับความยาก (ตัวส่วน)</label><select id="fLevel">'
           + opt('easy', 'ง่าย — เปลี่ยนตัวส่วนได้ตรง ๆ (≤ 50)', st.level)
@@ -289,7 +299,7 @@
           }
           st.count = +$('#fCount', host).value; st.title = $('#fTitle', host).value.trim();
           st.setId = newSetId(); st.showKey = false;
-          st.probs = []; for (var i = 0; i < st.count; i++) st.probs.push(genProblem(st.kind, st.same, st.level, st.dmin, st.dmax));
+          st.probs = []; for (var i = 0; i < st.count; i++) st.probs.push(genProblem(st.kind, st.same, st.level, st.dmin, st.dmax, st.op));
           renderOut();
           if (svc.toast) svc.toast('success', 'สร้าง ' + st.count + ' ข้อแล้ว');
         };
@@ -301,7 +311,7 @@
         if (!st.probs.length) { out.innerHTML = '<div class="panel" style="padding:30px;text-align:center;color:var(--muted)">เลือกค่าทางซ้าย แล้วกด “สร้างชุดแบบฝึก”</div>'; return; }
         var cells = st.probs.map(function (p, i) {
           var ansCell = st.showKey ? '<span class="ansk">' + answerHTML(p.ans) + '</span>' : '<span class="ansbl"></span>';
-          return '<div class="fr-pb"><span class="no">' + (i + 1) + ')</span><span class="ex">' + operandHTML(p.a) + '<span class="op">+</span>' + operandHTML(p.b) + '<span class="eq">=</span>' + ansCell + '</span></div>';
+          return '<div class="fr-pb"><span class="no">' + (i + 1) + ')</span><span class="ex">' + operandHTML(p.a) + '<span class="op">' + K().op + '</span>' + operandHTML(p.b) + '<span class="eq">=</span>' + ansCell + '</span></div>';
         }).join('');
         out.innerHTML = '<div class="panel" style="padding:18px">'
           + '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:8px">'
@@ -317,9 +327,10 @@
       }
 
       function doPrint(withKey) {
-        var S = svc.settings || {}, K = OPS.add;
-        var o = { title: defTitle(), setId: st.setId, sub: 'การบวก · ' + kindWord() + ' · ตัวส่วน' + (st.same ? 'เท่ากัน' : 'ไม่เท่ากัน') + ' · ระดับ' + levelWord(),
-          accent: K.accent, org: S.org || '', logo: S.logo || LOGO, probs: st.probs, qrImg: '' };
+        var S = svc.settings || {}, cur = K();
+        var o = { title: defTitle(), setId: st.setId, opSym: cur.op,
+          sub: cur.word + ' · ' + kindWord() + ' · ตัวส่วน' + (st.same ? 'เท่ากัน' : 'ไม่เท่ากัน') + ' · ระดับ' + levelWord(),
+          accent: cur.accent, org: S.org || '', logo: S.logo || LOGO, probs: st.probs, qrImg: '' };
         var finish = function (qrImg) { o.qrImg = qrImg || ''; printDoc(sheetHTML(o, withKey)); if (svc.toast) svc.toast('success', withKey ? 'เปิดหน้าพิมพ์ฉบับเฉลยแล้ว' : 'เปิดหน้าพิมพ์ใบงานแล้ว'); };
         if (!withKey && svc.makeQR && svc.keyURL) {
           var answers = st.probs.map(function (p) { return answerHTML(p.ans).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(); });
