@@ -1035,7 +1035,11 @@
   window.Platform = Platform;
   window.goHome = function () { Platform.showHome(); };
 
-  /* ---------- โหลดปลั๊กอินตาม manifest.json ---------- */
+  /* ---------- โหลดปลั๊กอินอัตโนมัติจากโฟลเดอร์ plugins/ บน GitHub ---------- */
+  /* อ่านรายชื่อไฟล์ .js ในโฟลเดอร์ plugins/ ตรง ๆ (ไม่ต้องแก้ manifest เอง)
+     - แคชต่อ session (เรียก API ครั้งเดียวต่อการเปิดเว็บ)
+     - ถ้า GitHub API ล่ม/ติดลิมิต → ถอยไปใช้ manifest.json (พฤติกรรมเดิม) */
+  var GH_PLUGINS_API = 'https://api.github.com/repos/krubankssk3/mathexamv.1/contents/plugins';
   function loadScript(src) {
     return new Promise(function (res, rej) {
       var s = document.createElement('script');
@@ -1043,9 +1047,27 @@
       document.head.appendChild(s);
     });
   }
+  function pluginNamesFromGitHub() {
+    var cached = null;
+    try { cached = JSON.parse(sessionStorage.getItem('ef_pluginFiles') || 'null'); } catch (e) { }
+    if (cached && cached.length) return Promise.resolve(cached);
+    return fetch(GH_PLUGINS_API).then(function (r) {
+      if (!r.ok) throw new Error('github ' + r.status);
+      return r.json();
+    }).then(function (list) {
+      if (!Array.isArray(list)) throw new Error('bad list');
+      var files = list.filter(function (f) { return f.type === 'file' && /\.js$/i.test(f.name); })
+                      .map(function (f) { return f.name.replace(/\.js$/i, ''); });
+      if (!files.length) throw new Error('no js');
+      try { sessionStorage.setItem('ef_pluginFiles', JSON.stringify(files)); } catch (e) { }
+      return files;
+    });
+  }
+  function pluginNamesFromManifest() {
+    return fetch('manifest.json').then(function (r) { return r.json(); }).then(function (mf) { return mf.plugins || []; });
+  }
   function loadPlugins() {
-    return fetch('manifest.json').then(function (r) { return r.json(); }).then(function (mf) {
-      var files = (mf.plugins || []);
+    return pluginNamesFromGitHub().catch(pluginNamesFromManifest).then(function (files) {
       return files.reduce(function (chain, name) {
         return chain.then(function () {
           return loadScript('plugins/' + name + '.js').catch(function () { return loadScript(name + '.js'); });
