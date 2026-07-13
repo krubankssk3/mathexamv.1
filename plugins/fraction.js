@@ -110,6 +110,7 @@
   }
   function genProblem(kind, sameDenom, level, dmin, dmax, op, nmin, nmax) {
     var cust = (level === 'custom'), nn = cust ? nmin : null, nx = cust ? nmax : null;
+    if (kind === 'mix') kind = (op === 'mul' || op === 'div') ? (Math.random() < 0.5 ? 'cancel' : 'nocancel') : ['ff', 'fm', 'mm'][rndI(0, 2)];   // ผสม: สุ่มต่อข้อ
     if (op === 'mul') {                                     // คูณ: ประเภท = ตัดไขว้ได้/ไม่ได้
       var pr;
       if (cust) pr = genMulCustom(kind, dmin, dmax, nmin, nmax);   // กำหนดช่วงตัวเศษ+ตัวส่วนเอง
@@ -348,7 +349,8 @@
       function newSetId() { var d = new Date(); return K().pre + String(d.getFullYear()).slice(2) + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + rndI(100, 999); }
       function joinWord() { return st.op === 'sub' ? ' − ' : ' + '; }
       function kindWord() {
-        if ((st.op === 'mul' || st.op === 'div')) return st.kind === 'cancel' ? 'ตัดกันได้ (ตัดไขว้)' : 'ตัดกันไม่ได้';
+        if ((st.op === 'mul' || st.op === 'div')) return st.kind === 'cancel' ? 'ตัดกันได้ (ตัดไขว้)' : st.kind === 'nocancel' ? 'ตัดกันไม่ได้' : 'ผสม (ตัดได้+ตัดไม่ได้)';
+        if (st.kind === 'mix') return 'ผสม (คละทั้ง 3 แบบ)';
         var w = st.kind === 'ff' ? 'เศษส่วน' + joinWord() + 'เศษส่วน' : st.kind === 'fm' ? 'เศษส่วน' + joinWord() + 'จำนวนคละ' : 'จำนวนคละ' + joinWord() + 'จำนวนคละ'; return w;
       }
       function levelWord() { return st.level === 'easy' ? 'ง่าย' : st.level === 'medium' ? 'ปานกลาง' : st.level === 'hard' ? 'ยาก' : ('กำหนดเอง (ตัวส่วน ' + st.dmin + '–' + st.dmax + ', ตัวเศษ ' + st.nmin + '–' + st.nmax + ')'); }
@@ -373,8 +375,8 @@
             var o = b.dataset.op;
             if (o === 'add' || o === 'sub' || o === 'mul' || o === 'div') {
               st.op = o; st.probs = [];
-              if (o === 'mul' || o === 'div') { if (st.kind !== 'cancel' && st.kind !== 'nocancel') st.kind = 'cancel'; }
-              else { if (st.kind !== 'ff' && st.kind !== 'fm' && st.kind !== 'mm') st.kind = 'ff'; }
+              if (o === 'mul' || o === 'div') { if (st.kind !== 'cancel' && st.kind !== 'nocancel' && st.kind !== 'mix') st.kind = 'cancel'; }
+              else { if (st.kind !== 'ff' && st.kind !== 'fm' && st.kind !== 'mm' && st.kind !== 'mix') st.kind = 'ff'; }
               renderAdd();
             } else if (svc.toast) svc.toast('info', 'อยู่ระหว่างพัฒนา จะเปิดให้ใช้เร็ว ๆ นี้');
           };
@@ -389,8 +391,8 @@
           + '<div class="eyebrow">ตั้งค่าชุดแบบฝึก' + K().word + 'เศษส่วน</div>'
           + '<div class="fr-field"><label>ประเภทโจทย์</label><select id="fKind">'
           + ((st.op === 'mul' || st.op === 'div')
-            ? (opt('cancel', 'ตัดกันได้ (ตัดไขว้)', st.kind) + opt('nocancel', 'ตัดกันไม่ได้', st.kind))
-            : (opt('ff', 'เศษส่วน' + K().op + 'เศษส่วน', st.kind) + opt('fm', 'เศษส่วน' + K().op + 'จำนวนคละ', st.kind) + opt('mm', 'จำนวนคละ' + K().op + 'จำนวนคละ', st.kind)))
+            ? (opt('cancel', 'ตัดกันได้ (ตัดไขว้)', st.kind) + opt('nocancel', 'ตัดกันไม่ได้', st.kind) + opt('mix', 'ผสม (ตัดได้ + ตัดไม่ได้)', st.kind))
+            : (opt('ff', 'เศษส่วน' + K().op + 'เศษส่วน', st.kind) + opt('fm', 'เศษส่วน' + K().op + 'จำนวนคละ', st.kind) + opt('mm', 'จำนวนคละ' + K().op + 'จำนวนคละ', st.kind) + opt('mix', 'ผสม (คละทั้ง 3 แบบ)', st.kind)))
           + '</select></div>'
           + ((st.op === 'mul' || st.op === 'div') ? '' :
             '<div class="fr-field"><label>ตัวส่วน</label><select id="fSame">' + opt('0', 'ไม่เท่ากัน (หา ค.ร.น.)', st.same ? '1' : '0') + opt('1', 'เท่ากัน', st.same ? '1' : '0') + '</select></div>')
