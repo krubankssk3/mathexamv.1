@@ -32,6 +32,14 @@
       if (Dm > 1 && Mr > Dm) chainM.push({ t: 'mixed', w: Math.floor(Mr / Dm), n: Mr % Dm, d: Dm });
       return { a: a, b: b, chain: chainM };
     }
+    if (op === 'div') {                                     // หาร: a/b ÷ c/d = a/b × d/c = (a·d)/(b·c) แล้วทอน
+      var Dn = a.n * b.d, Dd = a.d * b.n, chd = [], gd;
+      chd.push({ t: 'frac', n: Dn, d: Dd });
+      gd = gcd(Dn, Dd); var Er = Dn, Fd = Dd;
+      if (gd > 1) { Er = Dn / gd; Fd = Dd / gd; chd.push(Fd === 1 ? { t: 'whole', w: Er } : { t: 'frac', n: Er, d: Fd }); }
+      if (Fd > 1 && Er > Fd) chd.push({ t: 'mixed', w: Math.floor(Er / Fd), n: Er % Fd, d: Fd });
+      return { a: a, b: b, chain: chd };
+    }
     if (op === 'sub' && fracVal(a) < fracVal(b)) { var t = a; a = b; b = t; }   // ลบ: ให้ตัวตั้ง ≥ ตัวลบ (กันติดลบ)
     var A = toImproper(a), B = toImproper(b), D = lcm(A.d, B.d);
     var N = (op === 'sub') ? (A.n * (D / A.d) - B.n * (D / B.d)) : (A.n * (D / A.d) + B.n * (D / B.d));
@@ -109,6 +117,13 @@
       var rm = computeAnswer(pr.a, pr.b, 'mul');
       return { a: rm.a, b: rm.b, ans: { chain: rm.chain } };
     }
+    if (op === 'div') {                                     // หาร: ประเภท = ตัดไขว้ (หลังกลับตัวหาร) ได้/ไม่ได้
+      var prd;
+      if (cust) prd = genDivCustom(kind, dmin, dmax, nmin, nmax);
+      else { var rd0 = mulRange(level, dmin, dmax); prd = (kind === 'cancel') ? genDivCancel(rd0[0], rd0[1]) : genDivNoCancel(rd0[0], rd0[1]); }
+      var rd = computeAnswer(prd.a, prd.b, 'div');
+      return { a: rd.a, b: rd.b, ans: { chain: rd.chain } };
+    }
     var d1, d2;
     if (sameDenom) { var d = cust ? rndI(dmin, dmax) : genDenSame(level); d1 = d; d2 = d; }
     else { var prr = cust ? genDenPairCustom(dmin, dmax) : genDenPairDiff(level); d1 = prr[0]; d2 = prr[1]; }
@@ -128,6 +143,36 @@
   function genLowestFrac(min, max) { var d, n; do { d = rndI(Math.max(2, min), max); n = rndI(1, d - 1); } while (gcd(n, d) !== 1); return { type: 'frac', n: n, d: d }; }
   function crossCancel(a, b) { return gcd(a.n, b.d) > 1 || gcd(b.n, a.d) > 1; }   // ตัดไขว้ได้ไหม
   function anyCancel(a, b) { return gcd(a.n, a.d) > 1 || gcd(b.n, b.d) > 1 || gcd(a.n, b.d) > 1 || gcd(b.n, a.d) > 1; }
+  // หาร: ตัดไขว้หลังกลับตัวหาร = ตัวเศษคู่กัน (a.n,b.n) หรือ ตัวส่วนคู่กัน (a.d,b.d)
+  function crossDiv(a, b) { return gcd(a.n, b.n) > 1 || gcd(a.d, b.d) > 1; }
+  function anyCancelDiv(a, b) { return gcd(a.n, a.d) > 1 || gcd(b.n, b.d) > 1 || gcd(a.n, b.n) > 1 || gcd(a.d, b.d) > 1; }
+  function genDivNoCancel(min, max) { var a, b, g = 0; do { a = genLowestFrac(min, max); b = genLowestFrac(min, max); g++; } while (crossDiv(a, b) && g < 300); return { a: a, b: b }; }
+  function genDivCancel(min, max) {
+    var g = 0;
+    do {
+      var f = rndI(2, 5), numMode = Math.random() < 0.5, a, b, t1, t2, ad, bd, an, bn;
+      if (numMode) {                                        // ตัวเศษคู่กัน
+        an = f * rndI(1, Math.max(1, Math.floor((max - 1) / f))); bn = f * rndI(1, Math.max(1, Math.floor((max - 1) / f))); if (an < 1) an = f; if (bn < 1) bn = f;
+        t1 = 0; do { ad = rndI(an + 1, Math.max(an + 1, max)); t1++; } while (gcd(an, ad) !== 1 && t1 < 60);
+        t2 = 0; do { bd = rndI(bn + 1, Math.max(bn + 1, max)); t2++; } while (gcd(bn, bd) !== 1 && t2 < 60);
+        a = { type: 'frac', n: an, d: ad }; b = { type: 'frac', n: bn, d: bd };
+      } else {                                              // ตัวส่วนคู่กัน
+        ad = f * rndI(1, Math.max(1, Math.floor(max / f))); bd = f * rndI(1, Math.max(1, Math.floor(max / f))); if (ad < 2) ad = f * 2; if (bd < 2) bd = f * 2;
+        t1 = 0; do { an = rndI(1, ad - 1); t1++; } while (gcd(an, ad) !== 1 && t1 < 60);
+        t2 = 0; do { bn = rndI(1, bd - 1); t2++; } while (gcd(bn, bd) !== 1 && t2 < 60);
+        a = { type: 'frac', n: an, d: ad }; b = { type: 'frac', n: bn, d: bd };
+      }
+      g++;
+      if (a.n < a.d && b.n < b.d && a.d <= max && b.d <= max && gcd(a.n, a.d) === 1 && gcd(b.n, b.d) === 1 && crossDiv(a, b)) return { a: a, b: b };
+    } while (g < 300);
+    return genDivNoCancel(min, max);
+  }
+  function genDivCustom(kind, dmin, dmax, nmin, nmax) {
+    var want = (kind === 'cancel'), a, b, g = 0;
+    function mk() { return { type: 'frac', n: rndI(Math.max(1, nmin), Math.max(1, nmax)), d: rndI(Math.max(2, dmin), Math.max(2, dmax)) }; }
+    do { a = mk(); b = mk(); g++; } while (anyCancelDiv(a, b) !== want && g < 400);
+    return { a: a, b: b };
+  }
   // คูณ กำหนดช่วงเอง: สุ่มตัวเศษ/ตัวส่วนในช่วง แล้วเลือกให้ตัดได้ (มีตัวตัด) / ตัดไม่ได้ (ไม่มีเลย)
   function genMulCustom(kind, dmin, dmax, nmin, nmax) {
     var want = (kind === 'cancel'), a, b, g = 0;
@@ -287,7 +332,8 @@
   var OPS = {
     add: { op: '+', accent: '#c0392b', word: 'การบวก', pre: 'FA' },
     sub: { op: '−', accent: '#16a34a', word: 'การลบ', pre: 'FS' },
-    mul: { op: '×', accent: '#7c3aed', word: 'การคูณ', pre: 'FM' }
+    mul: { op: '×', accent: '#7c3aed', word: 'การคูณ', pre: 'FM' },
+    div: { op: '÷', accent: '#2563eb', word: 'การหาร', pre: 'FD' }
   };
 
   window.Platform.register({
@@ -302,7 +348,7 @@
       function newSetId() { var d = new Date(); return K().pre + String(d.getFullYear()).slice(2) + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + rndI(100, 999); }
       function joinWord() { return st.op === 'sub' ? ' − ' : ' + '; }
       function kindWord() {
-        if (st.op === 'mul') return st.kind === 'cancel' ? 'ตัดกันได้ (ตัดไขว้)' : 'ตัดกันไม่ได้';
+        if ((st.op === 'mul' || st.op === 'div')) return st.kind === 'cancel' ? 'ตัดกันได้ (ตัดไขว้)' : 'ตัดกันไม่ได้';
         var w = st.kind === 'ff' ? 'เศษส่วน' + joinWord() + 'เศษส่วน' : st.kind === 'fm' ? 'เศษส่วน' + joinWord() + 'จำนวนคละ' : 'จำนวนคละ' + joinWord() + 'จำนวนคละ'; return w;
       }
       function levelWord() { return st.level === 'easy' ? 'ง่าย' : st.level === 'medium' ? 'ปานกลาง' : st.level === 'hard' ? 'ยาก' : ('กำหนดเอง (ตัวส่วน ' + st.dmin + '–' + st.dmax + ', ตัวเศษ ' + st.nmin + '–' + st.nmax + ')'); }
@@ -320,14 +366,14 @@
           + '<div class="eyebrow" style="text-align:center">แบบฝึกหัดเศษส่วน — เลือกการดำเนินการ</div>'
           + '<div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center">'
           + tile('add', 'ti-plus', 'การบวก', true) + tile('sub', 'ti-minus', 'การลบ', true)
-          + tile('mul', 'ti-x', 'การคูณ', true) + tile('div', 'ti-divide', 'การหาร', false)
-          + '</div><div style="color:var(--muted);font-size:.86rem;text-align:center">เปิดใช้ บวก / ลบ / คูณ แล้ว — การหาร กำลังพัฒนา</div></div>';
+          + tile('mul', 'ti-x', 'การคูณ', true) + tile('div', 'ti-divide', 'การหาร', true)
+          + '</div><div style="color:var(--muted);font-size:.86rem;text-align:center">เปิดใช้ครบทั้ง บวก / ลบ / คูณ / หาร แล้ว</div></div>';
         $$('.frtile', host).forEach(function (b) {
           b.onclick = function () {
             var o = b.dataset.op;
-            if (o === 'add' || o === 'sub' || o === 'mul') {
+            if (o === 'add' || o === 'sub' || o === 'mul' || o === 'div') {
               st.op = o; st.probs = [];
-              if (o === 'mul') { if (st.kind !== 'cancel' && st.kind !== 'nocancel') st.kind = 'cancel'; }
+              if (o === 'mul' || o === 'div') { if (st.kind !== 'cancel' && st.kind !== 'nocancel') st.kind = 'cancel'; }
               else { if (st.kind !== 'ff' && st.kind !== 'fm' && st.kind !== 'mm') st.kind = 'ff'; }
               renderAdd();
             } else if (svc.toast) svc.toast('info', 'อยู่ระหว่างพัฒนา จะเปิดให้ใช้เร็ว ๆ นี้');
@@ -342,14 +388,14 @@
           + '<section><div class="panel" style="padding:18px;display:flex;flex-direction:column;gap:14px">'
           + '<div class="eyebrow">ตั้งค่าชุดแบบฝึก' + K().word + 'เศษส่วน</div>'
           + '<div class="fr-field"><label>ประเภทโจทย์</label><select id="fKind">'
-          + (st.op === 'mul'
+          + ((st.op === 'mul' || st.op === 'div')
             ? (opt('cancel', 'ตัดกันได้ (ตัดไขว้)', st.kind) + opt('nocancel', 'ตัดกันไม่ได้', st.kind))
             : (opt('ff', 'เศษส่วน' + K().op + 'เศษส่วน', st.kind) + opt('fm', 'เศษส่วน' + K().op + 'จำนวนคละ', st.kind) + opt('mm', 'จำนวนคละ' + K().op + 'จำนวนคละ', st.kind)))
           + '</select></div>'
-          + (st.op === 'mul' ? '' :
+          + ((st.op === 'mul' || st.op === 'div') ? '' :
             '<div class="fr-field"><label>ตัวส่วน</label><select id="fSame">' + opt('0', 'ไม่เท่ากัน (หา ค.ร.น.)', st.same ? '1' : '0') + opt('1', 'เท่ากัน', st.same ? '1' : '0') + '</select></div>')
           + '<div class="fr-field"><label>ระดับความยาก (ตัวส่วน)</label><select id="fLevel">'
-          + (st.op === 'mul'
+          + ((st.op === 'mul' || st.op === 'div')
             ? (opt('easy', 'ง่าย — ตัวส่วน ≤ 10', st.level) + opt('medium', 'ปานกลาง — ตัวส่วน ≤ 20', st.level) + opt('hard', 'ยาก — ตัวส่วน ≤ 40', st.level))
             : (opt('easy', 'ง่าย — เปลี่ยนตัวส่วนได้ตรง ๆ (≤ 50)', st.level) + opt('medium', 'ปานกลาง — ต้องหา ค.ร.น. (< 100)', st.level) + opt('hard', 'ยาก — หา ค.ร.น. เลขใหญ่ (< 500)', st.level)))
           + opt('custom', 'กำหนดเอง — ระบุช่วงตัวส่วน', st.level) + '</select></div>'
