@@ -81,8 +81,16 @@
     } while ((g * a > max || g * b > max) && guard < 400);
     return [g * a, g * b];
   }
-  function genFrac(d) { var im = Math.random() < 0.4; return { type: 'frac', n: im ? rndI(d + 1, 2 * d - 1) : rndI(1, d - 1), d: d }; }
-  function genMixedNum(d) { return { type: 'mixed', w: rndI(1, 9), n: rndI(1, d - 1), d: d }; }
+  function genFrac(d, nmin, nmax) {
+    if (nmin != null) return { type: 'frac', n: rndI(Math.max(1, nmin), Math.max(1, nmax)), d: d };
+    var im = Math.random() < 0.4; return { type: 'frac', n: im ? rndI(d + 1, 2 * d - 1) : rndI(1, d - 1), d: d };
+  }
+  function genMixedNum(d, nmin, nmax) {
+    var n;
+    if (nmin != null) { var lo = Math.min(Math.max(1, nmin), d - 1), hi = Math.min(Math.max(1, nmax), d - 1); if (hi < lo) hi = lo; n = rndI(lo, hi); }
+    else n = rndI(1, d - 1);
+    return { type: 'mixed', w: rndI(1, 9), n: n, d: d };
+  }
   // กำหนดช่วงเอง: เลือกตัวประกอบร่วม g ที่มีพหุคูณ ≥2 ตัวในช่วง แล้วหยิบ 2 พหุคูณต่างกัน → gcd>1 และอยู่ในช่วงเสมอ
   function genDenPairCustom(min, max) {
     if (min < 2) min = 2; if (max < min) max = min;
@@ -92,20 +100,22 @@
     var k1 = rndI(lo, hi), k2 = rndI(lo, hi), guard = 0; while (k2 === k1 && guard < 50) { k2 = rndI(lo, hi); guard++; }
     return [g * k1, g * k2];
   }
-  function genProblem(kind, sameDenom, level, dmin, dmax, op) {
-    if (op === 'mul') {                                     // คูณ: ประเภท = ตัดไขว้ได้/ไม่ได้ · ช่วงตามระดับ
-      var r = mulRange(level, dmin, dmax);
-      var pr = (kind === 'cancel') ? genMulCancel(r[0], r[1]) : genMulNoCancel(r[0], r[1]);
+  function genProblem(kind, sameDenom, level, dmin, dmax, op, nmin, nmax) {
+    var cust = (level === 'custom'), nn = cust ? nmin : null, nx = cust ? nmax : null;
+    if (op === 'mul') {                                     // คูณ: ประเภท = ตัดไขว้ได้/ไม่ได้
+      var pr;
+      if (cust) pr = genMulCustom(kind, dmin, dmax, nmin, nmax);   // กำหนดช่วงตัวเศษ+ตัวส่วนเอง
+      else { var r = mulRange(level, dmin, dmax); pr = (kind === 'cancel') ? genMulCancel(r[0], r[1]) : genMulNoCancel(r[0], r[1]); }
       var rm = computeAnswer(pr.a, pr.b, 'mul');
       return { a: rm.a, b: rm.b, ans: { chain: rm.chain } };
     }
     var d1, d2;
-    if (sameDenom) { var d = (level === 'custom') ? rndI(dmin, dmax) : genDenSame(level); d1 = d; d2 = d; }
-    else { var prr = (level === 'custom') ? genDenPairCustom(dmin, dmax) : genDenPairDiff(level); d1 = prr[0]; d2 = prr[1]; }
+    if (sameDenom) { var d = cust ? rndI(dmin, dmax) : genDenSame(level); d1 = d; d2 = d; }
+    else { var prr = cust ? genDenPairCustom(dmin, dmax) : genDenPairDiff(level); d1 = prr[0]; d2 = prr[1]; }
     var a, b;
-    if (kind === 'ff') { a = genFrac(d1); b = genFrac(d2); }
-    else if (kind === 'fm') { a = genFrac(d1); b = genMixedNum(d2); }
-    else { a = genMixedNum(d1); b = genMixedNum(d2); }
+    if (kind === 'ff') { a = genFrac(d1, nn, nx); b = genFrac(d2, nn, nx); }
+    else if (kind === 'fm') { a = genFrac(d1, nn, nx); b = genMixedNum(d2, nn, nx); }
+    else { a = genMixedNum(d1, nn, nx); b = genMixedNum(d2, nn, nx); }
     var res = computeAnswer(a, b, op);       // อาจสลับ a,b (กรณีลบ กันติดลบ)
     return { a: res.a, b: res.b, ans: { chain: res.chain } };
   }
@@ -117,6 +127,14 @@
   }
   function genLowestFrac(min, max) { var d, n; do { d = rndI(Math.max(2, min), max); n = rndI(1, d - 1); } while (gcd(n, d) !== 1); return { type: 'frac', n: n, d: d }; }
   function crossCancel(a, b) { return gcd(a.n, b.d) > 1 || gcd(b.n, a.d) > 1; }   // ตัดไขว้ได้ไหม
+  function anyCancel(a, b) { return gcd(a.n, a.d) > 1 || gcd(b.n, b.d) > 1 || gcd(a.n, b.d) > 1 || gcd(b.n, a.d) > 1; }
+  // คูณ กำหนดช่วงเอง: สุ่มตัวเศษ/ตัวส่วนในช่วง แล้วเลือกให้ตัดได้ (มีตัวตัด) / ตัดไม่ได้ (ไม่มีเลย)
+  function genMulCustom(kind, dmin, dmax, nmin, nmax) {
+    var want = (kind === 'cancel'), a, b, g = 0;
+    function mk() { return { type: 'frac', n: rndI(Math.max(1, nmin), Math.max(1, nmax)), d: rndI(Math.max(2, dmin), Math.max(2, dmax)) }; }
+    do { a = mk(); b = mk(); g++; } while (anyCancel(a, b) !== want && g < 400);
+    return { a: a, b: b };
+  }
   function genMulNoCancel(min, max) {
     var a, b, g = 0; do { a = genLowestFrac(min, max); b = genLowestFrac(min, max); g++; } while (crossCancel(a, b) && g < 300);
     return { a: a, b: b };
@@ -278,7 +296,7 @@
     icon: 'ti-math-x-divide-y',
     mount: function (host, svc) {
       ensureCSS();
-      var st = { op: 'add', kind: 'ff', same: false, level: 'medium', dmin: 2, dmax: 20, count: 20, title: '', setId: '', showKey: false, probs: [] };
+      var st = { op: 'add', kind: 'ff', same: false, level: 'medium', dmin: 2, dmax: 20, nmin: 1, nmax: 12, count: 20, title: '', setId: '', showKey: false, probs: [] };
 
       function K() { return OPS[st.op]; }
       function newSetId() { var d = new Date(); return K().pre + String(d.getFullYear()).slice(2) + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + rndI(100, 999); }
@@ -287,7 +305,7 @@
         if (st.op === 'mul') return st.kind === 'cancel' ? 'ตัดกันได้ (ตัดไขว้)' : 'ตัดกันไม่ได้';
         var w = st.kind === 'ff' ? 'เศษส่วน' + joinWord() + 'เศษส่วน' : st.kind === 'fm' ? 'เศษส่วน' + joinWord() + 'จำนวนคละ' : 'จำนวนคละ' + joinWord() + 'จำนวนคละ'; return w;
       }
-      function levelWord() { return st.level === 'easy' ? 'ง่าย' : st.level === 'medium' ? 'ปานกลาง' : st.level === 'hard' ? 'ยาก' : ('กำหนดเอง ' + st.dmin + '–' + st.dmax); }
+      function levelWord() { return st.level === 'easy' ? 'ง่าย' : st.level === 'medium' ? 'ปานกลาง' : st.level === 'hard' ? 'ยาก' : ('กำหนดเอง (ตัวส่วน ' + st.dmin + '–' + st.dmax + ', ตัวเศษ ' + st.nmin + '–' + st.nmax + ')'); }
       function defTitle() { return st.title || ('แบบฝึก' + K().word + 'เศษส่วน (' + kindWord() + ')'); }
       function opt(v, label, cur) { return '<option value="' + v + '"' + (v == cur ? ' selected' : '') + '>' + label + '</option>'; }
 
@@ -335,8 +353,9 @@
             ? (opt('easy', 'ง่าย — ตัวส่วน ≤ 10', st.level) + opt('medium', 'ปานกลาง — ตัวส่วน ≤ 20', st.level) + opt('hard', 'ยาก — ตัวส่วน ≤ 40', st.level))
             : (opt('easy', 'ง่าย — เปลี่ยนตัวส่วนได้ตรง ๆ (≤ 50)', st.level) + opt('medium', 'ปานกลาง — ต้องหา ค.ร.น. (< 100)', st.level) + opt('hard', 'ยาก — หา ค.ร.น. เลขใหญ่ (< 500)', st.level)))
           + opt('custom', 'กำหนดเอง — ระบุช่วงตัวส่วน', st.level) + '</select></div>'
-          + '<div class="fr-field" id="fRangeBox"' + (st.level === 'custom' ? '' : ' style="display:none"') + '><label>กำหนดตัวส่วนเอง</label>'
-          + '<div style="display:flex;gap:8px;align-items:center;color:var(--muted)">ตั้งแต่ <input id="fMin" type="number" min="2" max="999" value="' + st.dmin + '" style="width:80px;padding:9px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt)"> ถึง <input id="fMax" type="number" min="2" max="999" value="' + st.dmax + '" style="width:80px;padding:9px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt)"></div></div>'
+          + '<div class="fr-field" id="fRangeBox"' + (st.level === 'custom' ? '' : ' style="display:none"') + '><label>กำหนดช่วงเอง</label>'
+          + '<div style="display:flex;gap:8px;align-items:center;color:var(--muted);margin-bottom:6px">ตัวส่วน <input id="fMin" type="number" min="2" max="999" value="' + st.dmin + '" style="width:70px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt)"> ถึง <input id="fMax" type="number" min="2" max="999" value="' + st.dmax + '" style="width:70px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt)"></div>'
+          + '<div style="display:flex;gap:8px;align-items:center;color:var(--muted)">ตัวเศษ <input id="fNMin" type="number" min="1" max="999" value="' + st.nmin + '" style="width:70px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt)"> ถึง <input id="fNMax" type="number" min="1" max="999" value="' + st.nmax + '" style="width:70px;padding:8px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt)"></div></div>'
           + '<div class="fr-field"><label>จำนวนข้อ</label><select id="fCount">' + [10, 20, 30, 40].map(function (n) { return opt(n, n + ' ข้อ', st.count); }).join('') + '</select></div>'
           + '<div class="fr-field"><label>ชื่อชุด (เว้นว่างได้)</label><input id="fTitle" value="' + esc(st.title) + '" placeholder="เช่น การบวกเศษส่วน ชุดที่ 1"></div>'
           + '<button class="btn btn-accent" id="fGen"><i class="ti ti-refresh"></i> สร้างชุดแบบฝึก</button>'
@@ -353,10 +372,14 @@
             var mx = Math.max(2, Math.min(999, parseInt($('#fMax', host).value, 10) || mn));
             if (mx < mn) { var t = mn; mn = mx; mx = t; }
             st.dmin = mn; st.dmax = mx;
+            var nn = Math.max(1, Math.min(999, parseInt($('#fNMin', host).value, 10) || 1));
+            var nx = Math.max(1, Math.min(999, parseInt($('#fNMax', host).value, 10) || nn));
+            if (nx < nn) { var t2 = nn; nn = nx; nx = t2; }
+            st.nmin = nn; st.nmax = nx;
           }
           st.count = +$('#fCount', host).value; st.title = $('#fTitle', host).value.trim();
           st.setId = newSetId(); st.showKey = false;
-          st.probs = []; for (var i = 0; i < st.count; i++) st.probs.push(genProblem(st.kind, st.same, st.level, st.dmin, st.dmax, st.op));
+          st.probs = []; for (var i = 0; i < st.count; i++) st.probs.push(genProblem(st.kind, st.same, st.level, st.dmin, st.dmax, st.op, st.nmin, st.nmax));
           renderOut();
           if (svc.toast) svc.toast('success', 'สร้าง ' + st.count + ' ข้อแล้ว');
         };
