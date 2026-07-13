@@ -24,6 +24,14 @@
   function fracVal(o) { var I = toImproper(o); return I.n / I.d; }
   function computeAnswer(a, b, op) {
     op = op || 'add';
+    if (op === 'mul') {                                     // คูณ: เศษคูณ/ส่วนคูณ แล้วทอน
+      var Nn = a.n * b.n, Nd = a.d * b.d, chainM = [], gm;
+      chainM.push({ t: 'frac', n: Nn, d: Nd });
+      gm = gcd(Nn, Nd); var Mr = Nn, Dm = Nd;
+      if (gm > 1) { Mr = Nn / gm; Dm = Nd / gm; chainM.push(Dm === 1 ? { t: 'whole', w: Mr } : { t: 'frac', n: Mr, d: Dm }); }
+      if (Dm > 1 && Mr > Dm) chainM.push({ t: 'mixed', w: Math.floor(Mr / Dm), n: Mr % Dm, d: Dm });
+      return { a: a, b: b, chain: chainM };
+    }
     if (op === 'sub' && fracVal(a) < fracVal(b)) { var t = a; a = b; b = t; }   // ลบ: ให้ตัวตั้ง ≥ ตัวลบ (กันติดลบ)
     var A = toImproper(a), B = toImproper(b), D = lcm(A.d, B.d);
     var N = (op === 'sub') ? (A.n * (D / A.d) - B.n * (D / B.d)) : (A.n * (D / A.d) + B.n * (D / B.d));
@@ -85,15 +93,48 @@
     return [g * k1, g * k2];
   }
   function genProblem(kind, sameDenom, level, dmin, dmax, op) {
+    if (op === 'mul') {                                     // คูณ: ประเภท = ตัดไขว้ได้/ไม่ได้ · ช่วงตามระดับ
+      var r = mulRange(level, dmin, dmax);
+      var pr = (kind === 'cancel') ? genMulCancel(r[0], r[1]) : genMulNoCancel(r[0], r[1]);
+      var rm = computeAnswer(pr.a, pr.b, 'mul');
+      return { a: rm.a, b: rm.b, ans: { chain: rm.chain } };
+    }
     var d1, d2;
     if (sameDenom) { var d = (level === 'custom') ? rndI(dmin, dmax) : genDenSame(level); d1 = d; d2 = d; }
-    else { var pr = (level === 'custom') ? genDenPairCustom(dmin, dmax) : genDenPairDiff(level); d1 = pr[0]; d2 = pr[1]; }
+    else { var prr = (level === 'custom') ? genDenPairCustom(dmin, dmax) : genDenPairDiff(level); d1 = prr[0]; d2 = prr[1]; }
     var a, b;
     if (kind === 'ff') { a = genFrac(d1); b = genFrac(d2); }
     else if (kind === 'fm') { a = genFrac(d1); b = genMixedNum(d2); }
     else { a = genMixedNum(d1); b = genMixedNum(d2); }
     var res = computeAnswer(a, b, op);       // อาจสลับ a,b (กรณีลบ กันติดลบ)
     return { a: res.a, b: res.b, ans: { chain: res.chain } };
+  }
+
+  /* ---------- การคูณ: ช่วงตัวส่วนตามระดับ + สุ่มแบบตัดไขว้ได้/ไม่ได้ (เศษส่วนแท้อย่างต่ำ) ---------- */
+  function mulRange(level, dmin, dmax) {
+    if (level === 'custom') return [Math.max(2, dmin), Math.max(2, dmax)];
+    return level === 'easy' ? [2, 10] : level === 'medium' ? [2, 20] : [2, 40];
+  }
+  function genLowestFrac(min, max) { var d, n; do { d = rndI(Math.max(2, min), max); n = rndI(1, d - 1); } while (gcd(n, d) !== 1); return { type: 'frac', n: n, d: d }; }
+  function crossCancel(a, b) { return gcd(a.n, b.d) > 1 || gcd(b.n, a.d) > 1; }   // ตัดไขว้ได้ไหม
+  function genMulNoCancel(min, max) {
+    var a, b, g = 0; do { a = genLowestFrac(min, max); b = genLowestFrac(min, max); g++; } while (crossCancel(a, b) && g < 300);
+    return { a: a, b: b };
+  }
+  function genMulCancel(min, max) {
+    var g = 0;
+    do {
+      var f = rndI(2, 5);
+      var an = f * rndI(1, Math.max(1, Math.floor((max - 1) / f))); if (an < 2) an = f;
+      var bd = f * rndI(1, Math.max(1, Math.floor(max / f))); if (bd < 2) bd = f * 2;
+      var ad, bn, t1 = 0, t2 = 0;
+      do { ad = rndI(an + 1, Math.max(an + 1, max)); t1++; } while (gcd(an, ad) !== 1 && t1 < 60);
+      do { bn = rndI(1, bd - 1); t2++; } while (gcd(bn, bd) !== 1 && t2 < 60);
+      var a = { type: 'frac', n: an, d: ad }, b = { type: 'frac', n: bn, d: bd };
+      g++;
+      if (ad > an && bn < bd && ad <= max && bd <= max && gcd(an, ad) === 1 && gcd(bn, bd) === 1 && crossCancel(a, b)) return { a: a, b: b };
+    } while (g < 300);
+    return genMulNoCancel(min, max);   // สำรอง (แทบไม่เกิด)
   }
 
   /* ---------- CSS เอกสารพิมพ์ ---------- */
@@ -227,7 +268,8 @@
 
   var OPS = {
     add: { op: '+', accent: '#c0392b', word: 'การบวก', pre: 'FA' },
-    sub: { op: '−', accent: '#16a34a', word: 'การลบ', pre: 'FS' }
+    sub: { op: '−', accent: '#16a34a', word: 'การลบ', pre: 'FS' },
+    mul: { op: '×', accent: '#7c3aed', word: 'การคูณ', pre: 'FM' }
   };
 
   window.Platform.register({
@@ -241,7 +283,10 @@
       function K() { return OPS[st.op]; }
       function newSetId() { var d = new Date(); return K().pre + String(d.getFullYear()).slice(2) + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + rndI(100, 999); }
       function joinWord() { return st.op === 'sub' ? ' − ' : ' + '; }
-      function kindWord() { var w = st.kind === 'ff' ? 'เศษส่วน' + joinWord() + 'เศษส่วน' : st.kind === 'fm' ? 'เศษส่วน' + joinWord() + 'จำนวนคละ' : 'จำนวนคละ' + joinWord() + 'จำนวนคละ'; return w; }
+      function kindWord() {
+        if (st.op === 'mul') return st.kind === 'cancel' ? 'ตัดกันได้ (ตัดไขว้)' : 'ตัดกันไม่ได้';
+        var w = st.kind === 'ff' ? 'เศษส่วน' + joinWord() + 'เศษส่วน' : st.kind === 'fm' ? 'เศษส่วน' + joinWord() + 'จำนวนคละ' : 'จำนวนคละ' + joinWord() + 'จำนวนคละ'; return w;
+      }
       function levelWord() { return st.level === 'easy' ? 'ง่าย' : st.level === 'medium' ? 'ปานกลาง' : st.level === 'hard' ? 'ยาก' : ('กำหนดเอง ' + st.dmin + '–' + st.dmax); }
       function defTitle() { return st.title || ('แบบฝึก' + K().word + 'เศษส่วน (' + kindWord() + ')'); }
       function opt(v, label, cur) { return '<option value="' + v + '"' + (v == cur ? ' selected' : '') + '>' + label + '</option>'; }
@@ -257,10 +302,18 @@
           + '<div class="eyebrow" style="text-align:center">แบบฝึกหัดเศษส่วน — เลือกการดำเนินการ</div>'
           + '<div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center">'
           + tile('add', 'ti-plus', 'การบวก', true) + tile('sub', 'ti-minus', 'การลบ', true)
-          + tile('mul', 'ti-x', 'การคูณ', false) + tile('div', 'ti-divide', 'การหาร', false)
-          + '</div><div style="color:var(--muted);font-size:.86rem;text-align:center">เปิดใช้ “การบวก” และ “การลบ” แล้ว — คูณ/หาร กำลังพัฒนา</div></div>';
+          + tile('mul', 'ti-x', 'การคูณ', true) + tile('div', 'ti-divide', 'การหาร', false)
+          + '</div><div style="color:var(--muted);font-size:.86rem;text-align:center">เปิดใช้ บวก / ลบ / คูณ แล้ว — การหาร กำลังพัฒนา</div></div>';
         $$('.frtile', host).forEach(function (b) {
-          b.onclick = function () { var o = b.dataset.op; if (o === 'add' || o === 'sub') { st.op = o; st.probs = []; renderAdd(); } else if (svc.toast) svc.toast('info', 'อยู่ระหว่างพัฒนา จะเปิดให้ใช้เร็ว ๆ นี้'); };
+          b.onclick = function () {
+            var o = b.dataset.op;
+            if (o === 'add' || o === 'sub' || o === 'mul') {
+              st.op = o; st.probs = [];
+              if (o === 'mul') { if (st.kind !== 'cancel' && st.kind !== 'nocancel') st.kind = 'cancel'; }
+              else { if (st.kind !== 'ff' && st.kind !== 'fm' && st.kind !== 'mm') st.kind = 'ff'; }
+              renderAdd();
+            } else if (svc.toast) svc.toast('info', 'อยู่ระหว่างพัฒนา จะเปิดให้ใช้เร็ว ๆ นี้');
+          };
         });
       }
 
@@ -271,12 +324,16 @@
           + '<section><div class="panel" style="padding:18px;display:flex;flex-direction:column;gap:14px">'
           + '<div class="eyebrow">ตั้งค่าชุดแบบฝึก' + K().word + 'เศษส่วน</div>'
           + '<div class="fr-field"><label>ประเภทโจทย์</label><select id="fKind">'
-          + opt('ff', 'เศษส่วน' + K().op + 'เศษส่วน', st.kind) + opt('fm', 'เศษส่วน' + K().op + 'จำนวนคละ', st.kind) + opt('mm', 'จำนวนคละ' + K().op + 'จำนวนคละ', st.kind) + '</select></div>'
-          + '<div class="fr-field"><label>ตัวส่วน</label><select id="fSame">' + opt('0', 'ไม่เท่ากัน (หา ค.ร.น.)', st.same ? '1' : '0') + opt('1', 'เท่ากัน', st.same ? '1' : '0') + '</select></div>'
+          + (st.op === 'mul'
+            ? (opt('cancel', 'ตัดกันได้ (ตัดไขว้)', st.kind) + opt('nocancel', 'ตัดกันไม่ได้', st.kind))
+            : (opt('ff', 'เศษส่วน' + K().op + 'เศษส่วน', st.kind) + opt('fm', 'เศษส่วน' + K().op + 'จำนวนคละ', st.kind) + opt('mm', 'จำนวนคละ' + K().op + 'จำนวนคละ', st.kind)))
+          + '</select></div>'
+          + (st.op === 'mul' ? '' :
+            '<div class="fr-field"><label>ตัวส่วน</label><select id="fSame">' + opt('0', 'ไม่เท่ากัน (หา ค.ร.น.)', st.same ? '1' : '0') + opt('1', 'เท่ากัน', st.same ? '1' : '0') + '</select></div>')
           + '<div class="fr-field"><label>ระดับความยาก (ตัวส่วน)</label><select id="fLevel">'
-          + opt('easy', 'ง่าย — เปลี่ยนตัวส่วนได้ตรง ๆ (≤ 50)', st.level)
-          + opt('medium', 'ปานกลาง — ต้องหา ค.ร.น. (< 100)', st.level)
-          + opt('hard', 'ยาก — หา ค.ร.น. เลขใหญ่ (< 500)', st.level)
+          + (st.op === 'mul'
+            ? (opt('easy', 'ง่าย — ตัวส่วน ≤ 10', st.level) + opt('medium', 'ปานกลาง — ตัวส่วน ≤ 20', st.level) + opt('hard', 'ยาก — ตัวส่วน ≤ 40', st.level))
+            : (opt('easy', 'ง่าย — เปลี่ยนตัวส่วนได้ตรง ๆ (≤ 50)', st.level) + opt('medium', 'ปานกลาง — ต้องหา ค.ร.น. (< 100)', st.level) + opt('hard', 'ยาก — หา ค.ร.น. เลขใหญ่ (< 500)', st.level)))
           + opt('custom', 'กำหนดเอง — ระบุช่วงตัวส่วน', st.level) + '</select></div>'
           + '<div class="fr-field" id="fRangeBox"' + (st.level === 'custom' ? '' : ' style="display:none"') + '><label>กำหนดตัวส่วนเอง</label>'
           + '<div style="display:flex;gap:8px;align-items:center;color:var(--muted)">ตั้งแต่ <input id="fMin" type="number" min="2" max="999" value="' + st.dmin + '" style="width:80px;padding:9px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt)"> ถึง <input id="fMax" type="number" min="2" max="999" value="' + st.dmax + '" style="width:80px;padding:9px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt)"></div></div>'
@@ -289,7 +346,7 @@
         $('#fTimer', host).onclick = tmOpen;
         $('#fLevel', host).onchange = function () { var b = $('#fRangeBox', host); if (b) b.style.display = this.value === 'custom' ? '' : 'none'; };
         $('#fGen', host).onclick = function () {
-          st.kind = $('#fKind', host).value; st.same = $('#fSame', host).value === '1';
+          st.kind = $('#fKind', host).value; var se = $('#fSame', host); st.same = se ? se.value === '1' : false;
           st.level = $('#fLevel', host).value;
           if (st.level === 'custom') {
             var mn = Math.max(2, Math.min(999, parseInt($('#fMin', host).value, 10) || 2));
