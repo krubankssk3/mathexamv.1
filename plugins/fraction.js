@@ -140,28 +140,58 @@
   /* ---------- การคูณ: ช่วงตัวส่วนตามระดับ + สุ่มแบบตัดไขว้ได้/ไม่ได้ (เศษส่วนแท้อย่างต่ำ) ---------- */
   function mulRange(level, dmin, dmax) {
     if (level === 'custom') return [Math.max(2, dmin), Math.max(2, dmax)];
-    return level === 'easy' ? [2, 10] : level === 'medium' ? [2, 20] : [2, 40];
+    return level === 'easy' ? [2, 15] : level === 'medium' ? [2, 20] : [2, 40];
   }
   function genLowestFrac(min, max) { var d, n; do { d = rndI(Math.max(2, min), max); n = rndI(1, d - 1); } while (gcd(n, d) !== 1); return { type: 'frac', n: n, d: d }; }
-  // ตัดไขว้ 2 คู่ (คูณ): a.n&b.d ร่วม g1 , b.n&a.d ร่วม g2
-  function genMulCancel2(min, max) {
+  /* ---------- ตัดทอนแบบหลากหลาย: คุม "จำนวนรอบการตัด" ----------
+     รอบ = จำนวนตัวประกอบเฉพาะของตัวที่ตัดได้ (เช่น ตัดด้วย 12 = 2×2×3 → 3 รอบ)
+     สัดส่วน: ~20% ตัด 1 คู่ 1 รอบ · ~80% ตัดหลายรอบ (คู่เดียว 2–3 รอบ หรือ 2 คู่) */
+  function bigOmega(x) { var c = 0, d = 2; while (x > 1) { while (x % d === 0) { x /= d; c++; } d++; } return c; }
+  function pickOf(a) { return a[rndI(0, a.length - 1)]; }
+  function facByRounds(r, max) {
+    var P1 = [2, 3, 5, 7], P2 = [4, 6, 9, 10, 15], P3 = [8, 12, 18, 20];
+    var pool = (r === 1 ? P1 : r === 2 ? P2 : P3).filter(function (f) { return f < max; });
+    if (!pool.length) pool = (r >= 2 ? P2 : P1).filter(function (f) { return f < max; });
+    if (!pool.length) pool = [2];
+    return pickOf(pool);
+  }
+  // คูณ: fA = ตัวประกอบทแยง a.n&b.d , fB = ตัวประกอบทแยง b.n&a.d (fB=1 → ทแยงเดียว)
+  function buildMul(min, max, fA, fB) {
     var g = 0;
     do {
-      var g1 = rndI(2, 5), g2 = rndI(2, 5), an = g1 * rndI(1, 2), bd = g1 * rndI(2, 3), bn = g2 * rndI(1, 2), ad = g2 * rndI(2, 3);
-      if (an < ad && bn < bd && ad <= max && bd <= max && gcd(an, ad) === 1 && gcd(bn, bd) === 1 && gcd(an, bd) > 1 && gcd(bn, ad) > 1) return { a: { type: 'frac', n: an, d: ad }, b: { type: 'frac', n: bn, d: bd } };
+      var an = fA * rndI(1, Math.max(1, Math.floor((max - 1) / fA))), bd = fA * rndI(1, Math.max(1, Math.floor(max / fA))), ad, bn, t;
+      if (fB > 1) { ad = fB * rndI(1, Math.max(1, Math.floor(max / fB))); bn = fB * rndI(1, Math.max(1, Math.floor((max - 1) / fB))); }
+      else { t = 0; do { ad = rndI(an + 1, Math.max(an + 1, max)); t++; } while (gcd(an, ad) !== 1 && t < 40); t = 0; do { bn = rndI(1, Math.max(1, bd - 1)); t++; } while (gcd(bn, bd) !== 1 && t < 40); }
       g++;
-    } while (g < 250);
+      if (an >= 1 && bn >= 1 && an < ad && bn < bd && ad <= max && bd <= max && gcd(an, ad) === 1 && gcd(bn, bd) === 1) {
+        var pA = gcd(an, bd), pB = gcd(bn, ad);
+        if (pA > 1 && (fB > 1 ? pB > 1 : pB === 1)) return { a: { type: 'frac', n: an, d: ad }, b: { type: 'frac', n: bn, d: bd } };
+      }
+    } while (g < 300);
     return null;
   }
-  // ตัด 2 คู่ (หาร): a.n&b.n ร่วม g1 , a.d&b.d ร่วม g2
-  function genDivCancel2(min, max) {
+  // หาร: fA = ตัวประกอบร่วมของตัวเศษ (a.n&b.n) , fB = ของตัวส่วน (a.d&b.d)
+  function buildDiv(min, max, fA, fB) {
     var g = 0;
     do {
-      var g1 = rndI(2, 5), g2 = rndI(2, 5), an = g1 * rndI(1, 2), bn = g1 * rndI(2, 3), ad = g2 * rndI(2, 3), bd = g2 * rndI(2, 3);
-      if (an < ad && bn < bd && ad <= max && bd <= max && gcd(an, ad) === 1 && gcd(bn, bd) === 1 && gcd(an, bn) > 1 && gcd(ad, bd) > 1) return { a: { type: 'frac', n: an, d: ad }, b: { type: 'frac', n: bn, d: bd } };
+      var an = fA * rndI(1, Math.max(1, Math.floor((max - 1) / fA))), bn = fA * rndI(1, Math.max(1, Math.floor((max - 1) / fA))), ad, bd, t;
+      if (fB > 1) { ad = fB * rndI(1, Math.max(1, Math.floor(max / fB))); bd = fB * rndI(1, Math.max(1, Math.floor(max / fB))); }
+      else { t = 0; do { ad = rndI(an + 1, Math.max(an + 1, max)); t++; } while (gcd(an, ad) !== 1 && t < 40); t = 0; do { bd = rndI(bn + 1, Math.max(bn + 1, max)); t++; } while (gcd(bn, bd) !== 1 && t < 40); }
       g++;
-    } while (g < 250);
+      if (an >= 1 && bn >= 1 && an < ad && bn < bd && ad <= max && bd <= max && gcd(an, ad) === 1 && gcd(bn, bd) === 1) {
+        var pA = gcd(an, bn), pB = gcd(ad, bd);
+        if (pA > 1 && (fB > 1 ? pB > 1 : pB === 1)) return { a: { type: 'frac', n: an, d: ad }, b: { type: 'frac', n: bn, d: bd } };
+      }
+    } while (g < 300);
     return null;
+  }
+  function rollRich(build, min, max) {
+    var r = Math.random(), res;
+    if (r < 0.20) res = build(min, max, facByRounds(1, max), 1);                      // 1 คู่ 1 รอบ (~20%)
+    else if (r < 0.50) res = build(min, max, facByRounds(2, max), 1);                 // 1 คู่ 2 รอบ
+    else if (r < 0.65) res = build(min, max, facByRounds(3, max), 1);                 // 1 คู่ 3 รอบ
+    else res = build(min, max, facByRounds(1, max), facByRounds(1, max));             // 2 คู่
+    return res || build(min, max, facByRounds(2, max), 1) || build(min, max, facByRounds(1, max), 1);
   }
   // จำนวนนับ (1,2,3,...) เก็บเป็น n/1
   function genWhole() { return { type: 'whole', n: rndI(2, 9), d: 1 }; }
@@ -180,25 +210,8 @@
   function anyCancelDiv(a, b) { return gcd(a.n, a.d) > 1 || gcd(b.n, b.d) > 1 || gcd(a.n, b.n) > 1 || gcd(a.d, b.d) > 1; }
   function genDivNoCancel(min, max) { var a, b, g = 0; do { a = genLowestFrac(min, max); b = genLowestFrac(min, max); g++; } while (crossDiv(a, b) && g < 300); return { a: a, b: b }; }
   function genDivCancel(min, max) {
-    if (Math.random() < 0.5) { var r2 = genDivCancel2(min, max); if (r2) return r2; }   // ครึ่งหนึ่งเป็นตัด 2 คู่
-    var g = 0;
-    do {
-      var f = rndI(2, 5), numMode = Math.random() < 0.5, a, b, t1, t2, ad, bd, an, bn;
-      if (numMode) {                                        // ตัวเศษคู่กัน
-        an = f * rndI(1, Math.max(1, Math.floor((max - 1) / f))); bn = f * rndI(1, Math.max(1, Math.floor((max - 1) / f))); if (an < 1) an = f; if (bn < 1) bn = f;
-        t1 = 0; do { ad = rndI(an + 1, Math.max(an + 1, max)); t1++; } while (gcd(an, ad) !== 1 && t1 < 60);
-        t2 = 0; do { bd = rndI(bn + 1, Math.max(bn + 1, max)); t2++; } while (gcd(bn, bd) !== 1 && t2 < 60);
-        a = { type: 'frac', n: an, d: ad }; b = { type: 'frac', n: bn, d: bd };
-      } else {                                              // ตัวส่วนคู่กัน
-        ad = f * rndI(1, Math.max(1, Math.floor(max / f))); bd = f * rndI(1, Math.max(1, Math.floor(max / f))); if (ad < 2) ad = f * 2; if (bd < 2) bd = f * 2;
-        t1 = 0; do { an = rndI(1, ad - 1); t1++; } while (gcd(an, ad) !== 1 && t1 < 60);
-        t2 = 0; do { bn = rndI(1, bd - 1); t2++; } while (gcd(bn, bd) !== 1 && t2 < 60);
-        a = { type: 'frac', n: an, d: ad }; b = { type: 'frac', n: bn, d: bd };
-      }
-      g++;
-      if (a.n < a.d && b.n < b.d && a.d <= max && b.d <= max && gcd(a.n, a.d) === 1 && gcd(b.n, b.d) === 1 && crossDiv(a, b)) return { a: a, b: b };
-    } while (g < 300);
-    return genDivNoCancel(min, max);
+    var r = rollRich(buildDiv, min, max);
+    return r || genDivNoCancel(min, max);
   }
   function genDivCustom(kind, dmin, dmax, nmin, nmax) {
     var want = (kind === 'cancel'), a, b, g = 0;
@@ -218,23 +231,9 @@
     return { a: a, b: b };
   }
   function genMulCancel(min, max) {
-    if (Math.random() < 0.5) { var r2 = genMulCancel2(min, max); if (r2) return r2; }   // ครึ่งหนึ่งเป็นตัดไขว้ 2 คู่
-    var g = 0;
-    do {
-      var f = rndI(2, 5);
-      var an = f * rndI(1, Math.max(1, Math.floor((max - 1) / f))); if (an < 2) an = f;
-      var bd = f * rndI(1, Math.max(1, Math.floor(max / f))); if (bd < 2) bd = f * 2;
-      var ad, bn, t1 = 0, t2 = 0;
-      do { ad = rndI(an + 1, Math.max(an + 1, max)); t1++; } while (gcd(an, ad) !== 1 && t1 < 60);
-      do { bn = rndI(1, bd - 1); t2++; } while (gcd(bn, bd) !== 1 && t2 < 60);
-      var a = { type: 'frac', n: an, d: ad }, b = { type: 'frac', n: bn, d: bd };
-      g++;
-      if (ad > an && bn < bd && ad <= max && bd <= max && gcd(an, ad) === 1 && gcd(bn, bd) === 1 && crossCancel(a, b)) return { a: a, b: b };
-    } while (g < 300);
-    return genMulNoCancel(min, max);   // สำรอง (แทบไม่เกิด)
+    var r = rollRich(buildMul, min, max);
+    return r || genMulNoCancel(min, max);
   }
-
-  /* ---------- CSS เอกสารพิมพ์ ---------- */
   function printCSS(ac) {
     return ''
       + '@page{size:A4 portrait;margin:9mm}'
