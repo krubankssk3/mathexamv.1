@@ -24,21 +24,16 @@
   function fracVal(o) { var I = toImproper(o); return I.n / I.d; }
   function computeAnswer(a, b, op) {
     op = op || 'add';
-    if (op === 'mul') {                                     // คูณ: เศษคูณ/ส่วนคูณ แล้วทอน
-      var Nn = a.n * b.n, Nd = a.d * b.d, chainM = [], gm;
+    if (op === 'mul' || op === 'div') {          // คูณ/หาร: แปลงจำนวนคละ/จำนวนนับเป็นเศษเกินก่อน
+      var Ai = toImproper(a), Bi = toImproper(b);
+      var Nn = (op === 'mul') ? Ai.n * Bi.n : Ai.n * Bi.d;      // หาร = กลับเศษ-ส่วนตัวหลังแล้วคูณ
+      var Nd = (op === 'mul') ? Ai.d * Bi.d : Ai.d * Bi.n;
+      var chainM = [], gm;
       chainM.push({ t: 'frac', n: Nn, d: Nd });
       gm = gcd(Nn, Nd); var Mr = Nn, Dm = Nd;
       if (gm > 1) { Mr = Nn / gm; Dm = Nd / gm; chainM.push(Dm === 1 ? { t: 'whole', w: Mr } : { t: 'frac', n: Mr, d: Dm }); }
       if (Dm > 1 && Mr > Dm) chainM.push({ t: 'mixed', w: Math.floor(Mr / Dm), n: Mr % Dm, d: Dm });
       return { a: a, b: b, chain: chainM };
-    }
-    if (op === 'div') {                                     // หาร: a/b ÷ c/d = a/b × d/c = (a·d)/(b·c) แล้วทอน
-      var Dn = a.n * b.d, Dd = a.d * b.n, chd = [], gd;
-      chd.push({ t: 'frac', n: Dn, d: Dd });
-      gd = gcd(Dn, Dd); var Er = Dn, Fd = Dd;
-      if (gd > 1) { Er = Dn / gd; Fd = Dd / gd; chd.push(Fd === 1 ? { t: 'whole', w: Er } : { t: 'frac', n: Er, d: Fd }); }
-      if (Fd > 1 && Er > Fd) chd.push({ t: 'mixed', w: Math.floor(Er / Fd), n: Er % Fd, d: Fd });
-      return { a: a, b: b, chain: chd };
     }
     if (op === 'sub' && fracVal(a) < fracVal(b)) { var t = a; a = b; b = t; }   // ลบ: ให้ตัวตั้ง ≥ ตัวลบ (กันติดลบ)
     var A = toImproper(a), B = toImproper(b), D = lcm(A.d, B.d);
@@ -110,8 +105,12 @@
   }
   function genProblem(kind, sameDenom, level, dmin, dmax, op, nmin, nmax) {
     var cust = (level === 'custom'), nn = cust ? nmin : null, nx = cust ? nmax : null;
-    if (kind === 'mix') kind = (op === 'mul' || op === 'div') ? ['cancel', 'nocancel', 'wf'][rndI(0, 2)] : ['ff', 'fm', 'mm', 'wf'][rndI(0, 3)];   // ผสม: สุ่มต่อข้อ (รวมจำนวนนับ)
+    if (kind === 'mix') kind = (op === 'mul' || op === 'div') ? ['cancel', 'nocancel', 'wf', 'mw', 'fm', 'mm'][rndI(0, 5)] : ['ff', 'fm', 'mm', 'wf'][rndI(0, 3)];   // ผสม: สุ่มต่อข้อ
     if (kind === 'wf') return genWholeFracProblem(op, level, dmin, dmax, nmin, nmax);   // จำนวนนับ (op) เศษส่วน
+    if ((op === 'mul' || op === 'div') && (kind === 'mw' || kind === 'fm' || kind === 'mm')) {   // จำนวนคละ (op) จำนวนนับ/เศษส่วน/จำนวนคละ
+      var tp = genTypedProblem(op, kind, level, dmin, dmax);
+      if (tp) return tp;
+    }
     if (op === 'mul') {                                     // คูณ: ประเภท = ตัดไขว้ได้/ไม่ได้
       var pr;
       if (cust) pr = genMulCustom(kind, dmin, dmax, nmin, nmax);   // กำหนดช่วงตัวเศษ+ตัวส่วนเอง
@@ -192,6 +191,90 @@
     else if (r < 0.65) res = build(min, max, facByRounds(3, max), 1);                 // 1 คู่ 3 รอบ
     else res = build(min, max, facByRounds(1, max), facByRounds(1, max));             // 2 คู่
     return res || build(min, max, facByRounds(2, max), 1) || build(min, max, facByRounds(1, max), 1);
+  }
+  /* ---------- โจทย์คูณ/หาร ที่มีจำนวนคละ/จำนวนนับ + ตัดทอนหลายขั้น ----------
+     สร้างย้อนกลับจากโครงการตัด: คูณ → an=p*x, ad=q*v, bn=q*u, bd=p*y (ตัด p ที่ an&bd, q ที่ bn&ad)
+                                  หาร → an=p*x, ad=q*v, bn=p*u, bd=q*y (ตัด p ที่ เศษ&เศษ, q ที่ ส่วน&ส่วน)
+     ผลหลังตัด = (x*u)/(y*v) [คูณ] หรือ (x*y)/(v*u) [หาร] → y=v=1 จึงได้คำตอบเป็นจำนวนเต็ม */
+  function cop_(a, b) { return gcd(a, b) === 1; }
+  function pickCo_(lo, hi, forbid) {
+    var c = [], x; lo = Math.max(1, lo);
+    for (x = lo; x <= hi && c.length < 80; x++) {
+      var ok = true;
+      for (var i = 0; i < forbid.length; i++) if (gcd(x, forbid[i]) !== 1) { ok = false; break; }
+      if (ok) c.push(x);
+    }
+    return c.length ? c[rndI(0, c.length - 1)] : 0;
+  }
+  function numRange_(t, den, f) {
+    if (t === 'mixed') return [Math.floor(den / f) + 1, Math.floor((10 * den - 1) / f)];   // เศษเกิน (จำนวนเต็ม <= 9)
+    if (t === 'frac') return [1, Math.floor((den - 1) / f)];                               // เศษแท้
+    return [Math.ceil(2 / f), Math.floor(9 / f)];                                          // จำนวนนับ 2-9
+  }
+  function mkOperand_(t, n, d) { return t === 'whole' ? { type: 'whole', n: n, d: 1 } : t === 'mixed' ? { type: 'mixed', w: Math.floor(n / d), n: n % d, d: d } : { type: 'frac', n: n, d: d }; }
+  function okType_(t, n, d) { return t === 'mixed' ? n > d : t === 'frac' ? n < d : (n >= 2 && n <= 9); }
+  function buildMulP(max, aT, bT, p, q, y, v) {
+    if (aT === 'whole') { q = 1; v = 1; } if (bT === 'whole') { p = 1; y = 1; }
+    var ad = q * v, bd = p * y;
+    if (ad > max || bd > max) return null;
+    if ((aT !== 'whole' && ad < 2) || (bT !== 'whole' && bd < 2)) return null;
+    if (!cop_(p, q) || !cop_(p, v) || !cop_(q, y)) return null;
+    var rx = numRange_(aT, ad, p), ru = numRange_(bT, bd, q);
+    if (rx[1] < rx[0] || ru[1] < ru[0]) return null;
+    var x = pickCo_(rx[0], rx[1], [q, v]); if (!x) return null;
+    var u = pickCo_(ru[0], ru[1], [p, y]); if (!u) return null;
+    var an = p * x, bn = q * u;
+    if (gcd(an, ad) !== 1 || gcd(bn, bd) !== 1) return null;
+    if (!okType_(aT, an, ad) || !okType_(bT, bn, bd)) return null;
+    return { a: mkOperand_(aT, an, ad), b: mkOperand_(bT, bn, bd), rounds: bigOmega(p) + bigOmega(q) };
+  }
+  function buildDivP(max, aT, bT, p, q, y, v) {
+    if (aT === 'whole') { q = 1; v = 1; } if (bT === 'whole') { q = 1; y = 1; }
+    var ad = q * v, bd = q * y;
+    if (ad > max || bd > max) return null;
+    if ((aT !== 'whole' && ad < 2) || (bT !== 'whole' && bd < 2)) return null;
+    if (!cop_(p, q) || !cop_(p, v) || !cop_(p, y)) return null;
+    var rx = numRange_(aT, ad, p), ru = numRange_(bT, bd, p);
+    if (rx[1] < rx[0] || ru[1] < ru[0]) return null;
+    var x = pickCo_(rx[0], rx[1], [q, v]); if (!x) return null;
+    var u = pickCo_(ru[0], ru[1], [q, y]); if (!u) return null;
+    var an = p * x, bn = p * u;
+    if (gcd(an, ad) !== 1 || gcd(bn, bd) !== 1) return null;
+    if (!okType_(aT, an, ad) || !okType_(bT, bn, bd)) return null;
+    return { a: mkOperand_(aT, an, ad), b: mkOperand_(bT, bn, bd), rounds: bigOmega(p) + bigOmega(q) };
+  }
+  function facOm(r, max) {
+    var O1 = [2, 3, 5, 7], O2 = [4, 6, 9, 10, 15], O3 = [8, 12, 18, 20], O4 = [16, 24, 36];
+    var pool = (r <= 1 ? O1 : r === 2 ? O2 : r === 3 ? O3 : O4).filter(function (f) { return f <= max; });
+    if (!pool.length) pool = O2.filter(function (f) { return f <= max; });
+    if (!pool.length) pool = [2];
+    return pickOf(pool);
+  }
+  // ~20% ตัด 1 ขั้น · ~80% ตัด 2-3 ขั้น (คู่เดียวหลายขั้น หรือ 2 คู่) · ~38% คำตอบจำนวนเต็ม
+  function rollTyped(isMul, max, aT, bT) {
+    var build = isMul ? buildMulP : buildDivP, g = 0, hasWhole = (aT === 'whole' || bT === 'whole');
+    do {
+      var rr = Math.random(), target = rr < 0.20 ? 1 : rr < 0.60 ? 2 : rr < 0.90 ? 3 : 4;
+      var p = 1, q = 1, f;
+      if (hasWhole) { f = facOm(target, 9); if (isMul && bT === 'whole') q = f; else p = f; }
+      else if (target <= 1 || Math.random() < 0.45) p = facOm(target, max);
+      else { var s1 = rndI(1, target - 1); p = facOm(s1, max); q = facOm(target - s1, max); }
+      var y, v;
+      if (Math.random() < 0.38) { y = 1; v = 1; }
+      else { do { y = pickOf([1, 2, 3]); v = pickOf([1, 2, 3]); } while (y * v === 1); }
+      var r = build(max, aT, bT, p, q, y, v);
+      if (r && r.rounds >= 1) return r;
+      g++;
+    } while (g < 800);
+    return null;
+  }
+  function genTypedProblem(op, kind, level, dmin, dmax) {
+    var rg = mulRange(level, dmin, dmax), max = Math.max(6, rg[1]);
+    var T = { mw: ['mixed', 'whole'], fm: ['mixed', 'frac'], mm: ['mixed', 'mixed'] }[kind] || ['mixed', 'mixed'];
+    var r = rollTyped(op === 'mul', max, T[0], T[1]) || rollTyped(op === 'mul', Math.max(12, max), 'mixed', 'frac');
+    if (!r) return null;
+    var res = computeAnswer(r.a, r.b, op);
+    return { a: res.a, b: res.b, ans: { chain: res.chain } };
   }
   // จำนวนนับ (1,2,3,...) เก็บเป็น n/1
   function genWhole() { return { type: 'whole', n: rndI(2, 9), d: 1 }; }
@@ -382,7 +465,13 @@
       function joinWord() { return st.op === 'sub' ? ' − ' : ' + '; }
       function kindWord() {
         if (st.kind === 'wf') return 'จำนวนนับ ' + K().op + ' เศษส่วน';
-        if (st.op === 'mul' || st.op === 'div') return st.kind === 'cancel' ? 'ตัดกันได้ (ตัดไขว้)' : st.kind === 'nocancel' ? 'ตัดกันไม่ได้' : 'ผสม (ตัดได้+ตัดไม่ได้+จำนวนนับ)';
+        if (st.op === 'mul' || st.op === 'div') {
+          if (st.kind === 'mw') return 'จำนวนคละ ' + K().op + ' จำนวนนับ';
+          if (st.kind === 'fm') return 'จำนวนคละ ' + K().op + ' เศษส่วน';
+          if (st.kind === 'mm') return 'จำนวนคละ ' + K().op + ' จำนวนคละ';
+          if (st.kind === 'mix') return 'ผสม (คละทุกแบบ)';
+          return st.kind === 'cancel' ? 'ตัดกันได้ (ตัดไขว้)' : 'ตัดกันไม่ได้';
+        }
         if (st.kind === 'mix') return 'ผสม (คละทุกแบบ)';
         var w = st.kind === 'ff' ? 'เศษส่วน' + joinWord() + 'เศษส่วน' : st.kind === 'fm' ? 'เศษส่วน' + joinWord() + 'จำนวนคละ' : 'จำนวนคละ' + joinWord() + 'จำนวนคละ'; return w;
       }
@@ -408,7 +497,7 @@
             var o = b.dataset.op;
             if (o === 'add' || o === 'sub' || o === 'mul' || o === 'div') {
               st.op = o; st.probs = [];
-              if (o === 'mul' || o === 'div') { if (st.kind !== 'cancel' && st.kind !== 'nocancel' && st.kind !== 'mix' && st.kind !== 'wf') st.kind = 'cancel'; }
+              if (o === 'mul' || o === 'div') { if (st.kind !== 'cancel' && st.kind !== 'nocancel' && st.kind !== 'mix' && st.kind !== 'wf' && st.kind !== 'mw' && st.kind !== 'fm' && st.kind !== 'mm') st.kind = 'cancel'; }
               else { if (st.kind !== 'ff' && st.kind !== 'fm' && st.kind !== 'mm' && st.kind !== 'mix' && st.kind !== 'wf') st.kind = 'ff'; }
               renderAdd();
             } else if (svc.toast) svc.toast('info', 'อยู่ระหว่างพัฒนา จะเปิดให้ใช้เร็ว ๆ นี้');
@@ -424,7 +513,7 @@
           + '<div class="eyebrow">ตั้งค่าชุดแบบฝึก' + K().word + 'เศษส่วน</div>'
           + '<div class="fr-field"><label>ประเภทโจทย์</label><select id="fKind">'
           + ((st.op === 'mul' || st.op === 'div')
-            ? (opt('cancel', 'ตัดกันได้ (ตัดไขว้)', st.kind) + opt('nocancel', 'ตัดกันไม่ได้', st.kind) + opt('wf', 'จำนวนนับ ' + K().op + ' เศษส่วน', st.kind) + opt('mix', 'ผสม (ตัดได้ + ตัดไม่ได้ + จำนวนนับ)', st.kind))
+            ? (opt('cancel', 'ตัดกันได้ (ตัดไขว้)', st.kind) + opt('nocancel', 'ตัดกันไม่ได้', st.kind) + opt('wf', 'จำนวนนับ ' + K().op + ' เศษส่วน', st.kind) + opt('mw', 'จำนวนคละ ' + K().op + ' จำนวนนับ', st.kind) + opt('fm', 'จำนวนคละ ' + K().op + ' เศษส่วน', st.kind) + opt('mm', 'จำนวนคละ ' + K().op + ' จำนวนคละ', st.kind) + opt('mix', 'ผสม (คละทุกแบบ)', st.kind))
             : (opt('ff', 'เศษส่วน' + K().op + 'เศษส่วน', st.kind) + opt('fm', 'เศษส่วน' + K().op + 'จำนวนคละ', st.kind) + opt('mm', 'จำนวนคละ' + K().op + 'จำนวนคละ', st.kind) + opt('wf', 'จำนวนนับ ' + K().op + ' เศษส่วน', st.kind) + opt('mix', 'ผสม (คละทุกแบบ)', st.kind)))
           + '</select></div>'
           + ((st.op === 'mul' || st.op === 'div') ? '' :
