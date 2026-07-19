@@ -1,10 +1,10 @@
 /*** EduForge plugin — แบบฝึกหัดทศนิยม *********************************
  * บวก / ลบ / คูณ / หาร ทศนิยม — เริ่มเปิด "การบวก" ก่อน
  *
- * กำหนดตำแหน่งทศนิยม (0–3) ได้ 2 โหมด (สวิตช์):
- *   1) เลือกช่วง 0–3 ตำแหน่ง สุ่มคละในชุด
- *   2) กำหนดตัวตั้ง / ตัวบวก แยกทีละตัว
- * เฉลยแสดง "วิธีตั้งหลัก" จัดตำแหน่งจุดทศนิยมตรงกัน + คำตอบ
+ * กำหนดตำแหน่งทศนิยม 2 โหมด (สวิตช์):
+ *   1) สุ่มช่วง 0–3 ตำแหน่ง + กำหนดจำนวนหลักหน้าจุดเอง
+ *   2) กำหนดหลักเองทุกจุด: ตัวตั้ง/ตัวบวก แยกกัน (หลักหน้าจุด + ตำแหน่งทศนิยม)
+ * เฉลยแสดง "วิธีตั้งหลัก" ตารางกล่องต่อหลัก จัดจุดทศนิยมตรงกัน + คำตอบ
  * คำนวณแบบจำนวนเต็มสเกล (10^n) กัน floating-point error
  * A4 พอดีหน้า · เฉลย (inline/พิมพ์พร้อมเฉลย/QR) · จับเวลา · ช่องเวลาที่ใช้
  *********************************************************************/
@@ -18,47 +18,48 @@
   function pad2(n) { return (n < 10 ? '0' : '') + n; }
   function pow10(n) { return Math.pow(10, n); }
   function rep(ch, n) { var s = ''; for (var i = 0; i < n; i++) s += ch; return s; }
+  function clampI(v, lo, hi, def) { v = parseInt(v, 10); if (isNaN(v)) v = def; return Math.max(lo, Math.min(hi, v)); }
 
   /* ---------- โครงเลขทศนิยม {ip, fp, dp} ---------- */
   function genNum(intDigits, dp) {
-    var lo = intDigits <= 1 ? 0 : pow10(intDigits - 1), hi = pow10(intDigits) - 1;
-    var ip = rndI(Math.max(lo, 1), hi);
-    var fp = dp > 0 ? rndI(0, pow10(dp) - 1) : 0;
+    var lo = intDigits <= 1 ? 1 : pow10(intDigits - 1), hi = pow10(intDigits) - 1;
+    var ip = rndI(lo, hi), fp = dp > 0 ? rndI(0, pow10(dp) - 1) : 0;
     return { ip: ip, fp: fp, dp: dp };
   }
   function showNum(o) { if (o.dp === 0) return '' + o.ip; return o.ip + '.' + (rep('0', o.dp) + o.fp).slice(-o.dp); }
-  function scaled(o, P) { return (o.ip * pow10(o.dp) + o.fp) * pow10(P - o.dp); }   // สเกลไป P ตำแหน่ง
-  // บวก a+b → คืนโครงผลลัพธ์ (ตัดศูนย์ท้าย)
+  function scaled(o, P) { return (o.ip * pow10(o.dp) + o.fp) * pow10(P - o.dp); }
   function addDec(a, b) {
     var P = Math.max(a.dp, b.dp), s = scaled(a, P) + scaled(b, P);
     var ip = Math.floor(s / pow10(P)), fp = s % pow10(P), dp = P;
     while (dp > 0 && fp % 10 === 0) { fp /= 10; dp--; }
     return { ip: ip, fp: fp, dp: dp };
   }
-
-  /* ---------- จัดตำแหน่งตั้งหลัก (จุดทศนิยมตรงกัน) ---------- */
-  // คืนสตริงที่ pad ช่องว่างให้จุดตรงกัน (ใช้ฟอนต์ monospace + white-space:pre)
-  function aligned(o, maxInt, maxFrac) {
-    var ipStr = '' + o.ip, intPad = rep(' ', maxInt - ipStr.length) + ipStr;
-    if (maxFrac === 0) return intPad;
-    var point = o.dp > 0 ? '.' : ' ';
-    var fpStr = o.dp > 0 ? (rep('0', o.dp) + o.fp).slice(-o.dp) : '';
-    return intPad + point + fpStr + rep(' ', maxFrac - fpStr.length);
-  }
-  function metrics(list) {
-    var mi = 0, mf = 0;
-    list.forEach(function (o) { mi = Math.max(mi, ('' + o.ip).length); mf = Math.max(mf, o.dp); });
-    return { mi: mi, mf: mf };
-  }
+  function metrics(list) { var mi = 0, mf = 0; list.forEach(function (o) { mi = Math.max(mi, ('' + o.ip).length); mf = Math.max(mf, o.dp); }); return { mi: mi, mf: mf }; }
 
   /* ---------- สุ่มโจทย์ ---------- */
-  // mode: 'range' (สุ่ม dp 0–3), 'fixed' (กำหนด dpA/dpB)
   function genProblem(st) {
-    var dpA, dpB;
-    if (st.mode === 'fixed') { dpA = st.dpA; dpB = st.dpB; }
-    else { dpA = rndI(st.rmin, st.rmax); dpB = rndI(st.rmin, st.rmax); }
-    var a = genNum(rndI(1, st.intDigits), dpA), b = genNum(rndI(1, st.intDigits), dpB);
+    var a, b;
+    if (st.mode === 'custom') { a = genNum(st.intA, st.dpA); b = genNum(st.intB, st.dpB); }
+    else { a = genNum(st.intDigits, rndI(st.rmin, st.rmax)); b = genNum(st.intDigits, rndI(st.rmin, st.rmax)); }
     return { a: a, b: b, ans: addDec(a, b) };
+  }
+
+  /* ---------- ตารางกล่องต่อหลัก (จัดจุดทศนิยมตรงกัน) ---------- */
+  function calcGrid(p, showAns, opSym) {
+    var m = metrics([p.a, p.b, p.ans]), mi = m.mi, mf = m.mf, ncols = mi + (mf > 0 ? 1 : 0) + mf;
+    function cells(o, isOp, isAns) {
+      var ipStr = '' + o.ip, out = '<td class="op">' + (isOp ? opSym : '') + '</td>', c, idx, ch;
+      for (c = 0; c < mi; c++) { idx = c - (mi - ipStr.length); ch = idx >= 0 ? ipStr.charAt(idx) : ''; out += ch !== '' ? '<td class="db' + (isAns ? ' ans' : '') + '">' + (isAns && !showAns ? '' : ch) + '</td>' : '<td></td>'; }
+      if (mf > 0) out += '<td class="pt">' + (o.dp > 0 ? '.' : '') + '</td>';
+      var fpStr = o.dp > 0 ? (rep('0', o.dp) + o.fp).slice(-o.dp) : '';
+      for (c = 0; c < mf; c++) { ch = c < fpStr.length ? fpStr.charAt(c) : ''; out += ch !== '' ? '<td class="db' + (isAns ? ' ans' : '') + '">' + (isAns && !showAns ? '' : ch) + '</td>' : '<td></td>'; }
+      return out;
+    }
+    return '<table class="calcT">'
+      + '<tr>' + cells(p.a, false, false) + '</tr>'
+      + '<tr>' + cells(p.b, true, false) + '</tr>'
+      + '<tr class="lnrow"><td></td><td colspan="' + ncols + '" class="ln"></td></tr>'
+      + '<tr>' + cells(p.ans, false, true) + '</tr></table>';
   }
 
   /* ---------- CSS เอกสารพิมพ์ ---------- */
@@ -81,14 +82,16 @@
       + '.page.brk{page-break-before:always}'
       + '.conthd{border-bottom:2px solid ' + ac + ';color:' + ac + ';font-weight:700;font-size:18px;padding-bottom:6px;margin-bottom:12px}'
       + '.conthd span{font-weight:400;font-size:13px;color:#999}'
-      + '.grid{display:grid;gap:10px 20px;flex:1;align-content:space-evenly}'
-      + '.pb{display:flex;gap:10px;padding:6px 4px;break-inside:avoid;align-items:flex-start}'
-      + '.pb .no{font-weight:700;color:' + ac + ';min-width:26px;font-size:19px}'
-      + '.calc{font-family:"DejaVu Sans Mono","Consolas","Courier New",monospace;white-space:pre;font-size:22px;line-height:1.5;letter-spacing:1px}'
-      + '.calc .r{display:block}'
-      + '.calc .op{color:' + ac + ';font-weight:700;margin-right:6px}'
-      + '.calc .ln{border-top:2px solid #333;margin:2px 0}'
-      + '.calc .ans{color:' + ac + '}'
+      + '.grid{display:grid;gap:8px 16px;flex:1;align-content:space-evenly}'
+      + '.pb{display:flex;gap:8px;padding:4px;break-inside:avoid;align-items:flex-start}'
+      + '.pb .no{font-weight:700;color:' + ac + ';min-width:24px;font-size:19px;padding-top:4px}'
+      + '.calcT{border-collapse:collapse}'
+      + '.calcT td{width:8.5mm;height:8.5mm;text-align:center;font-size:22px;padding:0;line-height:8.5mm}'
+      + '.calcT td.db{border:1.5px solid #333}'
+      + '.calcT td.op{width:8mm;color:' + ac + ';font-weight:700;font-size:24px;text-align:right;padding-right:3px}'
+      + '.calcT td.pt{width:4mm;vertical-align:bottom;font-weight:700;font-size:22px;line-height:1}'
+      + '.calcT td.ln{border-bottom:2.5px solid #333;height:3px;padding:0}'
+      + '.calcT td.ans{color:' + ac + '}'
       + '.foot{margin-top:10px;text-align:center;font-size:11px;color:#777;border-top:1px solid #eee;padding-top:6px}';
   }
   function headHTML(o) {
@@ -101,24 +104,13 @@
       + '<span class="box">เวลาที่ใช้ทำ <span class="dot" style="min-width:50px;border-color:' + o.accent + '"></span> นาที</span>'
       + '<span class="box">คะแนนที่ได้ <span class="dot" style="min-width:55px;border-color:' + o.accent + '"></span></span></div></div>';
   }
-  // เรนเดอร์ตั้งบวกหนึ่งข้อ (monospace จัดจุดตรง)
-  function calcHTML(p, showAns, opSym) {
-    var m = metrics([p.a, p.b, p.ans]);
-    var la = aligned(p.a, m.mi, m.mf), lb = aligned(p.b, m.mi, m.mf), ln = aligned(p.ans, m.mi, m.mf);
-    var w = m.mi + (m.mf > 0 ? 1 + m.mf : 0);
-    var ansRow = showAns ? '<span class="r ans">' + esc(ln) + '</span>' : '<span class="r">' + rep(' ', w) + '</span>';
-    return '<div class="calc"><span class="r">' + esc(la) + '</span>'
-      + '<span class="r"><span class="op">' + opSym + '</span>' + esc(lb) + '</span>'
-      + '<span class="r ln">' + rep(' ', w) + '</span>' + ansRow + '</div>';
-  }
   function sheetHTML(o, withKey) {
-    var PER = 12, i, cols = 2;
-    var pages = [];
+    var PER = 10, i, cols = 2, pages = [];
     for (i = 0; i < o.probs.length; i += PER) pages.push(o.probs.slice(i, i + PER));
     var total = pages.length;
     var body = pages.map(function (chunk, pi) {
       var cells = chunk.map(function (p, j) {
-        return '<div class="pb"><span class="no">' + (pi * PER + j + 1) + ')</span>' + calcHTML(p, withKey, o.opSym) + '</div>';
+        return '<div class="pb"><span class="no">' + (pi * PER + j + 1) + ')</span>' + calcGrid(p, withKey, o.opSym) + '</div>';
       }).join('');
       var grid = '<div class="grid" style="grid-template-columns:repeat(' + cols + ',1fr)">' + cells + '</div>';
       var header = pi === 0
@@ -172,12 +164,20 @@
     s.textContent = ''
       + '.dc-field{display:flex;flex-direction:column;gap:5px}.dc-field label{font-size:13px;color:var(--muted)}'
       + '.dc-field select,.dc-field input{padding:9px 11px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--txt);font:inherit}'
+      + '.dc-inline{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:14px}'
+      + '.dc-inline select{flex:1;min-width:0}'
+      + '.dc-row{display:flex;gap:6px;align-items:center;color:var(--muted);font-size:14px;margin-top:6px}'
+      + '.dc-row .lbl{min-width:52px}.dc-row input{width:64px;text-align:center}.dc-row select{padding:8px}'
       + '.dc-prev{display:grid;gap:12px 18px;margin-top:14px;grid-template-columns:repeat(2,1fr)}'
       + '.dc-pb{display:flex;gap:10px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg2);align-items:flex-start}'
-      + '.dc-pb .no{font-weight:700;color:var(--accent);min-width:24px}'
-      + '.dc-pb .calc{font-family:"DejaVu Sans Mono","Consolas",monospace;white-space:pre;font-size:20px;line-height:1.5;letter-spacing:1px}'
-      + '.dc-pb .calc .r{display:block}.dc-pb .calc .op{color:var(--accent);font-weight:700;margin-right:6px}'
-      + '.dc-pb .calc .ln{border-top:2px solid var(--muted);margin:2px 0}.dc-pb .calc .ans{color:var(--accent)}'
+      + '.dc-pb .no{font-weight:700;color:var(--accent);min-width:22px;padding-top:4px}'
+      + '.dc-pb .calcT{border-collapse:collapse}'
+      + '.dc-pb .calcT td{width:27px;height:27px;text-align:center;font-size:19px;padding:0}'
+      + '.dc-pb .calcT td.db{border:1.5px solid var(--muted)}'
+      + '.dc-pb .calcT td.op{width:24px;color:var(--accent);font-weight:700;font-size:21px;text-align:right;padding-right:3px}'
+      + '.dc-pb .calcT td.pt{width:12px;vertical-align:bottom;font-weight:700}'
+      + '.dc-pb .calcT td.ln{border-bottom:2px solid var(--muted);height:2px;padding:0}'
+      + '.dc-pb .calcT td.ans{color:var(--accent)}'
       + '.dctile{--tile:var(--accent);position:relative;border:0;cursor:pointer;color:#fff;border-radius:22px;background:linear-gradient(150deg,var(--tile),color-mix(in srgb,var(--tile) 55%,#000));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;width:170px;height:170px}'
       + '.dctile.on{animation:dcBreathe 2.6s ease-in-out infinite}'
       + '.dctile.sub{--tile:#16a34a}.dctile.mul{--tile:#7c3aed}.dctile.div{--tile:#2563eb}'
@@ -188,7 +188,7 @@
     document.head.appendChild(s);
   }
 
-  var OPS = { add: { op: '+', accent: '#c0392b', word: 'การบวก', pre: 'DA' } };   // เปิดการบวกก่อน
+  var OPS = { add: { op: '+', accent: '#c0392b', word: 'การบวก', pre: 'DA' } };
 
   window.Platform.register({
     id: 'decimal',
@@ -196,13 +196,13 @@
     icon: 'ti-decimal',
     mount: function (host, svc) {
       ensureCSS();
-      var st = { op: 'add', mode: 'range', rmin: 0, rmax: 3, dpA: 1, dpB: 2, intDigits: 3, count: 12, title: '', setId: '', showKey: false, probs: [] };
+      var st = { op: 'add', mode: 'range', rmin: 0, rmax: 3, intDigits: 3, intA: 2, dpA: 1, intB: 3, dpB: 2, count: 10, title: '', setId: '', showKey: false, probs: [] };
       function K() { return OPS[st.op]; }
       function newSetId() { var d = new Date(); return K().pre + String(d.getFullYear()).slice(2) + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + rndI(100, 999); }
-      function modeWord() { return st.mode === 'fixed' ? ('กำหนดตำแหน่ง ตัวตั้ง ' + st.dpA + ' · ตัวบวก ' + st.dpB) : ('สุ่ม ' + st.rmin + '–' + st.rmax + ' ตำแหน่ง'); }
+      function modeWord() { return st.mode === 'custom' ? ('กำหนดเอง · ตัวตั้ง ' + st.intA + ' หลัก ' + st.dpA + ' ตำแหน่ง · ตัวบวก ' + st.intB + ' หลัก ' + st.dpB + ' ตำแหน่ง') : ('สุ่ม ' + st.rmin + '–' + st.rmax + ' ตำแหน่ง · ' + st.intDigits + ' หลัก'); }
       function defTitle() { return st.title || ('แบบฝึก' + K().word + 'ทศนิยม'); }
       function opt(v, label, cur) { return '<option value="' + v + '"' + (v == cur ? ' selected' : '') + '>' + label + '</option>'; }
-      function dpOpts(cur) { return [0, 1, 2, 3].map(function (n) { return opt(n, n === 0 ? 'จำนวนเต็ม (0 ตำแหน่ง)' : n + ' ตำแหน่ง', cur); }).join(''); }
+      function dpShort(cur) { return [0, 1, 2, 3].map(function (n) { return opt(n, n + '', cur); }).join(''); }
 
       function renderHome() {
         function tile(op, ic, label, active) {
@@ -226,29 +226,29 @@
           + '<div class="grid-main" style="display:grid;gap:22px;grid-template-columns:340px 1fr">'
           + '<section><div class="panel" style="padding:18px;display:flex;flex-direction:column;gap:14px">'
           + '<div class="eyebrow">ตั้งค่าชุดแบบฝึก' + K().word + 'ทศนิยม</div>'
-          + '<div class="dc-field"><label>โหมดกำหนดตำแหน่งทศนิยม</label><select id="dMode">' + opt('range', 'สุ่มช่วง 0–3 ตำแหน่ง', st.mode) + opt('fixed', 'กำหนดแยกทีละตัว', st.mode) + '</select></div>'
-          + '<div class="dc-field" id="dRangeBox"' + (st.mode === 'range' ? '' : ' style="display:none"') + '><label>สุ่มตำแหน่งทศนิยม ระหว่าง</label>'
-          + '<div style="display:flex;gap:8px;align-items:center;color:var(--muted)"><select id="dRmin">' + dpOpts(st.rmin) + '</select> ถึง <select id="dRmax">' + dpOpts(st.rmax) + '</select></div></div>'
-          + '<div class="dc-field" id="dFixedBox"' + (st.mode === 'fixed' ? '' : ' style="display:none"') + '><label>กำหนดตำแหน่งทศนิยม</label>'
-          + '<div style="display:flex;gap:8px;align-items:center;color:var(--muted)">ตัวตั้ง <select id="dDpA">' + dpOpts(st.dpA) + '</select> ตัวบวก <select id="dDpB">' + dpOpts(st.dpB) + '</select></div></div>'
-          + '<div class="dc-field"><label>จำนวนหลักหน้าจุด (จำนวนเต็ม) สูงสุด</label><select id="dInt">' + [1, 2, 3, 4].map(function (n) { return opt(n, n + ' หลัก', st.intDigits); }).join('') + '</select></div>'
-          + '<div class="dc-field"><label>จำนวนข้อ</label><select id="dCount">' + [10, 12, 20, 24].map(function (n) { return opt(n, n + ' ข้อ', st.count); }).join('') + '</select></div>'
+          + '<div class="dc-field"><label>โหมดกำหนดตำแหน่ง</label><select id="dMode">' + opt('range', 'สุ่มช่วง 0–3 ตำแหน่ง', st.mode) + opt('custom', 'กำหนดหลักเองทุกจุด', st.mode) + '</select></div>'
+          + '<div class="dc-field" id="dRangeBox"' + (st.mode === 'range' ? '' : ' style="display:none"') + '>'
+          + '<label>สุ่มตำแหน่งทศนิยม</label><div class="dc-inline"><select id="dRmin">' + dpShort(st.rmin) + '</select><span>ถึง</span><select id="dRmax">' + dpShort(st.rmax) + '</select><span>ตำแหน่ง</span></div>'
+          + '<label style="margin-top:8px">จำนวนหลักหน้าจุด (จำนวนเต็ม)</label><input id="dInt" type="number" min="1" max="7" value="' + st.intDigits + '"></div>'
+          + '<div class="dc-field" id="dCustomBox"' + (st.mode === 'custom' ? '' : ' style="display:none"') + '>'
+          + '<label>กำหนดหลักเอง (หลักหน้าจุด · ตำแหน่งทศนิยม)</label>'
+          + '<div class="dc-row"><span class="lbl">ตัวตั้ง</span><input id="dIntA" type="number" min="1" max="7" value="' + st.intA + '"> หลัก <select id="dDpA">' + dpShort(st.dpA) + '</select> ตำแหน่ง</div>'
+          + '<div class="dc-row"><span class="lbl">ตัวบวก</span><input id="dIntB" type="number" min="1" max="7" value="' + st.intB + '"> หลัก <select id="dDpB">' + dpShort(st.dpB) + '</select> ตำแหน่ง</div></div>'
+          + '<div class="dc-field"><label>จำนวนข้อ</label><select id="dCount">' + [8, 10, 16, 20].map(function (n) { return opt(n, n + ' ข้อ', st.count); }).join('') + '</select></div>'
           + '<div class="dc-field"><label>ชื่อชุด (เว้นว่างได้)</label><input id="dTitle" value="' + esc(st.title) + '" placeholder="เช่น การบวกทศนิยม ชุดที่ 1"></div>'
           + '<button class="btn btn-accent" id="dGen"><i class="ti ti-refresh"></i> สร้างชุดแบบฝึก</button>'
           + '<button class="btn btn-ghost" id="dTimer"><i class="ti ti-clock"></i> จับเวลาเต็มจอ</button>'
           + '</div></section><section id="dOut"></section></div>';
         $('#dBack', host).onclick = renderHome;
         $('#dTimer', host).onclick = tmOpen;
-        $('#dMode', host).onchange = function () {
-          st.mode = this.value;
-          $('#dRangeBox', host).style.display = this.value === 'range' ? '' : 'none';
-          $('#dFixedBox', host).style.display = this.value === 'fixed' ? '' : 'none';
-        };
+        $('#dMode', host).onchange = function () { st.mode = this.value; $('#dRangeBox', host).style.display = this.value === 'range' ? '' : 'none'; $('#dCustomBox', host).style.display = this.value === 'custom' ? '' : 'none'; };
         $('#dGen', host).onclick = function () {
           st.mode = $('#dMode', host).value;
-          st.rmin = +$('#dRmin', host).value; st.rmax = +$('#dRmax', host).value; if (st.rmax < st.rmin) { var t = st.rmin; st.rmin = st.rmax; st.rmax = t; }
-          st.dpA = +$('#dDpA', host).value; st.dpB = +$('#dDpB', host).value;
-          st.intDigits = +$('#dInt', host).value; st.count = +$('#dCount', host).value; st.title = $('#dTitle', host).value.trim();
+          st.rmin = clampI($('#dRmin', host).value, 0, 3, 0); st.rmax = clampI($('#dRmax', host).value, 0, 3, 3); if (st.rmax < st.rmin) { var t = st.rmin; st.rmin = st.rmax; st.rmax = t; }
+          st.intDigits = clampI($('#dInt', host).value, 1, 7, 3);
+          st.intA = clampI($('#dIntA', host).value, 1, 7, 2); st.dpA = clampI($('#dDpA', host).value, 0, 3, 1);
+          st.intB = clampI($('#dIntB', host).value, 1, 7, 3); st.dpB = clampI($('#dDpB', host).value, 0, 3, 2);
+          st.count = +$('#dCount', host).value; st.title = $('#dTitle', host).value.trim();
           st.setId = newSetId(); st.showKey = false;
           st.probs = []; for (var i = 0; i < st.count; i++) st.probs.push(genProblem(st));
           renderOut();
@@ -260,9 +260,7 @@
       function renderOut() {
         var out = $('#dOut', host); if (!out) return;
         if (!st.probs.length) { out.innerHTML = '<div class="panel" style="padding:30px;text-align:center;color:var(--muted)">เลือกค่าทางซ้าย แล้วกด “สร้างชุดแบบฝึก”</div>'; return; }
-        var cells = st.probs.map(function (p, i) {
-          return '<div class="dc-pb"><span class="no">' + (i + 1) + ')</span>' + calcHTML(p, st.showKey, K().op) + '</div>';
-        }).join('');
+        var cells = st.probs.map(function (p, i) { return '<div class="dc-pb"><span class="no">' + (i + 1) + ')</span>' + calcGrid(p, st.showKey, K().op) + '</div>'; }).join('');
         out.innerHTML = '<div class="panel" style="padding:18px">'
           + '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:8px">'
           + '<div><div class="eyebrow">ตัวอย่างก่อนพิมพ์</div><div class="font-display" style="font-weight:800;font-size:1.2rem">' + esc(defTitle()) + ' <span style="font-size:.78rem;color:var(--muted)">ชุด ' + esc(st.setId) + '</span></div></div>'
