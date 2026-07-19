@@ -47,19 +47,19 @@
   /* ---------- ตารางกล่องต่อหลัก (จัดจุดทศนิยมตรงกัน) ---------- */
   function calcGrid(p, showAns, opSym) {
     var m = metrics([p.a, p.b, p.ans]), mi = m.mi, mf = m.mf, ncols = mi + (mf > 0 ? 1 : 0) + mf;
-    function cells(o, isOp, isAns) {
-      var ipStr = '' + o.ip, out = '<td class="op">' + (isOp ? opSym : '') + '</td>', c, idx, ch;
-      for (c = 0; c < mi; c++) { idx = c - (mi - ipStr.length); ch = idx >= 0 ? ipStr.charAt(idx) : ''; out += ch !== '' ? '<td class="db' + (isAns ? ' ans' : '') + '">' + (isAns && !showAns ? '' : ch) + '</td>' : '<td></td>'; }
+    function cells(o, isAns) {
+      var ipStr = '' + o.ip, out = '', c, idx, ch, cls = 'db' + (isAns ? ' ans' : '');
+      for (c = 0; c < mi; c++) { idx = c - (mi - ipStr.length); ch = idx >= 0 ? ipStr.charAt(idx) : ''; out += '<td class="' + cls + '">' + (isAns && !showAns ? '' : ch) + '</td>'; }
       if (mf > 0) out += '<td class="pt">' + (o.dp > 0 ? '.' : '') + '</td>';
       var fpStr = o.dp > 0 ? (rep('0', o.dp) + o.fp).slice(-o.dp) : '';
-      for (c = 0; c < mf; c++) { ch = c < fpStr.length ? fpStr.charAt(c) : ''; out += ch !== '' ? '<td class="db' + (isAns ? ' ans' : '') + '">' + (isAns && !showAns ? '' : ch) + '</td>' : '<td></td>'; }
+      for (c = 0; c < mf; c++) { ch = c < fpStr.length ? fpStr.charAt(c) : ''; out += '<td class="' + cls + '">' + (isAns && !showAns ? '' : ch) + '</td>'; }
       return out;
     }
     return '<table class="calcT">'
-      + '<tr>' + cells(p.a, false, false) + '</tr>'
-      + '<tr>' + cells(p.b, true, false) + '</tr>'
-      + '<tr class="lnrow"><td></td><td colspan="' + ncols + '" class="ln"></td></tr>'
-      + '<tr>' + cells(p.ans, false, true) + '</tr></table>';
+      + '<tr>' + cells(p.a, false) + '<td rowspan="2" class="opR">' + opSym + '</td></tr>'
+      + '<tr>' + cells(p.b, false) + '</tr>'
+      + '<tr class="lnrow"><td colspan="' + ncols + '" class="ln"></td><td></td></tr>'
+      + '<tr>' + cells(p.ans, true) + '<td></td></tr></table>';
   }
 
   /* ---------- CSS เอกสารพิมพ์ ---------- */
@@ -88,7 +88,7 @@
       + '.calcT{border-collapse:collapse}'
       + '.calcT td{width:8.5mm;height:8.5mm;text-align:center;font-size:22px;padding:0;line-height:8.5mm}'
       + '.calcT td.db{border:1.5px solid #333}'
-      + '.calcT td.op{width:8mm;color:' + ac + ';font-weight:700;font-size:24px;text-align:right;padding-right:3px}'
+      + '.calcT td.opR{color:' + ac + ';font-weight:700;font-size:26px;text-align:center;vertical-align:middle;padding-left:5px;min-width:9mm}'
       + '.calcT td.pt{width:4mm;vertical-align:bottom;font-weight:700;font-size:22px;line-height:1}'
       + '.calcT td.ln{border-bottom:2.5px solid #333;height:3px;padding:0}'
       + '.calcT td.ans{color:' + ac + '}'
@@ -174,7 +174,7 @@
       + '.dc-pb .calcT{border-collapse:collapse}'
       + '.dc-pb .calcT td{width:27px;height:27px;text-align:center;font-size:19px;padding:0}'
       + '.dc-pb .calcT td.db{border:1.5px solid var(--muted)}'
-      + '.dc-pb .calcT td.op{width:24px;color:var(--accent);font-weight:700;font-size:21px;text-align:right;padding-right:3px}'
+      + '.dc-pb .calcT td.opR{color:var(--accent);font-weight:700;font-size:23px;text-align:center;vertical-align:middle;padding-left:5px;min-width:26px}'
       + '.dc-pb .calcT td.pt{width:12px;vertical-align:bottom;font-weight:700}'
       + '.dc-pb .calcT td.ln{border-bottom:2px solid var(--muted);height:2px;padding:0}'
       + '.dc-pb .calcT td.ans{color:var(--accent)}'
