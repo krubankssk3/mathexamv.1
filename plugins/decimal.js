@@ -234,7 +234,7 @@
           + '<label>กำหนดหลักเอง (หลักหน้าจุด · ตำแหน่งทศนิยม)</label>'
           + '<div class="dc-row"><span class="lbl">ตัวตั้ง</span><input id="dIntA" type="number" min="1" max="7" value="' + st.intA + '"> หลัก <select id="dDpA">' + dpShort(st.dpA) + '</select> ตำแหน่ง</div>'
           + '<div class="dc-row"><span class="lbl">ตัวบวก</span><input id="dIntB" type="number" min="1" max="7" value="' + st.intB + '"> หลัก <select id="dDpB">' + dpShort(st.dpB) + '</select> ตำแหน่ง</div></div>'
-          + '<div class="dc-field"><label>จำนวนข้อ</label><select id="dCount">' + [8, 10, 16, 20].map(function (n) { return opt(n, n + ' ข้อ', st.count); }).join('') + '</select></div>'
+          + '<div class="dc-field"><label>จำนวนข้อ (สูงสุด 50)</label><input id="dCount" type="number" min="1" max="50" value="' + st.count + '"></div>'
           + '<div class="dc-field"><label>ชื่อชุด (เว้นว่างได้)</label><input id="dTitle" value="' + esc(st.title) + '" placeholder="เช่น การบวกทศนิยม ชุดที่ 1"></div>'
           + '<button class="btn btn-accent" id="dGen"><i class="ti ti-refresh"></i> สร้างชุดแบบฝึก</button>'
           + '<button class="btn btn-ghost" id="dTimer"><i class="ti ti-clock"></i> จับเวลาเต็มจอ</button>'
@@ -248,7 +248,7 @@
           st.intDigits = clampI($('#dInt', host).value, 1, 7, 3);
           st.intA = clampI($('#dIntA', host).value, 1, 7, 2); st.dpA = clampI($('#dDpA', host).value, 0, 3, 1);
           st.intB = clampI($('#dIntB', host).value, 1, 7, 3); st.dpB = clampI($('#dDpB', host).value, 0, 3, 2);
-          st.count = +$('#dCount', host).value; st.title = $('#dTitle', host).value.trim();
+          st.count = clampI($('#dCount', host).value, 1, 50, 10); st.title = $('#dTitle', host).value.trim();
           st.setId = newSetId(); st.showKey = false;
           st.probs = []; for (var i = 0; i < st.count; i++) st.probs.push(genProblem(st));
           renderOut();
