@@ -36,12 +36,75 @@
   }
   function metrics(list) { var mi = 0, mf = 0; list.forEach(function (o) { mi = Math.max(mi, ('' + o.ip).length); mf = Math.max(mf, o.dp); }); return { mi: mi, mf: mf }; }
 
+  /* ---------- คุมจำนวนตัวทด: ง่าย=0–1 · ปานกลาง=2–3 · ยาก=ทดทุกหลัก ---------- */
+  function carriesOf(a, b) {
+    var mf = Math.max(a.dp, b.dp);
+    var sa = (a.ip * pow10(a.dp) + a.fp) * pow10(mf - a.dp), sb = (b.ip * pow10(b.dp) + b.fp) * pow10(mf - b.dp);
+    var da = ('' + sa).split('').reverse(), db = ('' + sb).split('').reverse();
+    var n = Math.max(da.length, db.length), carry = 0, cnt = 0, i;
+    for (i = 0; i < n; i++) { var x = (+da[i] || 0) + (+db[i] || 0) + carry; if (x >= 10) { carry = 1; cnt++; } else carry = 0; }
+    if (carry) cnt++;
+    return cnt;
+  }
+  function overlapCols(intA, dpA, intB, dpB) {
+    var maxFrac = Math.max(dpA, dpB), maxInt = Math.max(intA, intB), n = 0, p;
+    for (p = maxFrac; p >= 1; p--) if (p <= dpA && p <= dpB) n++;
+    for (p = 1; p <= maxInt; p++) if (p <= intA && p <= intB) n++;
+    return n;
+  }
+  function carryOK(c, level, mx) { if (level === 'easy') return c <= 1; if (level === 'medium') return c >= 2 && c <= 3; return c >= Math.max(1, mx); }
+  // สร้างเลขทีละหลักตามแผนการทด
+  function genDecCarry(intA, dpA, intB, dpB, level) {
+    var maxFrac = Math.max(dpA, dpB), maxInt = Math.max(intA, intB), cols = [], place, pos, i;
+    for (place = maxFrac; place >= 1; place--) cols.push({ aR: place <= dpA, bR: place <= dpB, aLead: false, bLead: false });
+    for (pos = 1; pos <= maxInt; pos++) cols.push({ aR: pos <= intA, bR: pos <= intB, aLead: pos === intA, bLead: pos === intB });
+    var n = cols.length, plan = [], both = [];
+    for (i = 0; i < n; i++) { plan.push(false); if (cols[i].aR && cols[i].bR) both.push(i); }
+    if (level === 'hard') { for (i = 0; i < n; i++) plan[i] = true; }
+    else {
+      var target = level === 'easy' ? (Math.random() < 0.6 ? 0 : 1) : rndI(2, 3);
+      var pool = both.slice(), j, t;
+      for (i = pool.length - 1; i > 0; i--) { j = rndI(0, i); t = pool[i]; pool[i] = pool[j]; pool[j] = t; }
+      for (var k = 0; k < Math.min(target, pool.length); k++) plan[pool[k]] = true;
+    }
+    var A = [], B = [], carry = 0;
+    for (i = 0; i < n; i++) {
+      var c = cols[i], la = c.aLead ? 1 : 0, ha = c.aR ? 9 : 0, lb = c.bLead ? 1 : 0, hb = c.bR ? 9 : 0, a, b, tr;
+      if (plan[i] && ha + hb + carry >= 10) {
+        var need = 10 - carry; tr = 0;
+        do { a = rndI(la, ha); b = rndI(lb, hb); tr++; } while (a + b < need && tr < 60);
+        if (a + b < need) { a = ha; b = Math.max(lb, Math.min(hb, need - a)); }
+      } else {
+        var cap = 9 - carry; tr = 0;
+        do { a = rndI(la, ha); b = rndI(lb, hb); tr++; } while (a + b > cap && tr < 60);
+        if (a + b > cap) { a = la; b = Math.max(lb, Math.min(hb, cap - a)); }
+      }
+      carry = (a + b + carry >= 10) ? 1 : 0; A[i] = a; B[i] = b;
+    }
+    var ipa = 0, fpa = 0, ipb = 0, fpb = 0, k2;
+    for (k2 = 0; k2 < maxFrac; k2++) { var pl = maxFrac - k2; if (pl <= dpA) fpa += A[k2] * pow10(dpA - pl); if (pl <= dpB) fpb += B[k2] * pow10(dpB - pl); }
+    for (pos = 1; pos <= maxInt; pos++) { var idx = maxFrac + pos - 1; if (pos <= intA) ipa += A[idx] * pow10(pos - 1); if (pos <= intB) ipb += B[idx] * pow10(pos - 1); }
+    return { a: { ip: ipa, fp: fpa, dp: dpA }, b: { ip: ipb, fp: fpb, dp: dpB } };
+  }
+  function genLeveled(intA, dpA, intB, dpB, level) {
+    var mx = overlapCols(intA, dpA, intB, dpB), best = null, bestDiff = 1e9, g = 0;
+    do {
+      var p = genDecCarry(intA, dpA, intB, dpB, level), c = carriesOf(p.a, p.b);
+      if (carryOK(c, level, mx)) return p;
+      var want = level === 'easy' ? 1 : level === 'medium' ? 2.5 : mx, d = Math.abs(c - want);
+      if (d < bestDiff) { bestDiff = d; best = p; }
+      g++;
+    } while (g < 120);
+    return best;
+  }
+
   /* ---------- สุ่มโจทย์ ---------- */
   function genProblem(st) {
-    var a, b;
-    if (st.mode === 'custom') { a = genNum(st.intA, st.dpA); b = genNum(st.intB, st.dpB); }
-    else { a = genNum(st.intDigits, rndI(st.rmin, st.rmax)); b = genNum(st.intDigits, rndI(st.rmin, st.rmax)); }
-    return { a: a, b: b, ans: addDec(a, b) };
+    var ia, da, ib, db;
+    if (st.mode === 'custom') { ia = st.intA; da = st.dpA; ib = st.intB; db = st.dpB; }
+    else { ia = st.intDigits; da = rndI(st.rmin, st.rmax); ib = st.intDigits; db = rndI(st.rmin, st.rmax); }
+    var pr = genLeveled(ia, da, ib, db, st.level);
+    return { a: pr.a, b: pr.b, ans: addDec(pr.a, pr.b) };
   }
 
   /* ---------- ตารางกล่องต่อหลัก (จัดจุดทศนิยมตรงกัน) ---------- */
@@ -50,9 +113,11 @@
     function cells(o, isAns) {
       var ipStr = '' + o.ip, out = '', c, idx, ch, cls = 'db' + (isAns ? ' ans' : '');
       for (c = 0; c < mi; c++) { idx = c - (mi - ipStr.length); ch = idx >= 0 ? ipStr.charAt(idx) : ''; out += '<td class="' + cls + '">' + (isAns && !showAns ? '' : ch) + '</td>'; }
-      if (mf > 0) out += '<td class="pt">' + (o.dp > 0 ? '.' : '') + '</td>';
+      if (mf > 0) out += '<td class="pt">.</td>';
+      // เติม 0 ให้ครบตำแหน่งทศนิยมสูงสุด (เช่น 220.15 → 220.150)
       var fpStr = o.dp > 0 ? (rep('0', o.dp) + o.fp).slice(-o.dp) : '';
-      for (c = 0; c < mf; c++) { ch = c < fpStr.length ? fpStr.charAt(c) : ''; out += '<td class="' + cls + '">' + (isAns && !showAns ? '' : ch) + '</td>'; }
+      while (fpStr.length < mf) fpStr += '0';
+      for (c = 0; c < mf; c++) { ch = fpStr.charAt(c); out += '<td class="' + cls + '">' + (isAns && !showAns ? '' : ch) + '</td>'; }
       return out;
     }
     return '<table class="calcT">'
@@ -196,9 +261,10 @@
     icon: 'ti-decimal',
     mount: function (host, svc) {
       ensureCSS();
-      var st = { op: 'add', mode: 'range', rmin: 0, rmax: 3, intDigits: 3, intA: 2, dpA: 1, intB: 3, dpB: 2, count: 10, title: '', setId: '', showKey: false, probs: [] };
+      var st = { op: 'add', level: 'medium', mode: 'range', rmin: 0, rmax: 3, intDigits: 3, intA: 2, dpA: 1, intB: 3, dpB: 2, count: 10, title: '', setId: '', showKey: false, probs: [] };
       function K() { return OPS[st.op]; }
       function newSetId() { var d = new Date(); return K().pre + String(d.getFullYear()).slice(2) + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + rndI(100, 999); }
+      function levelWord() { return st.level === 'easy' ? 'ง่าย' : st.level === 'medium' ? 'ปานกลาง' : 'ยาก'; }
       function modeWord() { return st.mode === 'custom' ? ('กำหนดเอง · ตัวตั้ง ' + st.intA + ' หลัก ' + st.dpA + ' ตำแหน่ง · ตัวบวก ' + st.intB + ' หลัก ' + st.dpB + ' ตำแหน่ง') : ('สุ่ม ' + st.rmin + '–' + st.rmax + ' ตำแหน่ง · ' + st.intDigits + ' หลัก'); }
       function defTitle() { return st.title || ('แบบฝึก' + K().word + 'ทศนิยม'); }
       function opt(v, label, cur) { return '<option value="' + v + '"' + (v == cur ? ' selected' : '') + '>' + label + '</option>'; }
@@ -226,6 +292,7 @@
           + '<div class="grid-main" style="display:grid;gap:22px;grid-template-columns:340px 1fr">'
           + '<section><div class="panel" style="padding:18px;display:flex;flex-direction:column;gap:14px">'
           + '<div class="eyebrow">ตั้งค่าชุดแบบฝึก' + K().word + 'ทศนิยม</div>'
+          + '<div class="dc-field"><label>ระดับความยาก (ตัวทด)</label><select id="dLevel">' + opt('easy', 'ง่าย — ตัวทดน้อย (0–1)', st.level) + opt('medium', 'ปานกลาง — มีตัวทด 2–3 ตัว', st.level) + opt('hard', 'ยาก — มีตัวทดทุกหลัก', st.level) + '</select></div>'
           + '<div class="dc-field"><label>โหมดกำหนดตำแหน่ง</label><select id="dMode">' + opt('range', 'สุ่มช่วง 0–3 ตำแหน่ง', st.mode) + opt('custom', 'กำหนดหลักเองทุกจุด', st.mode) + '</select></div>'
           + '<div class="dc-field" id="dRangeBox"' + (st.mode === 'range' ? '' : ' style="display:none"') + '>'
           + '<label>สุ่มตำแหน่งทศนิยม</label><div class="dc-inline"><select id="dRmin">' + dpShort(st.rmin) + '</select><span>ถึง</span><select id="dRmax">' + dpShort(st.rmax) + '</select><span>ตำแหน่ง</span></div>'
@@ -243,6 +310,7 @@
         $('#dTimer', host).onclick = tmOpen;
         $('#dMode', host).onchange = function () { st.mode = this.value; $('#dRangeBox', host).style.display = this.value === 'range' ? '' : 'none'; $('#dCustomBox', host).style.display = this.value === 'custom' ? '' : 'none'; };
         $('#dGen', host).onclick = function () {
+          st.level = $('#dLevel', host).value;
           st.mode = $('#dMode', host).value;
           st.rmin = clampI($('#dRmin', host).value, 0, 3, 0); st.rmax = clampI($('#dRmax', host).value, 0, 3, 3); if (st.rmax < st.rmin) { var t = st.rmin; st.rmin = st.rmax; st.rmax = t; }
           st.intDigits = clampI($('#dInt', host).value, 1, 7, 3);
@@ -276,7 +344,7 @@
 
       function doPrint(withKey) {
         var S = svc.settings || {}, cur = K();
-        var o = { title: defTitle(), setId: st.setId, opSym: cur.op, sub: cur.word + ' · ' + modeWord(),
+        var o = { title: defTitle(), setId: st.setId, opSym: cur.op, sub: cur.word + ' · ระดับ' + levelWord() + ' · ' + modeWord(),
           accent: cur.accent, org: S.org || '', logo: S.logo || LOGO, probs: st.probs, qrImg: '' };
         var finish = function (qrImg) { o.qrImg = qrImg || ''; printDoc(sheetHTML(o, withKey)); if (svc.toast) svc.toast('success', withKey ? 'เปิดหน้าพิมพ์ฉบับเฉลยแล้ว' : 'เปิดหน้าพิมพ์ใบงานแล้ว'); };
         if (!withKey && svc.makeQR && svc.keyURL) {
