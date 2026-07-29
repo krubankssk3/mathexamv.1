@@ -98,6 +98,57 @@
     return best;
   }
 
+  /* ---------- การคูณ: คูณเป็นจำนวนเต็ม แล้ววางจุดที่ dpA+dpB ---------- */
+  function digitsOf(o) { return '' + (o.ip * pow10(o.dp) + o.fp); }
+  function mulDec(a, b) {
+    var ia = a.ip * pow10(a.dp) + a.fp, ib = b.ip * pow10(b.dp) + b.fp;
+    var prod = ia * ib, dp = a.dp + b.dp;
+    return { digits: '' + prod, dp: dp, ip: Math.floor(prod / pow10(dp)), fp: prod % pow10(dp) };
+  }
+  function partials(a, b) {                       // ผลคูณย่อย ทีละหลักของตัวคูณ (ขวา→ซ้าย)
+    var da = digitsOf(a), db = digitsOf(b), out = [], k;
+    for (k = db.length - 1; k >= 0; k--) out.push({ val: '' + (parseInt(da, 10) * (+db.charAt(k))), shift: db.length - 1 - k });
+    return out;
+  }
+  // กริดคูณ: ชิดขวาตามหลัก · จุดวางที่ "ขอบซ้าย" ของช่องทศนิยมตัวแรก (ไม่กินคอลัมน์)
+  function mulLayout(a, b) {
+    var da = digitsOf(a), db = digitsOf(b), ps = partials(a, b), ans = mulDec(a, b);
+    var w = Math.max(da.length, db.length, ans.digits.length);
+    ps.forEach(function (p) { w = Math.max(w, p.val.length + p.shift); });
+    function row(str, dp, shift) {
+      shift = shift || 0;
+      var pad = w - str.length - shift, cells = [], i;
+      for (i = 0; i < pad; i++) cells.push({ ch: '', pt: false });
+      for (i = 0; i < str.length; i++) cells.push({ ch: str.charAt(i), pt: false });
+      for (i = 0; i < shift; i++) cells.push({ ch: '', pt: false });
+      if (dp > 0) { for (i = 0; i < cells.length; i++) { if (w - 1 - i === dp - 1) { cells[i].pt = true; break; } } }
+      return cells;
+    }
+    return { w: w, a: row(da, a.dp, 0), b: row(db, b.dp, 0),
+      ps: ps.map(function (p) { return row(p.val, 0, p.shift); }),
+      ans: row(ans.digits, ans.dp, 0), ansObj: ans };
+  }
+  function calcGridMul(p, showAns, opSym) {
+    var L = mulLayout(p.a, p.b), w = L.w, multi = L.ps.length > 1;
+    function tr(cells, isAns, blank) {
+      var out = '', i, c;
+      for (i = 0; i < cells.length; i++) {
+        c = cells[i];
+        out += '<td class="db' + (c.pt ? ' ptl' : '') + (isAns ? ' ans' : '') + '">' + (blank ? '' : c.ch) + '</td>';
+      }
+      return out;
+    }
+    var html = '<table class="calcT mulT">'
+      + '<tr>' + tr(L.a, false, false) + '<td rowspan="2" class="opR">' + opSym + '</td></tr>'
+      + '<tr>' + tr(L.b, false, false) + '</tr>'
+      + '<tr class="lnrow"><td colspan="' + w + '" class="ln"></td><td></td></tr>';
+    if (multi) {
+      L.ps.forEach(function (cells) { html += '<tr>' + tr(cells, true, !showAns) + '<td></td></tr>'; });
+      html += '<tr class="lnrow"><td colspan="' + w + '" class="ln"></td><td></td></tr>';
+    }
+    html += '<tr>' + tr(L.ans, true, !showAns) + '<td></td></tr></table>';
+    return html;
+  }
   /* ---------- การลบ: คุมจำนวนตัวยืม + กันคำตอบติดลบ ---------- */
   function subDec(a, b) {
     var P = Math.max(a.dp, b.dp), s = scaled(a, P) - scaled(b, P);
@@ -165,6 +216,15 @@
     var ia, da, ib, db;
     if (st.mode === 'custom') { ia = st.intA; da = st.dpA; ib = st.intB; db = st.dpB; }
     else { ia = st.intDigits; da = rndI(st.rmin, st.rmax); ib = st.intDigits; db = rndI(st.rmin, st.rmax); }
+    if (st.op === 'mul') {
+      if (st.mode !== 'custom') {                       // ระดับ = จำนวนหลักรวมของตัวคูณ (= จำนวนแถวผลคูณย่อย)
+        var tot = st.level === 'easy' ? 1 : st.level === 'medium' ? 2 : 3;
+        db = Math.min(db, tot - 1); if (db < 0) db = 0;
+        ib = tot - db;
+      }
+      var am = genNum(ia, da), bm = genNum(ib, db);
+      return { a: am, b: bm, ans: mulDec(am, bm) };
+    }
     if (st.op === 'sub') {
       var ps = genLeveledSub(ia, da, ib, db, st.level);
       return { a: ps.a, b: ps.b, ans: subDec(ps.a, ps.b) };
@@ -222,6 +282,8 @@
       + '.calcT td.opR{color:' + ac + ';font-weight:700;font-size:26px;text-align:center;vertical-align:middle;padding-left:5px;min-width:9mm}'
       + '.calcT td.pt{width:4mm;vertical-align:bottom;font-weight:700;font-size:22px;line-height:1}'
       + '.calcT td.ln{border-bottom:2.5px solid #333;height:3px;padding:0}'
+      + '.calcT td.db{position:relative}'
+      + '.calcT td.ptl::before{content:".";position:absolute;left:-3.2px;bottom:-1px;font-size:26px;font-weight:700;line-height:1}'
       + '.calcT td.ans{color:' + ac + '}'
       + '.foot{margin-top:10px;text-align:center;font-size:11px;color:#777;border-top:1px solid #eee;padding-top:6px}';
   }
@@ -237,11 +299,16 @@
   }
   function sheetHTML(o, withKey) {
     var PER = 10, i, cols = 2, pages = [];
+    if (o.op === 'mul') {
+      var maxRows = 1;
+      o.probs.forEach(function (p) { maxRows = Math.max(maxRows, mulLayout(p.a, p.b).ps.length); });
+      PER = maxRows <= 1 ? 10 : maxRows <= 2 ? 6 : 4;   // แถวย่อยเยอะ = ข้อต่อหน้าน้อยลง กันล้น
+    }
     for (i = 0; i < o.probs.length; i += PER) pages.push(o.probs.slice(i, i + PER));
     var total = pages.length;
     var body = pages.map(function (chunk, pi) {
       var cells = chunk.map(function (p, j) {
-        return '<div class="pb"><span class="no">' + (pi * PER + j + 1) + ')</span>' + calcGrid(p, withKey, o.opSym) + '</div>';
+        return '<div class="pb"><span class="no">' + (pi * PER + j + 1) + ')</span>' + (o.op === 'mul' ? calcGridMul(p, withKey, o.opSym) : calcGrid(p, withKey, o.opSym)) + '</div>';
       }).join('');
       var grid = '<div class="grid" style="grid-template-columns:repeat(' + cols + ',1fr)">' + cells + '</div>';
       var header = pi === 0
@@ -308,6 +375,8 @@
       + '.dc-pb .calcT td.opR{color:var(--accent);font-weight:700;font-size:23px;text-align:center;vertical-align:middle;padding-left:5px;min-width:26px}'
       + '.dc-pb .calcT td.pt{width:12px;vertical-align:bottom;font-weight:700}'
       + '.dc-pb .calcT td.ln{border-bottom:2px solid var(--muted);height:2px;padding:0}'
+      + '.dc-pb .calcT td.db{position:relative}'
+      + '.dc-pb .calcT td.ptl::before{content:".";position:absolute;left:-3px;bottom:-2px;font-size:22px;font-weight:700;line-height:1}'
       + '.dc-pb .calcT td.ans{color:var(--accent)}'
       + '.dctile{--tile:var(--accent);position:relative;border:0;cursor:pointer;color:#fff;border-radius:22px;background:linear-gradient(150deg,var(--tile),color-mix(in srgb,var(--tile) 55%,#000));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;width:170px;height:170px}'
       + '.dctile.on{animation:dcBreathe 2.6s ease-in-out infinite}'
@@ -321,7 +390,8 @@
 
   var OPS = {
     add: { op: '+', accent: '#c0392b', word: 'การบวก', pre: 'DA', term: 'ตัวบวก', unit: 'ตัวทด' },
-    sub: { op: '−', accent: '#16a34a', word: 'การลบ', pre: 'DS', term: 'ตัวลบ', unit: 'ตัวยืม' }
+    sub: { op: '−', accent: '#16a34a', word: 'การลบ', pre: 'DS', term: 'ตัวลบ', unit: 'ตัวยืม' },
+    mul: { op: '×', accent: '#7c3aed', word: 'การคูณ', pre: 'DM', term: 'ตัวคูณ', unit: 'ตัวคูณ' }
   };
 
   window.Platform.register({
@@ -349,10 +419,10 @@
           + '<div class="eyebrow" style="text-align:center">แบบฝึกหัดทศนิยม — เลือกการดำเนินการ</div>'
           + '<div style="display:flex;gap:20px;flex-wrap:wrap;justify-content:center">'
           + tile('add', 'ti-plus', 'การบวก', true) + tile('sub', 'ti-minus', 'การลบ', true)
-          + tile('mul', 'ti-x', 'การคูณ', false) + tile('div', 'ti-divide', 'การหาร', false)
-          + '</div><div style="color:var(--muted);font-size:.86rem;text-align:center">เปิดใช้ “การบวก” และ “การลบ” แล้ว — คูณ/หาร กำลังพัฒนา</div></div>';
+          + tile('mul', 'ti-x', 'การคูณ', true) + tile('div', 'ti-divide', 'การหาร', false)
+          + '</div><div style="color:var(--muted);font-size:.86rem;text-align:center">เปิดใช้ บวก / ลบ / คูณ แล้ว — การหาร กำลังพัฒนา</div></div>';
         $$('.dctile', host).forEach(function (b) {
-          b.onclick = function () { var o = b.dataset.op; if (o === 'add' || o === 'sub') { st.op = o; st.probs = []; renderAdd(); } else if (svc.toast) svc.toast('info', 'อยู่ระหว่างพัฒนา จะเปิดให้ใช้เร็ว ๆ นี้'); };
+          b.onclick = function () { var o = b.dataset.op; if (o === 'add' || o === 'sub' || o === 'mul') { st.op = o; st.probs = []; renderAdd(); } else if (svc.toast) svc.toast('info', 'อยู่ระหว่างพัฒนา จะเปิดให้ใช้เร็ว ๆ นี้'); };
         });
       }
 
@@ -361,7 +431,7 @@
           + '<div class="grid-main" style="display:grid;gap:22px;grid-template-columns:340px 1fr">'
           + '<section><div class="panel" style="padding:18px;display:flex;flex-direction:column;gap:14px">'
           + '<div class="eyebrow">ตั้งค่าชุดแบบฝึก' + K().word + 'ทศนิยม</div>'
-          + '<div class="dc-field"><label>ระดับความยาก (' + K().unit + ')</label><select id="dLevel">' + opt('easy', 'ง่าย — ' + K().unit + 'น้อย (0–1)', st.level) + opt('medium', 'ปานกลาง — มี' + K().unit + ' 2–3 ตัว', st.level) + opt('hard', 'ยาก — มี' + K().unit + 'ทุกหลัก', st.level) + '</select></div>'
+          + '<div class="dc-field"><label>ระดับความยาก' + (st.op === 'mul' ? ' (จำนวนหลักตัวคูณ)' : ' (' + K().unit + ')') + '</label><select id="dLevel">' + (st.op === 'mul' ? opt('easy', 'ง่าย — ตัวคูณ 1 หลัก', st.level) : opt('easy', 'ง่าย — ' + K().unit + 'น้อย (0–1)', st.level)) + (st.op === 'mul' ? opt('medium', 'ปานกลาง — ตัวคูณ 2 หลัก', st.level) : opt('medium', 'ปานกลาง — มี' + K().unit + ' 2–3 ตัว', st.level)) + (st.op === 'mul' ? opt('hard', 'ยาก — ตัวคูณ 3 หลัก', st.level) : opt('hard', 'ยาก — มี' + K().unit + 'ทุกหลัก', st.level)) + '</select></div>'
           + '<div class="dc-field"><label>โหมดกำหนดตำแหน่ง</label><select id="dMode">' + opt('range', 'สุ่มช่วง 0–3 ตำแหน่ง', st.mode) + opt('custom', 'กำหนดหลักเองทุกจุด', st.mode) + '</select></div>'
           + '<div class="dc-field" id="dRangeBox"' + (st.mode === 'range' ? '' : ' style="display:none"') + '>'
           + '<label>สุ่มตำแหน่งทศนิยม</label><div class="dc-inline"><select id="dRmin">' + dpShort(st.rmin) + '</select><span>ถึง</span><select id="dRmax">' + dpShort(st.rmax) + '</select><span>ตำแหน่ง</span></div>'
@@ -397,7 +467,7 @@
       function renderOut() {
         var out = $('#dOut', host); if (!out) return;
         if (!st.probs.length) { out.innerHTML = '<div class="panel" style="padding:30px;text-align:center;color:var(--muted)">เลือกค่าทางซ้าย แล้วกด “สร้างชุดแบบฝึก”</div>'; return; }
-        var cells = st.probs.map(function (p, i) { return '<div class="dc-pb"><span class="no">' + (i + 1) + ')</span>' + calcGrid(p, st.showKey, K().op) + '</div>'; }).join('');
+        var cells = st.probs.map(function (p, i) { return '<div class="dc-pb"><span class="no">' + (i + 1) + ')</span>' + (st.op === 'mul' ? calcGridMul(p, st.showKey, K().op) : calcGrid(p, st.showKey, K().op)) + '</div>'; }).join('');
         out.innerHTML = '<div class="panel" style="padding:18px">'
           + '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:8px">'
           + '<div><div class="eyebrow">ตัวอย่างก่อนพิมพ์</div><div class="font-display" style="font-weight:800;font-size:1.2rem">' + esc(defTitle()) + ' <span style="font-size:.78rem;color:var(--muted)">ชุด ' + esc(st.setId) + '</span></div></div>'
@@ -413,7 +483,7 @@
 
       function doPrint(withKey) {
         var S = svc.settings || {}, cur = K();
-        var o = { title: defTitle(), setId: st.setId, opSym: cur.op, sub: cur.word + ' · ระดับ' + levelWord() + ' · ' + modeWord(),
+        var o = { title: defTitle(), setId: st.setId, opSym: cur.op, op: st.op, sub: cur.word + ' · ระดับ' + levelWord() + ' · ' + modeWord(),
           accent: cur.accent, org: S.org || '', logo: S.logo || LOGO, probs: st.probs, qrImg: '' };
         var finish = function (qrImg) { o.qrImg = qrImg || ''; printDoc(sheetHTML(o, withKey)); if (svc.toast) svc.toast('success', withKey ? 'เปิดหน้าพิมพ์ฉบับเฉลยแล้ว' : 'เปิดหน้าพิมพ์ใบงานแล้ว'); };
         if (!withKey && svc.makeQR && svc.keyURL) {
