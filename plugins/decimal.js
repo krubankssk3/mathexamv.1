@@ -664,7 +664,7 @@
           accent: cur.accent, org: S.org || '', logo: S.logo || LOGO, probs: st.probs, qrImg: '' };
         var finish = function (qrImg) { o.qrImg = qrImg || ''; printDoc(sheetHTML(o, withKey)); if (svc.toast) svc.toast('success', withKey ? 'เปิดหน้าพิมพ์ฉบับเฉลยแล้ว' : 'เปิดหน้าพิมพ์ใบงานแล้ว'); };
         if (!withKey && svc.makeQR && svc.keyURL) {
-          var answers = st.probs.map(function (p) { return showNum(p.a) + ' ' + cur.op + ' ' + showNum(p.b) + ' = ' + showNum(p.ans); });
+          var answers = st.probs.map(function (p) { return st.op === 'div' ? showNum(p.ans) : (p.ans.digits ? showNum({ ip: p.ans.ip, fp: p.ans.fp, dp: p.ans.dp }) : showNum(p.ans)); });   // เฉพาะคำตอบ (ให้ QR ไม่ล้น)
           svc.makeQR(svc.keyURL(o.title, st.setId, answers)).then(function (img) { finish(img); }, function () { finish(''); });
         } else finish('');
       }
