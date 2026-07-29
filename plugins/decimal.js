@@ -100,6 +100,7 @@
 
   /* ---------- การคูณ: คูณเป็นจำนวนเต็ม แล้ววางจุดที่ dpA+dpB ---------- */
   function digitsOf(o) { return '' + (o.ip * pow10(o.dp) + o.fp); }
+  function padDp(o, D) { if (o.dp >= D) return o; return { ip: o.ip, fp: o.fp * pow10(D - o.dp), dp: D }; }   // เติม 0 หลังจุด (ค่าเท่าเดิม)
   function mulDec(a, b) {
     var ia = a.ip * pow10(a.dp) + a.fp, ib = b.ip * pow10(b.dp) + b.fp;
     var prod = ia * ib, dp = a.dp + b.dp;
@@ -111,17 +112,18 @@
     return out;
   }
   // กริดคูณ: ชิดขวาตามหลัก · จุดทศนิยมเป็น "ช่องแยก" (เห็นชัดแบบการบวก) · มีเครื่องหมาย + ระหว่างแถวผลคูณย่อย
-  function mulLayout(a, b) {
+  function mulLayout(a, b, forceW) {
     var da = digitsOf(a), db = digitsOf(b), ps = partials(a, b), ans = mulDec(a, b);
     var w = Math.max(da.length, db.length, ans.digits.length);
     ps.forEach(function (p) { w = Math.max(w, p.val.length + p.shift); });
+    if (forceW && forceW > w) w = forceW;
     var bset = {}, nb = 0, k;                          // ตำแหน่งที่ต้องมีช่องจุด (นับจากขวา)
     if (a.dp > 0) bset[a.dp] = 1; if (b.dp > 0) bset[b.dp] = 1; if (ans.dp > 0) bset[ans.dp] = 1;
     for (k in bset) if (bset.hasOwnProperty(k)) nb++;
     return { w: w, da: da, db: db, ps: ps, ans: ans, bset: bset, ncols: w + nb };
   }
-  function calcGridMul(p, showAns, opSym) {
-    var L = mulLayout(p.a, p.b), w = L.w, bset = L.bset, multi = L.ps.length > 1;
+  function calcGridMul(p, showAns, opSym, forceW) {
+    var L = mulLayout(p.a, p.b, forceW), w = L.w, bset = L.bset, multi = L.ps.length > 1;
     function row(str, shift, dp, isAns, blank) {
       var out = '', i, fromRight, ch;
       for (i = 0; i < w; i++) {
@@ -219,8 +221,11 @@
         var tot = st.level === 'easy' ? 1 : st.level === 'medium' ? 2 : 3;
         db = Math.min(db, tot - 1); if (db < 0) db = 0;
         ib = tot - db;
+        da = db;                                        // ทศนิยมเท่ากัน → จุดตรงกันเสมอ
       }
       var am = genNum(ia, da), bm = genNum(ib, db);
+      var D = Math.max(am.dp, bm.dp);
+      am = padDp(am, D); bm = padDp(bm, D);             // เติม 0 หลังจุดให้เท่ากัน
       return { a: am, b: bm, ans: mulDec(am, bm) };
     }
     if (st.op === 'sub') {
@@ -271,8 +276,8 @@
       + '.page.brk{page-break-before:always}'
       + '.conthd{border-bottom:2px solid ' + ac + ';color:' + ac + ';font-weight:700;font-size:18px;padding-bottom:6px;margin-bottom:12px}'
       + '.conthd span{font-weight:400;font-size:13px;color:#999}'
-      + '.grid{display:grid;gap:8px 16px;flex:1;align-content:space-evenly}'
-      + '.pb{display:flex;gap:8px;padding:4px;break-inside:avoid;align-items:flex-start}'
+      + '.grid{display:grid;gap:6px 12px;flex:1;align-content:space-evenly;justify-items:center}'
+      + '.pb{display:flex;gap:8px;padding:2px;break-inside:avoid;align-items:flex-start;justify-content:center}'
       + '.pb .no{font-weight:700;color:' + ac + ';min-width:24px;font-size:19px;padding-top:4px}'
       + '.calcT{border-collapse:collapse}'
       + '.calcT td{width:8.5mm;height:8.5mm;text-align:center;font-size:22px;padding:0;line-height:8.5mm}'
@@ -297,15 +302,16 @@
   function sheetHTML(o, withKey) {
     var PER = 10, i, cols = 2, pages = [];
     if (o.op === 'mul') {
-      var maxRows = 1;
-      o.probs.forEach(function (p) { maxRows = Math.max(maxRows, mulLayout(p.a, p.b).ps.length); });
+      var maxRows = 1, mw = 0;
+      o.probs.forEach(function (p) { var L = mulLayout(p.a, p.b); maxRows = Math.max(maxRows, L.ps.length); mw = Math.max(mw, L.w); });
+      o.maxW = mw;
       PER = maxRows <= 1 ? 10 : maxRows <= 2 ? 6 : 4;   // แถวย่อยเยอะ = ข้อต่อหน้าน้อยลง กันล้น
     }
     for (i = 0; i < o.probs.length; i += PER) pages.push(o.probs.slice(i, i + PER));
     var total = pages.length;
     var body = pages.map(function (chunk, pi) {
       var cells = chunk.map(function (p, j) {
-        return '<div class="pb"><span class="no">' + (pi * PER + j + 1) + ')</span>' + (o.op === 'mul' ? calcGridMul(p, withKey, o.opSym) : calcGrid(p, withKey, o.opSym)) + '</div>';
+        return '<div class="pb"><span class="no">' + (pi * PER + j + 1) + ')</span>' + (o.op === 'mul' ? calcGridMul(p, withKey, o.opSym, o.maxW) : calcGrid(p, withKey, o.opSym)) + '</div>';
       }).join('');
       var grid = '<div class="grid" style="grid-template-columns:repeat(' + cols + ',1fr)">' + cells + '</div>';
       var header = pi === 0
@@ -363,7 +369,7 @@
       + '.dc-inline select{flex:1;min-width:0}'
       + '.dc-row{display:flex;gap:6px;align-items:center;color:var(--muted);font-size:14px;margin-top:6px}'
       + '.dc-row .lbl{min-width:52px}.dc-row input{width:64px;text-align:center}.dc-row select{padding:8px}'
-      + '.dc-prev{display:grid;gap:12px 18px;margin-top:14px;grid-template-columns:repeat(2,1fr)}'
+      + '.dc-prev{display:grid;gap:12px 18px;margin-top:14px;grid-template-columns:repeat(2,1fr);justify-items:center;align-items:start}'
       + '.dc-pb{display:flex;gap:10px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg2);align-items:flex-start}'
       + '.dc-pb .no{font-weight:700;color:var(--accent);min-width:22px;padding-top:4px}'
       + '.dc-pb .calcT{border-collapse:collapse}'
@@ -463,7 +469,9 @@
       function renderOut() {
         var out = $('#dOut', host); if (!out) return;
         if (!st.probs.length) { out.innerHTML = '<div class="panel" style="padding:30px;text-align:center;color:var(--muted)">เลือกค่าทางซ้าย แล้วกด “สร้างชุดแบบฝึก”</div>'; return; }
-        var cells = st.probs.map(function (p, i) { return '<div class="dc-pb"><span class="no">' + (i + 1) + ')</span>' + (st.op === 'mul' ? calcGridMul(p, st.showKey, K().op) : calcGrid(p, st.showKey, K().op)) + '</div>'; }).join('');
+        var prevW = 0;
+        if (st.op === 'mul') st.probs.forEach(function (p) { prevW = Math.max(prevW, mulLayout(p.a, p.b).w); });
+        var cells = st.probs.map(function (p, i) { return '<div class="dc-pb"><span class="no">' + (i + 1) + ')</span>' + (st.op === 'mul' ? calcGridMul(p, st.showKey, K().op, prevW) : calcGrid(p, st.showKey, K().op)) + '</div>'; }).join('');
         out.innerHTML = '<div class="panel" style="padding:18px">'
           + '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:8px">'
           + '<div><div class="eyebrow">ตัวอย่างก่อนพิมพ์</div><div class="font-display" style="font-weight:800;font-size:1.2rem">' + esc(defTitle()) + ' <span style="font-size:.78rem;color:var(--muted)">ชุด ' + esc(st.setId) + '</span></div></div>'
