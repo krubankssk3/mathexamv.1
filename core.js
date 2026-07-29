@@ -889,6 +889,92 @@
         }
       }
       return out;
+    },
+
+    numline: function (c) {
+      var R = c.range || [10, 99];
+      var opMode = c.op || '+';
+      var layout = c.layout || 'labeled';
+      var max = Math.min(50, c.count);
+      var MAJ = [1, 5, 10, 20, 50, 100, 200, 500];
+      function hops(v) {
+        var a = [], h = Math.floor(v / 100), t = Math.floor((v % 100) / 10), u = v % 10, i;
+        for (i = 0; i < h; i++) a.push(100);
+        for (i = 0; i < t; i++) a.push(10);
+        if (u) a.push(u);
+        return a;
+      }
+      function pickMajor(sp, maxLbl) {
+        for (var i = 0; i < MAJ.length; i++) { if (sp / MAJ[i] <= maxLbl) return MAJ[i]; }
+        return MAJ[MAJ.length - 1];
+      }
+      function pickMinor(mj, sp) {
+        var mn = mj / 5;
+        if (mn === Math.floor(mn) && mn >= 1 && sp / mn <= 80) return mn;
+        return mj;
+      }
+      function lineSVG(lo, hi, minor, major, showLbl) {
+        var W = 660, x0 = 34, x1 = W - 34, y = showLbl ? 26 : 30;
+        var n = Math.round((hi - lo) / minor), dx = (x1 - x0) / n, s = '', i, x, v, isMaj, th;
+        var H = showLbl ? 50 : 46;
+        var nLbl = Math.round((hi - lo) / major);
+        var fsz = (hi > 199) ? 10.5 : (nLbl > 26 ? 10 : 11.5);
+        s += '<line x1="' + (x0 - 4) + '" y1="' + y + '" x2="' + (x1 + 4) + '" y2="' + y + '" stroke="#111" stroke-width="1.8"/>';
+        s += '<polygon points="' + (x0 - 16) + ',' + y + ' ' + (x0 - 3) + ',' + (y - 6) + ' ' + (x0 - 3) + ',' + (y + 6) + '" fill="#111"/>';
+        s += '<polygon points="' + (x1 + 16) + ',' + y + ' ' + (x1 + 3) + ',' + (y - 6) + ' ' + (x1 + 3) + ',' + (y + 6) + '" fill="#111"/>';
+        for (i = 0; i <= n; i++) {
+          v = lo + i * minor; x = x0 + i * dx;
+          isMaj = (v % major === 0);
+          th = isMaj ? 8 : 5;
+          s += '<line x1="' + x.toFixed(1) + '" y1="' + (y - th) + '" x2="' + x.toFixed(1) + '" y2="' + (y + th) + '" stroke="#111" stroke-width="' + (isMaj ? '1.5' : '1') + '"/>';
+          if (showLbl && isMaj) s += '<text x="' + x.toFixed(1) + '" y="' + (y + 21) + '" font-size="' + fsz + '" font-family="Arial" text-anchor="middle" fill="#111">' + v + '</text>';
+        }
+        return '<svg class="nl-svg" viewBox="0 0 ' + W + ' ' + H + '">' + s + '</svg>';
+      }
+      var out = [];
+      for (var k = 0; k < max; k++) {
+        var op = opMode === 'mix' ? (ri(0, 1) ? '+' : '-') : opMode;
+        var a, b, start, add, res, eqTxt, stepTxt;
+        var LO = Math.max(0, R[0]), HI = Math.max(LO + 4, R[1]);
+        if (op === '-') {
+          a = ri(Math.max(LO, 2), HI);
+          b = ri(1, a - 1);
+          res = a - b; start = a; add = b;
+          eqTxt = a + ' \u2212 ' + b + ' =';
+          stepTxt = '\u0e40\u0e23\u0e34\u0e48\u0e21\u0e08\u0e32\u0e01 ' + start + ' \u0e41\u0e25\u0e49\u0e27\u0e16\u0e2d\u0e22\u0e2b\u0e25\u0e31\u0e07\u0e2d\u0e35\u0e01';
+        } else {
+          a = ri(LO, Math.max(LO, HI - LO));
+          b = ri(LO, Math.max(LO, HI - a));
+          res = a + b; start = Math.max(a, b); add = Math.min(a, b);
+          eqTxt = a + ' + ' + b + ' =';
+          stepTxt = '\u0e40\u0e23\u0e34\u0e48\u0e21\u0e08\u0e32\u0e01 ' + start + ' \u0e41\u0e25\u0e49\u0e27\u0e15\u0e48\u0e2d\u0e44\u0e1b\u0e2d\u0e35\u0e01';
+        }
+        var lo0 = Math.min(start, res), hi0 = Math.max(start, res);
+        var pad = Math.max(2, Math.round((hi0 - lo0) * 0.14));
+        var lo = Math.max(0, lo0 - pad), hi = hi0 + pad;
+        if (hi - lo < 14) { var need = 14 - (hi - lo); hi += Math.ceil(need / 2); lo = Math.max(0, lo - Math.floor(need / 2)); }
+        var major = pickMajor(hi - lo, hi > 199 ? 14 : 32);
+        lo = Math.max(0, Math.floor(lo / major) * major);
+        hi = lo + Math.ceil((hi - lo) / major) * major;
+        if (hi <= lo) hi = lo + major * 4;
+        var minor = pickMinor(major, hi - lo);
+        var head = '<div class="nl-q"><span class="nl-eq">' + eqTxt + '</span><span class="nl-box"></span></div>';
+        var ansTxt = eqTxt.replace(' =', '') + ' = ' + res + '  (' + stepTxt + ' ' + hops(add).join(', ') + ')';
+        if (layout === 'blank') {
+          out.push({
+            q: '<div class="nl-card nl-blank">' + head + lineSVG(0, 24, 1, 1, false) + '<div class="nl-r"><span class="nl-ans">\u0e15\u0e2d\u0e1a</span> <span class="nl-bl"></span></div></div>',
+            a: ansTxt, n: res, noline: true, tall: true, grid: true, per: 4
+          });
+        } else {
+          var r1 = '<div class="nl-r">' + stepTxt + ' <span class="nl-bl nl-bl-lg"></span></div>';
+          var r2 = '<div class="nl-r">\u0e14\u0e31\u0e07\u0e19\u0e31\u0e49\u0e19 ' + eqTxt.replace(' =', '') + ' = <span class="nl-bl"></span></div>';
+          out.push({
+            q: '<div class="nl-card">' + head + lineSVG(lo, hi, minor, major, true) + r1 + r2 + '</div>',
+            a: ansTxt, n: res, noline: true, tall: true, grid: true, per: 4
+          });
+        }
+      }
+      return out;
     }
   };
   function buildProblems(ch, level, count) {
