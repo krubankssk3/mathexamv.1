@@ -230,7 +230,8 @@
     L.steps.forEach(function (st, k) {
       if (st.mul === 0 && k === 0) return;
       html += '<tr class="stp">' + row('' + st.mul, st.pos, { blankBox: true, ansRow: true, hide: !showAns }) + '</tr>';
-      html += '<tr class="stp">' + row('' + (k + 1 < L.steps.length ? st.next : st.rem), (k + 1 < L.steps.length ? st.pos + 1 : st.pos), { blankBox: true, ansRow: true, hide: !showAns }) + '</tr>';
+      if (k + 1 < L.steps.length) html += '<tr class="stp">' + row('' + st.next, st.pos + 1, { blankBox: true, ansRow: true, hide: !showAns }) + '</tr>';
+      else if (st.rem !== 0) html += '<tr class="stp">' + row('' + st.rem, st.pos, { blankBox: true, ansRow: true, hide: !showAns }) + '</tr>';
     });
     return html + '</table>';
   }
@@ -410,7 +411,9 @@
       if (o.op === 'div') {
         var Dn = ('' + (p.a.ip * pow10(p.a.dp) + p.a.fp)).length, wdv = ('' + p.b.ip).length;
         maxCols = Math.max(maxCols, wdv + 1 + Dn + (p.a.dp > 0 ? 1 : 0));
-        maxRows = Math.max(maxRows, longDivSteps(p.a, p.b).steps.filter(function (x, k) { return !(x.mul === 0 && k === 0); }).length * 2);
+        var Ls = longDivSteps(p.a, p.b), used = Ls.steps.filter(function (x, k) { return !(x.mul === 0 && k === 0); });
+        var nr = used.length * 2 - ((Ls.steps[Ls.steps.length - 1].rem === 0) ? 1 : 0);
+        maxRows = Math.max(maxRows, nr);
       } else if (o.op === 'mul') {
         var L = mulLayout(p.a, p.b);
         maxCols = Math.max(maxCols, L.ncols); maxRows = Math.max(maxRows, L.ps.length); mWi = Math.max(mWi, L.wi);
@@ -426,11 +429,14 @@
     var lines = (o.op === 'div') ? 1 : ((o.op === 'mul' && maxRows > 1) ? 2 : 1);
     var cs, csH;
     if (o.op === 'div') {                                          // หารยาว: ใช้เต็มแนวนอน ช่องใหญ่เท่าการคูณ
-      cols = 1;
-      var csW = (PAGE - NUMW) / (maxCols + OPR);                   // เต็มความกว้าง
-      var cs2 = ((AVAIL - GAP) / 2 - lines * 2 - 4) / cellRows;    // ขนาดที่ยังใส่ได้ 2 ข้อ/หน้า
-      csH = (cs2 >= 10) ? cs2 : (AVAIL - lines * 2 - 4) / cellRows;  // ถ้า 2 ข้อแล้วช่องยังใหญ่พอ ใช้ 2 ข้อ ไม่งั้น 1 ข้อ ช่องใหญ่
-      cs = Math.min(csW, csH, 14);
+      // ลอง 2 คอลัมน์ก่อน — ถ้าช่องยังใหญ่พอ (≥10mm) ใช้ 2 คอลัมน์ · โจทย์ยาวจริงค่อยสลับ 1 คอลัมน์
+      var csW2 = (((PAGE - 8) / 2) - NUMW) / (maxCols + OPR);
+      var h2rows = ((AVAIL - GAP) / 2 - lines * 2 - 4) / cellRows;   // ขนาดที่ใส่ได้ 2 แถว (4 ข้อ/หน้า)
+      var h1row = (AVAIL - lines * 2 - 4) / cellRows;                // ขนาดที่ใส่ได้ 1 แถว (2 ข้อ/หน้า)
+      csH = (h2rows >= 9) ? h2rows : h1row;
+      var csTry2 = Math.min(csW2, csH, 14);
+      if (csTry2 >= 9) { cols = 2; cs = csTry2; }
+      else { cols = 1; cs = Math.min((PAGE - NUMW) / (maxCols + OPR), h1row, 14); }
     } else {
       cs = (((PAGE - 8) / 2) - NUMW) / (maxCols + OPR);            // ให้เต็มความกว้าง
       if (cs < 7) { cols = 1; cs = (PAGE - NUMW) / (maxCols + OPR); }
