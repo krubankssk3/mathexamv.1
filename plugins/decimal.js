@@ -424,10 +424,19 @@
     var PAGE = 192, NUMW = 8, OPR = 1.05, GAP = 6, AVAIL = 200, cols = 2;
     var cellRows = (o.op === 'div') ? (2 + maxRows) : ((o.op === 'mul' && maxRows > 1) ? (2 + maxRows + 1) : 3);
     var lines = (o.op === 'div') ? 1 : ((o.op === 'mul' && maxRows > 1) ? 2 : 1);
-    var cs = (((PAGE - 8) / 2) - NUMW) / (maxCols + OPR);          // ให้เต็มความกว้าง
-    if (cs < 7) { cols = 1; cs = (PAGE - NUMW) / (maxCols + OPR); }
-    var csH = ((AVAIL - GAP) / 2 - lines * 2 - 4) / cellRows;      // ไม่ให้สูงจนได้แค่ 1 ข้อ/หน้า
-    cs = Math.min(cs, csH, 15);
+    var cs, csH;
+    if (o.op === 'div') {                                          // หารยาว: ใช้เต็มแนวนอน ช่องใหญ่เท่าการคูณ
+      cols = 1;
+      var csW = (PAGE - NUMW) / (maxCols + OPR);                   // เต็มความกว้าง
+      var cs2 = ((AVAIL - GAP) / 2 - lines * 2 - 4) / cellRows;    // ขนาดที่ยังใส่ได้ 2 ข้อ/หน้า
+      csH = (cs2 >= 10) ? cs2 : (AVAIL - lines * 2 - 4) / cellRows;  // ถ้า 2 ข้อแล้วช่องยังใหญ่พอ ใช้ 2 ข้อ ไม่งั้น 1 ข้อ ช่องใหญ่
+      cs = Math.min(csW, csH, 14);
+    } else {
+      cs = (((PAGE - 8) / 2) - NUMW) / (maxCols + OPR);            // ให้เต็มความกว้าง
+      if (cs < 7) { cols = 1; cs = (PAGE - NUMW) / (maxCols + OPR); }
+      csH = ((AVAIL - GAP) / 2 - lines * 2 - 4) / cellRows;        // ไม่ให้สูงจนได้แค่ 1 ข้อ/หน้า
+      cs = Math.min(cs, csH, 15);
+    }
     cs = Math.floor(cs * 10) / 10;
     var hProb = cellRows * cs + lines * 2 + 4;                     // ความสูงต่อข้อ (mm)
     var rowsPer = Math.max(1, Math.floor((AVAIL + GAP) / (hProb + GAP)));
