@@ -287,14 +287,14 @@
       + '.qr{position:absolute;top:8px;right:12px;width:80px;text-align:center}'
       + '.qr img{width:80px;height:80px;display:block}.qr .cap{font-size:9px;color:#888}'
       + '.dot{border-bottom:1px dotted #555;display:inline-block;min-width:60px}'
-      + '.page{position:relative;display:flex;flex-direction:column;height:277mm;overflow:hidden}'
+      + '.page{position:relative;display:flex;flex-direction:column;min-height:277mm}'
       + '.page.brk{page-break-before:always}'
       + '.conthd{border-bottom:2px solid ' + ac + ';color:' + ac + ';font-weight:700;font-size:18px;padding-bottom:6px;margin-bottom:12px}'
       + '.conthd span{font-weight:400;font-size:13px;color:#999}'
       + '.grid{display:grid;gap:6mm 10px;flex:1;align-content:start;justify-items:center}'
-      + '.pb{display:flex;gap:8px;padding:2px;break-inside:avoid;align-items:flex-start;justify-content:center}'
+      + '.pb{display:flex;gap:8px;padding:2px;break-inside:avoid;page-break-inside:avoid;align-items:flex-start;justify-content:center}'
       + '.pb .no{font-weight:700;color:' + ac + ';min-width:24px;font-size:19px;padding-top:4px}'
-      + '.calcT{border-collapse:collapse}'
+      + '.calcT{border-collapse:collapse;break-inside:avoid;page-break-inside:avoid}'
       + '.calcT td{width:8.5mm;height:8.5mm;text-align:center;font-size:22px;padding:0;line-height:8.5mm}'
       + '.calcT td.db{border:1.5px solid #333}'
       + '.calcT td.opR{color:' + ac + ';font-weight:700;font-size:26px;text-align:center;vertical-align:middle;padding-left:5px;min-width:9mm}'
@@ -315,12 +315,12 @@
       + '<span class="box">คะแนนที่ได้ <span class="dot" style="min-width:55px;border-color:' + o.accent + '"></span></span></div></div>';
   }
   function sheetHTML(o, withKey) {
-    var PER = 12, i, cols = 2, pages = [];
+    var PER = 10, i, cols = 2, pages = [];
     if (o.op === 'mul') {
       var maxRows = 1, mWi = 0, mWf = 0;
       o.probs.forEach(function (p) { var L = mulLayout(p.a, p.b); maxRows = Math.max(maxRows, L.ps.length); mWi = Math.max(mWi, L.wi); mWf = Math.max(mWf, L.wf); });
       o.mWi = mWi; o.mWf = mWf;
-      PER = maxRows <= 1 ? 12 : maxRows <= 2 ? 8 : maxRows <= 3 ? 6 : 4;   // ตามความสูงจริงของโจทย์
+      PER = maxRows <= 1 ? 10 : maxRows <= 2 ? 6 : 4;   // เผื่อความสูงจริง ไม่ให้ข้อถูกตัดกลาง
     }
     for (i = 0; i < o.probs.length; i += PER) pages.push(o.probs.slice(i, i + PER));
     var total = pages.length;
