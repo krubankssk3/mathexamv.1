@@ -310,10 +310,10 @@
     else if (st.mode === 'custom') { ia = st.intA; da = st.dpA; ib = st.intB; db = st.dpB; }
     else { ia = st.intDigits; da = rndI(st.rmin, st.rmax); ib = st.intDigits; db = rndI(st.rmin, st.rmax); }
     if (st.op === 'div') {                              // หาร: สร้างจากผลหาร ให้หารได้เสมอ
-      var dd = (st.mode === 'custom') ? Math.max(1, Math.min(2, st.intB || 1)) : rndI(1, 2);
-      var qd = (st.mode === 'custom') ? Math.max(1, Math.min(3, st.intA || 2)) : (lv === 'easy' ? 1 : lv === 'medium' ? 2 : 3);
-      var kind = st.divKind || 'dec';
-      var qdp = (kind === 'whole') ? 0 : Math.max(1, Math.min(3, st.qdp || 2));
+      var kind = st.divKind || 'dec', dd, qd;
+      if (st.level === 'custom') { dd = Math.max(1, Math.min(3, st.divDd || 1)); qd = Math.max(1, Math.min(4, st.divQd || 2)); }
+      else { dd = rndI(1, 2); qd = (lv === 'easy' ? 1 : lv === 'medium' ? 2 : 3); }
+      var qdp = (kind === 'whole') ? 0 : Math.max(1, Math.min(3, st.qdp || 2));   // จำนวนเต็ม = ไม่มีทศนิยมเด็ดขาด
       return genDivProblem(dd, qd, kind, qdp);
     }
     if (st.op === 'mul') {
@@ -548,11 +548,13 @@
     icon: 'ti-decimal',
     mount: function (host, svc) {
       ensureCSS();
-      var st = { op: 'add', level: 'medium', divKind: 'dec', qdp: 2, mode: 'range', rmin: 0, rmax: 3, intDigits: 3, intA: 2, dpA: 1, intB: 3, dpB: 2, count: 10, title: '', setId: '', showKey: false, probs: [] };
+      var st = { op: 'add', level: 'medium', divKind: 'dec', qdp: 2, divQd: 2, divDd: 1, mode: 'range', rmin: 0, rmax: 3, intDigits: 3, intA: 2, dpA: 1, intB: 3, dpB: 2, count: 10, title: '', setId: '', showKey: false, probs: [] };
       function K() { return OPS[st.op]; }
       function newSetId() { var d = new Date(); return K().pre + String(d.getFullYear()).slice(2) + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + rndI(100, 999); }
-      function levelWord() { return st.level === 'easy' ? 'ง่าย' : st.level === 'medium' ? 'ปานกลาง' : st.level === 'hard' ? 'ยาก' : 'สุ่มคละระดับ'; }
-      function modeWord() { if (st.mode === 'random') return 'สุ่มหลักและตำแหน่งทุกข้อ';
+      function levelWord() { return st.level === 'easy' ? 'ง่าย' : st.level === 'medium' ? 'ปานกลาง' : st.level === 'hard' ? 'ยาก' : st.level === 'custom' ? 'กำหนดเอง' : 'สุ่มคละระดับ'; }
+      function modeWord() {
+        if (st.op === 'div') return (st.divKind === 'whole' ? 'คำตอบจำนวนเต็ม' : 'คำตอบทศนิยม ' + st.qdp + ' ตำแหน่ง') + (st.level === 'custom' ? ' · ผลหาร ' + st.divQd + ' หลัก ÷ ตัวหาร ' + st.divDd + ' หลัก' : '');
+        if (st.mode === 'random') return 'สุ่มหลักและตำแหน่งทุกข้อ';
         return st.mode === 'custom' ? ('กำหนดเอง · ตัวตั้ง ' + st.intA + ' หลัก ' + st.dpA + ' ตำแหน่ง · ' + K().term + ' ' + st.intB + ' หลัก ' + st.dpB + ' ตำแหน่ง') : ('สุ่ม ' + st.rmin + '–' + st.rmax + ' ตำแหน่ง · ' + st.intDigits + ' หลัก'); }
       function defTitle() { return st.title || ('แบบฝึก' + K().word + 'ทศนิยม'); }
       function opt(v, label, cur) { return '<option value="' + v + '"' + (v == cur ? ' selected' : '') + '>' + label + '</option>'; }
@@ -582,19 +584,24 @@
           + '<div class="eyebrow">ตั้งค่าชุดแบบฝึก' + K().word + 'ทศนิยม</div>'
           + (st.op === 'div' ?
             ('<div class="dc-field"><label>แบบคำตอบ</label><select id="dDivKind">'
-              + opt('dec', 'คำตอบเป็นทศนิยม', st.divKind) + opt('whole', 'คำตอบเป็นจำนวนเต็ม (หารลงตัว)', st.divKind) + '</select></div>'
+              + opt('dec', 'คำตอบเป็นทศนิยม', st.divKind) + opt('whole', 'คำตอบเป็นจำนวนเต็ม (ไม่มีทศนิยม)', st.divKind) + '</select></div>'
               + '<div class="dc-field" id="dQdpBox"' + (st.divKind === 'dec' ? '' : ' style="display:none"') + '><label>ตำแหน่งทศนิยมของผลหาร</label><select id="dQdp">'
               + [1, 2, 3].map(function (n) { return opt(n, n + ' ตำแหน่ง', st.qdp); }).join('') + '</select></div>') : '')
           + '<div class="dc-field"><label>ระดับความยาก' + (st.op === 'mul' ? ' (จำนวนหลักตัวคูณ)' : st.op === 'div' ? ' (จำนวนหลักผลหาร)' : ' (' + K().unit + ')') + '</label><select id="dLevel">' + (st.op === 'mul' ? opt('easy', 'ง่าย — ตัวคูณ 1 หลัก', st.level) : st.op === 'div' ? opt('easy', 'ง่าย — ผลหาร 1 หลัก', st.level) : opt('easy', 'ง่าย — ' + K().unit + 'น้อย (0–1)', st.level)) + (st.op === 'mul' ? opt('medium', 'ปานกลาง — ตัวคูณ 2 หลัก', st.level) : st.op === 'div' ? opt('medium', 'ปานกลาง — ผลหาร 2 หลัก', st.level) : opt('medium', 'ปานกลาง — มี' + K().unit + ' 2–3 ตัว', st.level)) + (st.op === 'mul' ? opt('hard', 'ยาก — ตัวคูณ 3 หลัก', st.level) : st.op === 'div' ? opt('hard', 'ยาก — ผลหาร 3 หลัก', st.level) : opt('hard', 'ยาก — มี' + K().unit + 'ทุกหลัก', st.level))
-          + opt('random', 'สุ่ม — คละทุกระดับ', st.level) + '</select></div>'
-          + '<div class="dc-field"><label>โหมดกำหนดตำแหน่ง</label><select id="dMode">' + opt('range', 'สุ่มช่วง 0–3 ตำแหน่ง', st.mode) + opt('custom', 'กำหนดหลักเองทุกจุด', st.mode) + opt('random', 'สุ่มทั้งหมด (หลัก+ตำแหน่ง)', st.mode) + '</select></div>'
-          + '<div class="dc-field" id="dRangeBox"' + (st.mode === 'range' ? '' : ' style="display:none"') + '>'
+          + opt('random', 'สุ่ม — คละทุกระดับ', st.level)
+          + (st.op === 'div' ? opt('custom', 'กำหนดเอง — ระบุจำนวนหลัก', st.level) : '') + '</select></div>'
+          + (st.op === 'div' ? '' : '<div class="dc-field"><label>โหมดกำหนดตำแหน่ง</label><select id="dMode">' + opt('range', 'สุ่มช่วง 0–3 ตำแหน่ง', st.mode) + opt('custom', 'กำหนดหลักเองทุกจุด', st.mode) + opt('random', 'สุ่มทั้งหมด (หลัก+ตำแหน่ง)', st.mode) + '</select></div>')
+          + (st.op === 'div' ?
+            ('<div class="dc-field" id="dDivCustom"' + (st.level === 'custom' ? '' : ' style="display:none"') + '><label>กำหนดจำนวนหลักเอง</label>'
+              + '<div class="dc-row"><span class="lbl">ผลหาร</span><input id="dDivQd" type="number" min="1" max="4" value="' + st.divQd + '"> หลัก</div>'
+              + '<div class="dc-row"><span class="lbl">ตัวหาร</span><input id="dDivDd" type="number" min="1" max="3" value="' + st.divDd + '"> หลัก</div></div>') : '')
+          + (st.op === 'div' ? '' : '<div class="dc-field" id="dRangeBox"' + (st.mode === 'range' ? '' : ' style="display:none"') + '>'
           + '<label>สุ่มตำแหน่งทศนิยม</label><div class="dc-inline"><select id="dRmin">' + dpShort(st.rmin) + '</select><span>ถึง</span><select id="dRmax">' + dpShort(st.rmax) + '</select><span>ตำแหน่ง</span></div>'
-          + '<label style="margin-top:8px">จำนวนหลักหน้าจุด (จำนวนเต็ม)</label><input id="dInt" type="number" min="1" max="7" value="' + st.intDigits + '"></div>'
-          + '<div class="dc-field" id="dCustomBox"' + (st.mode === 'custom' ? '' : ' style="display:none"') + '>'
+          + '<label style="margin-top:8px">จำนวนหลักหน้าจุด (จำนวนเต็ม)</label><input id="dInt" type="number" min="1" max="7" value="' + st.intDigits + '"></div>')
+          + (st.op === 'div' ? '' : '<div class="dc-field" id="dCustomBox"' + (st.mode === 'custom' ? '' : ' style="display:none"') + '>'
           + '<label>กำหนดหลักเอง (หลักหน้าจุด · ตำแหน่งทศนิยม)</label>'
           + '<div class="dc-row"><span class="lbl">ตัวตั้ง</span><input id="dIntA" type="number" min="1" max="7" value="' + st.intA + '"> หลัก <select id="dDpA">' + dpShort(st.dpA) + '</select> ตำแหน่ง</div>'
-          + '<div class="dc-row"><span class="lbl">' + K().term + '</span><input id="dIntB" type="number" min="1" max="7" value="' + st.intB + '"> หลัก <select id="dDpB">' + dpShort(st.dpB) + '</select> ตำแหน่ง</div></div>'
+          + '<div class="dc-row"><span class="lbl">' + K().term + '</span><input id="dIntB" type="number" min="1" max="7" value="' + st.intB + '"> หลัก <select id="dDpB">' + dpShort(st.dpB) + '</select> ตำแหน่ง</div></div>')
           + '<div class="dc-field"><label>จำนวนข้อ (สูงสุด 50)</label><input id="dCount" type="number" min="1" max="50" value="' + st.count + '"></div>'
           + '<div class="dc-field"><label>ชื่อชุด (เว้นว่างได้)</label><input id="dTitle" value="' + esc(st.title) + '" placeholder="เช่น ' + K().word + 'ทศนิยม ชุดที่ 1"></div>'
           + '<button class="btn btn-accent" id="dGen"><i class="ti ti-refresh"></i> สร้างชุดแบบฝึก</button>'
@@ -602,17 +609,27 @@
           + '</div></section><section id="dOut"></section></div>';
         $('#dBack', host).onclick = renderHome;
         $('#dTimer', host).onclick = tmOpen;
-        $('#dDivKind', host) && ($('#dDivKind', host).onchange = function () { st.divKind = this.value; var b = $('#dQdpBox', host); if (b) b.style.display = this.value === 'dec' ? '' : 'none'; });
-        $('#dMode', host).onchange = function () { st.mode = this.value; $('#dRangeBox', host).style.display = this.value === 'range' ? '' : 'none'; $('#dCustomBox', host).style.display = this.value === 'custom' ? '' : 'none'; };
+        $('#dDivKind', host) && ($('#dDivKind', host).onchange = function () { st.divKind = this.value; var b = $('#dQdpBox', host); if (b) b.style.display = (this.value === 'dec') ? '' : 'none'; });
+        $('#dLevel', host).onchange = function () { var b = $('#dDivCustom', host); if (b) b.style.display = this.value === 'custom' ? '' : 'none'; };
+        if ($('#dMode', host)) $('#dMode', host).onchange = function () {
+          st.mode = this.value;
+          $('#dRangeBox', host).style.display = this.value === 'range' ? '' : 'none';
+          $('#dCustomBox', host).style.display = this.value === 'custom' ? '' : 'none';
+          var qb = $('#dQdpBox', host), hb = $('#dDivHint', host), dk = $('#dDivKind', host);
+          if (qb) qb.style.display = (dk && dk.value === 'dec' && this.value !== 'custom') ? '' : 'none';
+          if (hb) hb.style.display = this.value === 'custom' ? '' : 'none';
+        };
         $('#dGen', host).onclick = function () {
           st.level = $('#dLevel', host).value;
           if ($('#dDivKind', host)) st.divKind = $('#dDivKind', host).value;
           if ($('#dQdp', host)) st.qdp = +$('#dQdp', host).value;
-          st.mode = $('#dMode', host).value;
-          st.rmin = clampI($('#dRmin', host).value, 0, 3, 0); st.rmax = clampI($('#dRmax', host).value, 0, 3, 3); if (st.rmax < st.rmin) { var t = st.rmin; st.rmin = st.rmax; st.rmax = t; }
-          st.intDigits = clampI($('#dInt', host).value, 1, 7, 3);
-          st.intA = clampI($('#dIntA', host).value, 1, 7, 2); st.dpA = clampI($('#dDpA', host).value, 0, 3, 1);
-          st.intB = clampI($('#dIntB', host).value, 1, 7, 3); st.dpB = clampI($('#dDpB', host).value, 0, 3, 2);
+          if ($('#dDivQd', host)) st.divQd = clampI($('#dDivQd', host).value, 1, 4, 2);
+          if ($('#dDivDd', host)) st.divDd = clampI($('#dDivDd', host).value, 1, 3, 1);
+          if ($('#dMode', host)) st.mode = $('#dMode', host).value;
+          if ($('#dRmin', host)) { st.rmin = clampI($('#dRmin', host).value, 0, 3, 0); st.rmax = clampI($('#dRmax', host).value, 0, 3, 3); } if (st.rmax < st.rmin) { var t = st.rmin; st.rmin = st.rmax; st.rmax = t; }
+          if ($('#dInt', host)) st.intDigits = clampI($('#dInt', host).value, 1, 7, 3);
+          if ($('#dIntA', host)) { st.intA = clampI($('#dIntA', host).value, 1, 7, 2); st.dpA = clampI($('#dDpA', host).value, 0, 3, 1); }
+          if ($('#dIntB', host)) { st.intB = clampI($('#dIntB', host).value, 1, 7, 3); st.dpB = clampI($('#dDpB', host).value, 0, 3, 2); }
           st.count = clampI($('#dCount', host).value, 1, 50, 10); st.title = $('#dTitle', host).value.trim();
           st.setId = newSetId(); st.showKey = false;
           st.probs = []; for (var i = 0; i < st.count; i++) st.probs.push(genProblem(st));
