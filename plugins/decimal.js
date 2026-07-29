@@ -111,41 +111,56 @@
     for (k = db.length - 1; k >= 0; k--) out.push({ val: '' + (parseInt(da, 10) * (+db.charAt(k))), shift: db.length - 1 - k });
     return out;
   }
-  // กริดคูณ: ชิดขวาตามหลัก · จุดทศนิยมเป็น "ช่องแยก" (เห็นชัดแบบการบวก) · มีเครื่องหมาย + ระหว่างแถวผลคูณย่อย
-  function mulLayout(a, b, forceW) {
+  // กริดคูณ: [ตารางจำนวนเต็ม] · [ตารางทศนิยม] — จุดคั่นเดียว ตรงกันทุกแถว
+  //   แถวโจทย์/คำตอบ วางตามจุด (เติม 0 ให้เต็มบล็อกทศนิยม) · แถวผลคูณย่อย วางชิดขวาของกริดหลัก
+  function mulLayout(a, b, fWi, fWf) {
     var da = digitsOf(a), db = digitsOf(b), ps = partials(a, b), ans = mulDec(a, b);
-    var w = Math.max(da.length, db.length, ans.digits.length);
-    ps.forEach(function (p) { w = Math.max(w, p.val.length + p.shift); });
-    if (forceW && forceW > w) w = forceW;
-    var bset = {}, nb = 0, k;                          // ตำแหน่งที่ต้องมีช่องจุด (นับจากขวา)
-    if (a.dp > 0) bset[a.dp] = 1; if (b.dp > 0) bset[b.dp] = 1; if (ans.dp > 0) bset[ans.dp] = 1;
-    for (k in bset) if (bset.hasOwnProperty(k)) nb++;
-    return { w: w, da: da, db: db, ps: ps, ans: ans, bset: bset, ncols: w + nb };
+    var ansStr = ans.digits;
+    while (ansStr.length < ans.dp + 1) ansStr = '0' + ansStr;          // 0.xxx ต้องมีหลักหน่วย
+    var iA = ('' + a.ip).length, iB = ('' + b.ip).length, iAns = ansStr.length - ans.dp;
+    var wi = Math.max(iA, iB, iAns), wf = ans.dp;
+    ps.forEach(function (p) { wi = Math.max(wi, p.val.length + p.shift - wf); });   // กันผลคูณย่อยล้น
+    if (fWi && fWi > wi) wi = fWi;
+    if (fWf && fWf > wf) wf = fWf;
+    return { wi: wi, wf: wf, a: a, b: b, ps: ps, ans: ans, ansStr: ansStr, ncols: wi + wf + (wf > 0 ? 1 : 0) };
   }
-  function calcGridMul(p, showAns, opSym, forceW) {
-    var L = mulLayout(p.a, p.b, forceW), w = L.w, bset = L.bset, multi = L.ps.length > 1;
-    function row(str, shift, dp, isAns, blank) {
-      var out = '', i, fromRight, ch;
-      for (i = 0; i < w; i++) {
-        fromRight = w - 1 - i;
+  function calcGridMul(p, showAns, opSym, fWi, fWf) {
+    var L = mulLayout(p.a, p.b, fWi, fWf), wi = L.wi, wf = L.wf, multi = L.ps.length > 1;
+    // แถวที่มีจุด: จำนวนเต็มชิดขวาในบล็อกซ้าย · ทศนิยมเติม 0 เต็มบล็อกขวา
+    function rowPoint(ipStr, fpStr, dp, isAns, blank) {
+      var out = '', i, ch, cls = 'db' + (isAns ? ' ans' : '');
+      while (fpStr.length < wf) fpStr += '0';                          // เติม 0 หลังจุด (ค่าเท่าเดิม)
+      for (i = 0; i < wi; i++) { ch = (i >= wi - ipStr.length) ? ipStr.charAt(i - (wi - ipStr.length)) : ''; out += '<td class="' + cls + '">' + (blank ? '' : ch) + '</td>'; }
+      if (wf > 0) out += '<td class="pt' + (isAns ? ' ans' : '') + '">.</td>';
+      for (i = 0; i < wf; i++) out += '<td class="' + cls + '">' + (blank ? '' : fpStr.charAt(i)) + '</td>';
+      return out;
+    }
+    // แถวผลคูณย่อย: ไม่มีจุด วางชิดขวาของกริดหลัก (ข้ามช่องจุด)
+    function rowPlain(str, shift, blank) {
+      var n = wi + wf, out = '', i, fromRight, ch;
+      for (i = 0; i < n; i++) {
+        fromRight = n - 1 - i;
         ch = (fromRight >= shift && fromRight < shift + str.length) ? str.charAt(str.length - 1 - (fromRight - shift)) : '';
-        out += '<td class="db' + (isAns ? ' ans' : '') + '">' + (blank ? '' : ch) + '</td>';
-        if (bset[fromRight]) out += '<td class="pt' + (isAns ? ' ans' : '') + '">' + (dp === fromRight ? '.' : '') + '</td>';
+        out += '<td class="db ans">' + (blank ? '' : ch) + '</td>';
+        if (wf > 0 && i === wi - 1) out += '<td class="pt"></td>';     // ช่องจุด (ว่าง) คงตำแหน่งคอลัมน์
       }
       return out;
     }
+    var aI = '' + p.a.ip, aF = p.a.dp > 0 ? (rep('0', p.a.dp) + p.a.fp).slice(-p.a.dp) : '';
+    var bI = '' + p.b.ip, bF = p.b.dp > 0 ? (rep('0', p.b.dp) + p.b.fp).slice(-p.b.dp) : '';
+    var nI = L.ansStr.slice(0, L.ansStr.length - L.ans.dp), nF = L.ans.dp > 0 ? L.ansStr.slice(L.ansStr.length - L.ans.dp) : '';
     var html = '<table class="calcT mulT">'
-      + '<tr>' + row(L.da, 0, p.a.dp, false, false) + '<td rowspan="2" class="opR">' + opSym + '</td></tr>'
-      + '<tr>' + row(L.db, 0, p.b.dp, false, false) + '</tr>'
+      + '<tr>' + rowPoint(aI, aF, p.a.dp, false, false) + '<td rowspan="2" class="opR">' + opSym + '</td></tr>'
+      + '<tr>' + rowPoint(bI, bF, p.b.dp, false, false) + '</tr>'
       + '<tr class="lnrow"><td colspan="' + L.ncols + '" class="ln"></td><td></td></tr>';
     if (multi) {
       L.ps.forEach(function (q, idx) {
-        html += '<tr>' + row(q.val, q.shift, -1, true, !showAns)
+        html += '<tr>' + rowPlain(q.val, q.shift, !showAns)
           + (idx === 0 ? '<td rowspan="' + L.ps.length + '" class="opR">+</td>' : '') + '</tr>';
       });
       html += '<tr class="lnrow"><td colspan="' + L.ncols + '" class="ln"></td><td></td></tr>';
     }
-    html += '<tr>' + row(L.ans.digits, 0, L.ans.dp, true, !showAns) + '<td></td></tr></table>';
+    html += '<tr>' + rowPoint(nI, nF, L.ans.dp, true, !showAns) + '<td></td></tr></table>';
     return html;
   }
 
@@ -302,16 +317,16 @@
   function sheetHTML(o, withKey) {
     var PER = 10, i, cols = 2, pages = [];
     if (o.op === 'mul') {
-      var maxRows = 1, mw = 0;
-      o.probs.forEach(function (p) { var L = mulLayout(p.a, p.b); maxRows = Math.max(maxRows, L.ps.length); mw = Math.max(mw, L.w); });
-      o.maxW = mw;
+      var maxRows = 1, mWi = 0, mWf = 0;
+      o.probs.forEach(function (p) { var L = mulLayout(p.a, p.b); maxRows = Math.max(maxRows, L.ps.length); mWi = Math.max(mWi, L.wi); mWf = Math.max(mWf, L.wf); });
+      o.mWi = mWi; o.mWf = mWf;
       PER = maxRows <= 1 ? 10 : maxRows <= 2 ? 6 : 4;   // แถวย่อยเยอะ = ข้อต่อหน้าน้อยลง กันล้น
     }
     for (i = 0; i < o.probs.length; i += PER) pages.push(o.probs.slice(i, i + PER));
     var total = pages.length;
     var body = pages.map(function (chunk, pi) {
       var cells = chunk.map(function (p, j) {
-        return '<div class="pb"><span class="no">' + (pi * PER + j + 1) + ')</span>' + (o.op === 'mul' ? calcGridMul(p, withKey, o.opSym, o.maxW) : calcGrid(p, withKey, o.opSym)) + '</div>';
+        return '<div class="pb"><span class="no">' + (pi * PER + j + 1) + ')</span>' + (o.op === 'mul' ? calcGridMul(p, withKey, o.opSym, o.mWi, o.mWf) : calcGrid(p, withKey, o.opSym)) + '</div>';
       }).join('');
       var grid = '<div class="grid" style="grid-template-columns:repeat(' + cols + ',1fr)">' + cells + '</div>';
       var header = pi === 0
@@ -469,9 +484,9 @@
       function renderOut() {
         var out = $('#dOut', host); if (!out) return;
         if (!st.probs.length) { out.innerHTML = '<div class="panel" style="padding:30px;text-align:center;color:var(--muted)">เลือกค่าทางซ้าย แล้วกด “สร้างชุดแบบฝึก”</div>'; return; }
-        var prevW = 0;
-        if (st.op === 'mul') st.probs.forEach(function (p) { prevW = Math.max(prevW, mulLayout(p.a, p.b).w); });
-        var cells = st.probs.map(function (p, i) { return '<div class="dc-pb"><span class="no">' + (i + 1) + ')</span>' + (st.op === 'mul' ? calcGridMul(p, st.showKey, K().op, prevW) : calcGrid(p, st.showKey, K().op)) + '</div>'; }).join('');
+        var pWi = 0, pWf = 0;
+        if (st.op === 'mul') st.probs.forEach(function (p) { var L = mulLayout(p.a, p.b); pWi = Math.max(pWi, L.wi); pWf = Math.max(pWf, L.wf); });
+        var cells = st.probs.map(function (p, i) { return '<div class="dc-pb"><span class="no">' + (i + 1) + ')</span>' + (st.op === 'mul' ? calcGridMul(p, st.showKey, K().op, pWi, pWf) : calcGrid(p, st.showKey, K().op)) + '</div>'; }).join('');
         out.innerHTML = '<div class="panel" style="padding:18px">'
           + '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:8px">'
           + '<div><div class="eyebrow">ตัวอย่างก่อนพิมพ์</div><div class="font-display" style="font-weight:800;font-size:1.2rem">' + esc(defTitle()) + ' <span style="font-size:.78rem;color:var(--muted)">ชุด ' + esc(st.setId) + '</span></div></div>'
