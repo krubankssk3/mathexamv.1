@@ -291,7 +291,7 @@
       + '.page.brk{page-break-before:always}'
       + '.conthd{border-bottom:2px solid ' + ac + ';color:' + ac + ';font-weight:700;font-size:18px;padding-bottom:6px;margin-bottom:12px}'
       + '.conthd span{font-weight:400;font-size:13px;color:#999}'
-      + '.grid{display:grid;gap:6px 12px;flex:1;align-content:space-evenly;justify-items:center}'
+      + '.grid{display:grid;gap:6mm 10px;flex:1;align-content:start;justify-items:center}'
       + '.pb{display:flex;gap:8px;padding:2px;break-inside:avoid;align-items:flex-start;justify-content:center}'
       + '.pb .no{font-weight:700;color:' + ac + ';min-width:24px;font-size:19px;padding-top:4px}'
       + '.calcT{border-collapse:collapse}'
@@ -315,12 +315,12 @@
       + '<span class="box">คะแนนที่ได้ <span class="dot" style="min-width:55px;border-color:' + o.accent + '"></span></span></div></div>';
   }
   function sheetHTML(o, withKey) {
-    var PER = 10, i, cols = 2, pages = [];
+    var PER = 12, i, cols = 2, pages = [];
     if (o.op === 'mul') {
       var maxRows = 1, mWi = 0, mWf = 0;
       o.probs.forEach(function (p) { var L = mulLayout(p.a, p.b); maxRows = Math.max(maxRows, L.ps.length); mWi = Math.max(mWi, L.wi); mWf = Math.max(mWf, L.wf); });
       o.mWi = mWi; o.mWf = mWf;
-      PER = maxRows <= 1 ? 10 : maxRows <= 2 ? 6 : 4;   // แถวย่อยเยอะ = ข้อต่อหน้าน้อยลง กันล้น
+      PER = maxRows <= 1 ? 12 : maxRows <= 2 ? 8 : maxRows <= 3 ? 6 : 4;   // ตามความสูงจริงของโจทย์
     }
     for (i = 0; i < o.probs.length; i += PER) pages.push(o.probs.slice(i, i + PER));
     var total = pages.length;
@@ -384,7 +384,7 @@
       + '.dc-inline select{flex:1;min-width:0}'
       + '.dc-row{display:flex;gap:6px;align-items:center;color:var(--muted);font-size:14px;margin-top:6px}'
       + '.dc-row .lbl{min-width:52px}.dc-row input{width:64px;text-align:center}.dc-row select{padding:8px}'
-      + '.dc-prev{display:grid;gap:12px 18px;margin-top:14px;grid-template-columns:repeat(2,1fr);justify-items:center;align-items:start}'
+      + '.dc-prev{display:grid;gap:14px 18px;margin-top:14px;grid-template-columns:repeat(2,1fr);justify-items:center;align-items:start;align-content:start}'
       + '.dc-pb{display:flex;gap:10px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg2);align-items:flex-start}'
       + '.dc-pb .no{font-weight:700;color:var(--accent);min-width:22px;padding-top:4px}'
       + '.dc-pb .calcT{border-collapse:collapse}'
