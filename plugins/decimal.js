@@ -110,45 +110,43 @@
     for (k = db.length - 1; k >= 0; k--) out.push({ val: '' + (parseInt(da, 10) * (+db.charAt(k))), shift: db.length - 1 - k });
     return out;
   }
-  // กริดคูณ: ชิดขวาตามหลัก · จุดวางที่ "ขอบซ้าย" ของช่องทศนิยมตัวแรก (ไม่กินคอลัมน์)
+  // กริดคูณ: ชิดขวาตามหลัก · จุดทศนิยมเป็น "ช่องแยก" (เห็นชัดแบบการบวก) · มีเครื่องหมาย + ระหว่างแถวผลคูณย่อย
   function mulLayout(a, b) {
     var da = digitsOf(a), db = digitsOf(b), ps = partials(a, b), ans = mulDec(a, b);
     var w = Math.max(da.length, db.length, ans.digits.length);
     ps.forEach(function (p) { w = Math.max(w, p.val.length + p.shift); });
-    function row(str, dp, shift) {
-      shift = shift || 0;
-      var pad = w - str.length - shift, cells = [], i;
-      for (i = 0; i < pad; i++) cells.push({ ch: '', pt: false });
-      for (i = 0; i < str.length; i++) cells.push({ ch: str.charAt(i), pt: false });
-      for (i = 0; i < shift; i++) cells.push({ ch: '', pt: false });
-      if (dp > 0) { for (i = 0; i < cells.length; i++) { if (w - 1 - i === dp - 1) { cells[i].pt = true; break; } } }
-      return cells;
-    }
-    return { w: w, a: row(da, a.dp, 0), b: row(db, b.dp, 0),
-      ps: ps.map(function (p) { return row(p.val, 0, p.shift); }),
-      ans: row(ans.digits, ans.dp, 0), ansObj: ans };
+    var bset = {}, nb = 0, k;                          // ตำแหน่งที่ต้องมีช่องจุด (นับจากขวา)
+    if (a.dp > 0) bset[a.dp] = 1; if (b.dp > 0) bset[b.dp] = 1; if (ans.dp > 0) bset[ans.dp] = 1;
+    for (k in bset) if (bset.hasOwnProperty(k)) nb++;
+    return { w: w, da: da, db: db, ps: ps, ans: ans, bset: bset, ncols: w + nb };
   }
   function calcGridMul(p, showAns, opSym) {
-    var L = mulLayout(p.a, p.b), w = L.w, multi = L.ps.length > 1;
-    function tr(cells, isAns, blank) {
-      var out = '', i, c;
-      for (i = 0; i < cells.length; i++) {
-        c = cells[i];
-        out += '<td class="db' + (c.pt ? ' ptl' : '') + (isAns ? ' ans' : '') + '">' + (blank ? '' : c.ch) + '</td>';
+    var L = mulLayout(p.a, p.b), w = L.w, bset = L.bset, multi = L.ps.length > 1;
+    function row(str, shift, dp, isAns, blank) {
+      var out = '', i, fromRight, ch;
+      for (i = 0; i < w; i++) {
+        fromRight = w - 1 - i;
+        ch = (fromRight >= shift && fromRight < shift + str.length) ? str.charAt(str.length - 1 - (fromRight - shift)) : '';
+        out += '<td class="db' + (isAns ? ' ans' : '') + '">' + (blank ? '' : ch) + '</td>';
+        if (bset[fromRight]) out += '<td class="pt' + (isAns ? ' ans' : '') + '">' + (dp === fromRight ? '.' : '') + '</td>';
       }
       return out;
     }
     var html = '<table class="calcT mulT">'
-      + '<tr>' + tr(L.a, false, false) + '<td rowspan="2" class="opR">' + opSym + '</td></tr>'
-      + '<tr>' + tr(L.b, false, false) + '</tr>'
-      + '<tr class="lnrow"><td colspan="' + w + '" class="ln"></td><td></td></tr>';
+      + '<tr>' + row(L.da, 0, p.a.dp, false, false) + '<td rowspan="2" class="opR">' + opSym + '</td></tr>'
+      + '<tr>' + row(L.db, 0, p.b.dp, false, false) + '</tr>'
+      + '<tr class="lnrow"><td colspan="' + L.ncols + '" class="ln"></td><td></td></tr>';
     if (multi) {
-      L.ps.forEach(function (cells) { html += '<tr>' + tr(cells, true, !showAns) + '<td></td></tr>'; });
-      html += '<tr class="lnrow"><td colspan="' + w + '" class="ln"></td><td></td></tr>';
+      L.ps.forEach(function (q, idx) {
+        html += '<tr>' + row(q.val, q.shift, -1, true, !showAns)
+          + (idx === 0 ? '<td rowspan="' + L.ps.length + '" class="opR">+</td>' : '') + '</tr>';
+      });
+      html += '<tr class="lnrow"><td colspan="' + L.ncols + '" class="ln"></td><td></td></tr>';
     }
-    html += '<tr>' + tr(L.ans, true, !showAns) + '<td></td></tr></table>';
+    html += '<tr>' + row(L.ans.digits, 0, L.ans.dp, true, !showAns) + '<td></td></tr></table>';
     return html;
   }
+
   /* ---------- การลบ: คุมจำนวนตัวยืม + กันคำตอบติดลบ ---------- */
   function subDec(a, b) {
     var P = Math.max(a.dp, b.dp), s = scaled(a, P) - scaled(b, P);
@@ -280,10 +278,9 @@
       + '.calcT td{width:8.5mm;height:8.5mm;text-align:center;font-size:22px;padding:0;line-height:8.5mm}'
       + '.calcT td.db{border:1.5px solid #333}'
       + '.calcT td.opR{color:' + ac + ';font-weight:700;font-size:26px;text-align:center;vertical-align:middle;padding-left:5px;min-width:9mm}'
-      + '.calcT td.pt{width:4mm;vertical-align:bottom;font-weight:700;font-size:22px;line-height:1}'
+      + '.calcT td.pt{width:4.5mm;vertical-align:bottom;font-weight:700;font-size:30px;line-height:.7;padding-bottom:1mm}'
       + '.calcT td.ln{border-bottom:2.5px solid #333;height:3px;padding:0}'
-      + '.calcT td.db{position:relative}'
-      + '.calcT td.ptl::before{content:".";position:absolute;left:-3.2px;bottom:-1px;font-size:26px;font-weight:700;line-height:1}'
+      + '.calcT td.pt.ans{color:' + ac + '}'
       + '.calcT td.ans{color:' + ac + '}'
       + '.foot{margin-top:10px;text-align:center;font-size:11px;color:#777;border-top:1px solid #eee;padding-top:6px}';
   }
@@ -373,10 +370,9 @@
       + '.dc-pb .calcT td{width:27px;height:27px;text-align:center;font-size:19px;padding:0}'
       + '.dc-pb .calcT td.db{border:1.5px solid var(--muted)}'
       + '.dc-pb .calcT td.opR{color:var(--accent);font-weight:700;font-size:23px;text-align:center;vertical-align:middle;padding-left:5px;min-width:26px}'
-      + '.dc-pb .calcT td.pt{width:12px;vertical-align:bottom;font-weight:700}'
+      + '.dc-pb .calcT td.pt{width:14px;vertical-align:bottom;font-weight:700;font-size:26px;line-height:.7;padding-bottom:3px}'
       + '.dc-pb .calcT td.ln{border-bottom:2px solid var(--muted);height:2px;padding:0}'
-      + '.dc-pb .calcT td.db{position:relative}'
-      + '.dc-pb .calcT td.ptl::before{content:".";position:absolute;left:-3px;bottom:-2px;font-size:22px;font-weight:700;line-height:1}'
+      + '.dc-pb .calcT td.pt.ans{color:var(--accent)}'
       + '.dc-pb .calcT td.ans{color:var(--accent)}'
       + '.dctile{--tile:var(--accent);position:relative;border:0;cursor:pointer;color:#fff;border-radius:22px;background:linear-gradient(150deg,var(--tile),color-mix(in srgb,var(--tile) 55%,#000));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;width:170px;height:170px}'
       + '.dctile.on{animation:dcBreathe 2.6s ease-in-out infinite}'
