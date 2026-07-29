@@ -583,7 +583,10 @@
           accent: cur.accent, org: S.org || '', logo: S.logo || LOGO, probs: st.probs, qrImg: '' };
         var finish = function (qrImg) { o.qrImg = qrImg || ''; printDoc(sheetHTML(o, withKey)); if (svc.toast) svc.toast('success', withKey ? 'เปิดหน้าพิมพ์ฉบับเฉลยแล้ว' : 'เปิดหน้าพิมพ์ใบงานแล้ว'); };
         if (!withKey && svc.makeQR && svc.keyURL) {
-          var answers = st.probs.map(function (p) { return answerHTML(p.ans).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim(); });
+          var answers = st.probs.map(function (p) {              // เฉพาะคำตอบสุดท้าย (ให้ QR ไม่ล้น)
+            var c = p.ans.chain[p.ans.chain.length - 1];
+            return c.t === 'whole' ? ('' + c.w) : c.t === 'mixed' ? (c.w + ' ' + c.n + '/' + c.d) : (c.n + '/' + c.d);
+          });
           svc.makeQR(svc.keyURL(o.title, st.setId, answers)).then(function (img) { finish(img); }, function () { finish(''); });
         } else finish('');
       }
