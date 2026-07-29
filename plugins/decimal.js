@@ -23,7 +23,8 @@
   /* ---------- โครงเลขทศนิยม {ip, fp, dp} ---------- */
   function genNum(intDigits, dp) {
     var lo = intDigits <= 1 ? 1 : pow10(intDigits - 1), hi = pow10(intDigits) - 1;
-    var ip = rndI(lo, hi), fp = dp > 0 ? rndI(0, pow10(dp) - 1) : 0;
+    var ip = rndI(lo, hi), fp = 0;
+    if (dp > 0) { do { fp = rndI(0, pow10(dp) - 1); } while (fp % 10 === 0); }   // หลักทศนิยมสุดท้ายไม่เป็น 0
     return { ip: ip, fp: fp, dp: dp };
   }
   function showNum(o) { if (o.dp === 0) return '' + o.ip; return o.ip + '.' + (rep('0', o.dp) + o.fp).slice(-o.dp); }
@@ -125,7 +126,7 @@
     var wf = Math.max(wo, wn);
     ps.forEach(function (p) { wi = Math.max(wi, p.val.length + p.shift - wf); });
     if (fWi && fWi > wi) wi = fWi;
-    if (fWo && fWo > wo) { wo = fWo; wf = Math.max(wo, wn); }
+
     return { wi: wi, wo: wo, wn: wn, wf: wf, a: a, b: b, ps: ps, ans: ans, ansStr: ansStr, ncols: wi + wf + (wf > 0 ? 1 : 0) };
   }
   function calcGridMul(p, showAns, opSym, fWi, fWo) {
@@ -156,15 +157,15 @@
     var html = '<table class="calcT mulT">'
       + '<tr>' + rowPoint(aI, aF, wo, false, false) + '<td rowspan="2" class="opR">' + opSym + '</td></tr>'
       + '<tr>' + rowPoint(bI, bF, wo, false, false) + '</tr>'
-      + '<tr class="lnrow"><td colspan="' + L.ncols + '" class="ln"></td><td></td></tr>';
+      + '<tr class="lnrow"><td colspan="' + L.ncols + '" class="ln"></td><td class="opR"></td></tr>';
     if (multi) {
       L.ps.forEach(function (q, idx) {
         html += '<tr>' + rowPlain(q.val, q.shift, !showAns)
           + (idx === 0 ? '<td rowspan="' + L.ps.length + '" class="opR">+</td>' : '') + '</tr>';
       });
-      html += '<tr class="lnrow"><td colspan="' + L.ncols + '" class="ln"></td><td></td></tr>';
+      html += '<tr class="lnrow"><td colspan="' + L.ncols + '" class="ln"></td><td class="opR"></td></tr>';
     }
-    html += '<tr>' + rowPoint(nI, nF, wn, true, !showAns) + '<td></td></tr></table>';
+    html += '<tr>' + rowPoint(nI, nF, wn, true, !showAns) + '<td class="opR"></td></tr></table>';
     return html;
   }
 
@@ -248,10 +249,9 @@
         ib = tot - db;
         da = db;                                        // ทศนิยมเท่ากัน → จุดตรงกันเสมอ
       }
-      var am = genNum(ia, da), bm = genNum(ib, db);
-      var D = Math.max(am.dp, bm.dp);
-      am = padDp(am, D); bm = padDp(bm, D);             // เติม 0 หลังจุดให้เท่ากัน
-      return { a: am, b: bm, ans: mulDec(am, bm) };
+      var am = genNum(ia, da), bm = genNum(ib, db), gm = 0;
+      while (digitsOf(bm).indexOf('0') >= 0 && gm < 60) { bm = genNum(ib, db); gm++; }   // ตัวคูณไม่มีเลข 0 (กันแถวผลคูณย่อยเป็น 0)
+      return { a: am, b: bm, ans: mulDec(am, bm) };     // ไม่แตะค่าจริง — เติม 0 ตอนแสดงผลในตาราง
     }
     if (st.op === 'sub') {
       var ps = genLeveledSub(ia, da, ib, db, lv);
@@ -277,8 +277,8 @@
     return '<table class="calcT">'
       + '<tr>' + cells(p.a, false) + '<td rowspan="2" class="opR">' + opSym + '</td></tr>'
       + '<tr>' + cells(p.b, false) + '</tr>'
-      + '<tr class="lnrow"><td colspan="' + ncols + '" class="ln"></td><td></td></tr>'
-      + '<tr>' + cells(p.ans, true) + '<td></td></tr></table>';
+      + '<tr class="lnrow"><td colspan="' + ncols + '" class="ln"></td><td class="opR"></td></tr>'
+      + '<tr>' + cells(p.ans, true) + '<td class="opR"></td></tr></table>';
   }
 
   /* ---------- CSS เอกสารพิมพ์ ---------- */
