@@ -282,7 +282,8 @@
   }
 
   /* ---------- CSS เอกสารพิมพ์ ---------- */
-  function printCSS(ac) {
+  function printCSS(ac, cs) {
+    var fs = (cs * 2.55).toFixed(1), pf = (cs * 2.9).toFixed(1), op = (cs * 1.05).toFixed(2);
     return ''
       + '@page{size:A4 portrait;margin:9mm}'
       + '*{box-sizing:border-box}'
@@ -303,15 +304,15 @@
       + '.conthd span{font-weight:400;font-size:13px;color:#999}'
       + '.grid{display:grid;gap:6mm 10px;flex:1;align-content:start;justify-items:center}'
       + '.pb{display:flex;gap:8px;padding:2px;break-inside:avoid;page-break-inside:avoid;align-items:flex-start;justify-content:center}'
-      + '.pb .no{font-weight:700;color:' + ac + ';min-width:24px;font-size:19px;padding-top:4px}'
+      + '.pb .no{font-weight:700;color:' + ac + ';min-width:7mm;font-size:' + (cs * 2).toFixed(1) + 'px;padding-top:2mm}'
       + '.calcT{border-collapse:collapse;break-inside:avoid;page-break-inside:avoid}'
-      + '.calcT td{width:8.5mm;min-width:8.5mm;max-width:8.5mm;height:8.5mm;text-align:center;font-size:22px;padding:0;line-height:8.5mm;box-sizing:border-box}'
+      + '.calcT td{width:' + cs + 'mm;min-width:' + cs + 'mm;max-width:' + cs + 'mm;height:' + cs + 'mm;text-align:center;font-size:' + fs + 'px;padding:0;line-height:' + cs + 'mm;box-sizing:border-box}'
       + '.calcT td.db{border:1.5px solid #333}'
-      + '.calcT td.opR{color:' + ac + ';font-weight:700;font-size:26px;text-align:center;vertical-align:middle;padding-left:4px;width:9mm;min-width:9mm;max-width:9mm}'
-      + '.calcT td.pt{width:8.5mm;min-width:8.5mm;max-width:8.5mm;vertical-align:bottom;font-weight:700;font-size:32px;line-height:.7;padding-bottom:1mm}'
+      + '.calcT td.opR{color:' + ac + ';font-weight:700;font-size:' + (cs * 3).toFixed(1) + 'px;text-align:center;vertical-align:middle;border:0;width:' + op + 'mm;min-width:' + op + 'mm;max-width:' + op + 'mm}'
+      + '.calcT td.pt{vertical-align:bottom;font-weight:700;font-size:' + pf + 'px;line-height:.7;padding-bottom:' + (cs * 0.12).toFixed(1) + 'mm}'
       + '.calcT td.ln{border-bottom:2.5px solid #333;height:3px;padding:0}'
       + '.calcT td.pt.ans{color:' + ac + '}'
-      + '.calcT td.gap{border:0;width:8.5mm;min-width:8.5mm;max-width:8.5mm}'
+      + '.calcT td.gap{border:0}'
       + '.calcT td.ans{color:' + ac + '}'
       + '.foot{margin-top:10px;text-align:center;font-size:11px;color:#777;border-top:1px solid #eee;padding-top:6px}';
   }
@@ -326,18 +327,37 @@
       + '<span class="box">คะแนนที่ได้ <span class="dot" style="min-width:55px;border-color:' + o.accent + '"></span></span></div></div>';
   }
   function sheetHTML(o, withKey) {
-    var PER = 10, i, cols = 2, pages = [];
-    if (o.op === 'mul') {
-      var maxRows = 1, mWi = 0, mWf = 0;
-      o.probs.forEach(function (p) { var L = mulLayout(p.a, p.b); maxRows = Math.max(maxRows, L.ps.length); mWi = Math.max(mWi, L.wi); mWf = Math.max(mWf, L.wo); });
-      o.mWi = mWi; o.mWf = mWf;
-      PER = maxRows <= 1 ? 10 : maxRows <= 2 ? 6 : 4;   // เผื่อความสูงจริง ไม่ให้ข้อถูกตัดกลาง
-    }
+    var i, pages = [];
+    // --- ขนาดตารางสูงสุดในชุด ---
+    var maxCols = 1, maxRows = 1, mWi = 0;
+    o.probs.forEach(function (p) {
+      if (o.op === 'mul') {
+        var L = mulLayout(p.a, p.b);
+        maxCols = Math.max(maxCols, L.ncols); maxRows = Math.max(maxRows, L.ps.length); mWi = Math.max(mWi, L.wi);
+      } else {
+        var m = metrics([p.a, p.b, p.ans]);
+        maxCols = Math.max(maxCols, m.mi + (m.mf > 0 ? 1 : 0) + m.mf);
+      }
+    });
+    o.mWi = mWi;
+    // --- เลือกจำนวนข้อต่อแถว + ขนาดช่อง ให้เต็มความกว้าง A4 ---
+    var PAGE = 192, NUMW = 8, OPR = 1.05, GAP = 6, AVAIL = 200, cols = 2;
+    var cellRows = (o.op === 'mul' && maxRows > 1) ? (2 + maxRows + 1) : 3;
+    var lines = (o.op === 'mul' && maxRows > 1) ? 2 : 1;
+    var cs = (((PAGE - 8) / 2) - NUMW) / (maxCols + OPR);          // ให้เต็มความกว้าง
+    if (cs < 7) { cols = 1; cs = (PAGE - NUMW) / (maxCols + OPR); }
+    var csH = ((AVAIL - GAP) / 2 - lines * 2 - 4) / cellRows;      // ไม่ให้สูงจนได้แค่ 1 ข้อ/หน้า
+    cs = Math.min(cs, csH, 15);
+    cs = Math.floor(cs * 10) / 10;
+    var hProb = cellRows * cs + lines * 2 + 4;                     // ความสูงต่อข้อ (mm)
+    var rowsPer = Math.max(1, Math.floor((AVAIL + GAP) / (hProb + GAP)));
+    var PER = rowsPer * cols;
     for (i = 0; i < o.probs.length; i += PER) pages.push(o.probs.slice(i, i + PER));
     var total = pages.length;
     var body = pages.map(function (chunk, pi) {
       var cells = chunk.map(function (p, j) {
-        return '<div class="pb"><span class="no">' + (pi * PER + j + 1) + ')</span>' + (o.op === 'mul' ? calcGridMul(p, withKey, o.opSym, o.mWi, o.mWf) : calcGrid(p, withKey, o.opSym)) + '</div>';
+        return '<div class="pb"><span class="no">' + (pi * PER + j + 1) + ')</span>'
+          + (o.op === 'mul' ? calcGridMul(p, withKey, o.opSym, o.mWi) : calcGrid(p, withKey, o.opSym)) + '</div>';
       }).join('');
       var grid = '<div class="grid" style="grid-template-columns:repeat(' + cols + ',1fr)">' + cells + '</div>';
       var header = pi === 0
@@ -347,7 +367,7 @@
       return '<div class="page' + (pi > 0 ? ' brk' : '') + '">' + header + grid + foot + '</div>';
     }).join('');
     return '<!doctype html><html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">'
-      + '<title>' + esc(o.title) + '</title><style>' + printCSS(o.accent) + '</style></head><body>' + body + '</body></html>';
+      + '<title>' + esc(o.title) + '</title><style>' + printCSS(o.accent, cs) + '</style></head><body>' + body + '</body></html>';
   }
   function printDoc(html) {
     var f = document.createElement('iframe');
