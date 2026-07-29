@@ -233,11 +233,17 @@
   /* ---------- สุ่มโจทย์ ---------- */
   function genProblem(st) {
     var ia, da, ib, db;
-    if (st.mode === 'custom') { ia = st.intA; da = st.dpA; ib = st.intB; db = st.dpB; }
+    var lv = (st.level === 'random') ? ['easy', 'medium', 'hard'][rndI(0, 2)] : st.level;   // สุ่มระดับต่อข้อ
+    if (st.mode === 'random') {                       // สุ่มทั้งจำนวนหลักและตำแหน่งทศนิยมต่อข้อ
+      ia = rndI(1, 4); da = rndI(0, 3);
+      if (st.op === 'mul') { db = rndI(0, 2); ib = rndI(1, 3 - db); da = db; }   // ทศนิยมเท่ากัน + ตัวคูณรวม ≤3 หลัก (แถวย่อยไม่เกิน 3)
+      else { ib = rndI(1, 4); db = rndI(0, 3); }
+    }
+    else if (st.mode === 'custom') { ia = st.intA; da = st.dpA; ib = st.intB; db = st.dpB; }
     else { ia = st.intDigits; da = rndI(st.rmin, st.rmax); ib = st.intDigits; db = rndI(st.rmin, st.rmax); }
     if (st.op === 'mul') {
-      if (st.mode !== 'custom') {                       // ระดับ = จำนวนหลักรวมของตัวคูณ (= จำนวนแถวผลคูณย่อย)
-        var tot = st.level === 'easy' ? 1 : st.level === 'medium' ? 2 : 3;
+      if (st.mode === 'range') {                        // ระดับ = จำนวนหลักรวมของตัวคูณ (= จำนวนแถวผลคูณย่อย)
+        var tot = lv === 'easy' ? 1 : lv === 'medium' ? 2 : 3;
         db = Math.min(db, tot - 1); if (db < 0) db = 0;
         ib = tot - db;
         da = db;                                        // ทศนิยมเท่ากัน → จุดตรงกันเสมอ
@@ -248,10 +254,10 @@
       return { a: am, b: bm, ans: mulDec(am, bm) };
     }
     if (st.op === 'sub') {
-      var ps = genLeveledSub(ia, da, ib, db, st.level);
+      var ps = genLeveledSub(ia, da, ib, db, lv);
       return { a: ps.a, b: ps.b, ans: subDec(ps.a, ps.b) };
     }
-    var pr = genLeveled(ia, da, ib, db, st.level);
+    var pr = genLeveled(ia, da, ib, db, lv);
     return { a: pr.a, b: pr.b, ans: addDec(pr.a, pr.b) };
   }
 
@@ -299,13 +305,13 @@
       + '.pb{display:flex;gap:8px;padding:2px;break-inside:avoid;page-break-inside:avoid;align-items:flex-start;justify-content:center}'
       + '.pb .no{font-weight:700;color:' + ac + ';min-width:24px;font-size:19px;padding-top:4px}'
       + '.calcT{border-collapse:collapse;break-inside:avoid;page-break-inside:avoid}'
-      + '.calcT td{width:8.5mm;height:8.5mm;text-align:center;font-size:22px;padding:0;line-height:8.5mm}'
+      + '.calcT td{width:8.5mm;min-width:8.5mm;max-width:8.5mm;height:8.5mm;text-align:center;font-size:22px;padding:0;line-height:8.5mm;box-sizing:border-box}'
       + '.calcT td.db{border:1.5px solid #333}'
-      + '.calcT td.opR{color:' + ac + ';font-weight:700;font-size:26px;text-align:center;vertical-align:middle;padding-left:5px;min-width:9mm}'
-      + '.calcT td.pt{width:4.5mm;vertical-align:bottom;font-weight:700;font-size:30px;line-height:.7;padding-bottom:1mm}'
+      + '.calcT td.opR{color:' + ac + ';font-weight:700;font-size:26px;text-align:center;vertical-align:middle;padding-left:4px;width:9mm;min-width:9mm;max-width:9mm}'
+      + '.calcT td.pt{width:4.5mm;min-width:4.5mm;max-width:4.5mm;vertical-align:bottom;font-weight:700;font-size:30px;line-height:.7;padding-bottom:1mm}'
       + '.calcT td.ln{border-bottom:2.5px solid #333;height:3px;padding:0}'
       + '.calcT td.pt.ans{color:' + ac + '}'
-      + '.calcT td.gap{border:0}'
+      + '.calcT td.gap{border:0;width:8.5mm;min-width:8.5mm;max-width:8.5mm}'
       + '.calcT td.ans{color:' + ac + '}'
       + '.foot{margin-top:10px;text-align:center;font-size:11px;color:#777;border-top:1px solid #eee;padding-top:6px}';
   }
@@ -393,13 +399,13 @@
       + '.dc-pb{display:flex;gap:10px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg2);align-items:flex-start}'
       + '.dc-pb .no{font-weight:700;color:var(--accent);min-width:22px;padding-top:4px}'
       + '.dc-pb .calcT{border-collapse:collapse}'
-      + '.dc-pb .calcT td{width:27px;height:27px;text-align:center;font-size:19px;padding:0}'
+      + '.dc-pb .calcT td{width:27px;min-width:27px;max-width:27px;height:27px;text-align:center;font-size:19px;padding:0;box-sizing:border-box}'
       + '.dc-pb .calcT td.db{border:1.5px solid var(--muted)}'
-      + '.dc-pb .calcT td.opR{color:var(--accent);font-weight:700;font-size:23px;text-align:center;vertical-align:middle;padding-left:5px;min-width:26px}'
-      + '.dc-pb .calcT td.pt{width:14px;vertical-align:bottom;font-weight:700;font-size:26px;line-height:.7;padding-bottom:3px}'
+      + '.dc-pb .calcT td.opR{color:var(--accent);font-weight:700;font-size:23px;text-align:center;vertical-align:middle;padding-left:4px;width:28px;min-width:28px;max-width:28px}'
+      + '.dc-pb .calcT td.pt{width:14px;min-width:14px;max-width:14px;vertical-align:bottom;font-weight:700;font-size:26px;line-height:.7;padding-bottom:3px}'
       + '.dc-pb .calcT td.ln{border-bottom:2px solid var(--muted);height:2px;padding:0}'
       + '.dc-pb .calcT td.pt.ans{color:var(--accent)}'
-      + '.dc-pb .calcT td.gap{border:0}'
+      + '.dc-pb .calcT td.gap{border:0;width:27px;min-width:27px;max-width:27px}'
       + '.dc-pb .calcT td.ans{color:var(--accent)}'
       + '.dctile{--tile:var(--accent);position:relative;border:0;cursor:pointer;color:#fff;border-radius:22px;background:linear-gradient(150deg,var(--tile),color-mix(in srgb,var(--tile) 55%,#000));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;width:170px;height:170px}'
       + '.dctile.on{animation:dcBreathe 2.6s ease-in-out infinite}'
@@ -426,8 +432,9 @@
       var st = { op: 'add', level: 'medium', mode: 'range', rmin: 0, rmax: 3, intDigits: 3, intA: 2, dpA: 1, intB: 3, dpB: 2, count: 10, title: '', setId: '', showKey: false, probs: [] };
       function K() { return OPS[st.op]; }
       function newSetId() { var d = new Date(); return K().pre + String(d.getFullYear()).slice(2) + pad2(d.getMonth() + 1) + pad2(d.getDate()) + '-' + rndI(100, 999); }
-      function levelWord() { return st.level === 'easy' ? 'ง่าย' : st.level === 'medium' ? 'ปานกลาง' : 'ยาก'; }
-      function modeWord() { return st.mode === 'custom' ? ('กำหนดเอง · ตัวตั้ง ' + st.intA + ' หลัก ' + st.dpA + ' ตำแหน่ง · ' + K().term + ' ' + st.intB + ' หลัก ' + st.dpB + ' ตำแหน่ง') : ('สุ่ม ' + st.rmin + '–' + st.rmax + ' ตำแหน่ง · ' + st.intDigits + ' หลัก'); }
+      function levelWord() { return st.level === 'easy' ? 'ง่าย' : st.level === 'medium' ? 'ปานกลาง' : st.level === 'hard' ? 'ยาก' : 'สุ่มคละระดับ'; }
+      function modeWord() { if (st.mode === 'random') return 'สุ่มหลักและตำแหน่งทุกข้อ';
+        return st.mode === 'custom' ? ('กำหนดเอง · ตัวตั้ง ' + st.intA + ' หลัก ' + st.dpA + ' ตำแหน่ง · ' + K().term + ' ' + st.intB + ' หลัก ' + st.dpB + ' ตำแหน่ง') : ('สุ่ม ' + st.rmin + '–' + st.rmax + ' ตำแหน่ง · ' + st.intDigits + ' หลัก'); }
       function defTitle() { return st.title || ('แบบฝึก' + K().word + 'ทศนิยม'); }
       function opt(v, label, cur) { return '<option value="' + v + '"' + (v == cur ? ' selected' : '') + '>' + label + '</option>'; }
       function dpShort(cur) { return [0, 1, 2, 3].map(function (n) { return opt(n, n + '', cur); }).join(''); }
@@ -454,8 +461,9 @@
           + '<div class="grid-main" style="display:grid;gap:22px;grid-template-columns:340px 1fr">'
           + '<section><div class="panel" style="padding:18px;display:flex;flex-direction:column;gap:14px">'
           + '<div class="eyebrow">ตั้งค่าชุดแบบฝึก' + K().word + 'ทศนิยม</div>'
-          + '<div class="dc-field"><label>ระดับความยาก' + (st.op === 'mul' ? ' (จำนวนหลักตัวคูณ)' : ' (' + K().unit + ')') + '</label><select id="dLevel">' + (st.op === 'mul' ? opt('easy', 'ง่าย — ตัวคูณ 1 หลัก', st.level) : opt('easy', 'ง่าย — ' + K().unit + 'น้อย (0–1)', st.level)) + (st.op === 'mul' ? opt('medium', 'ปานกลาง — ตัวคูณ 2 หลัก', st.level) : opt('medium', 'ปานกลาง — มี' + K().unit + ' 2–3 ตัว', st.level)) + (st.op === 'mul' ? opt('hard', 'ยาก — ตัวคูณ 3 หลัก', st.level) : opt('hard', 'ยาก — มี' + K().unit + 'ทุกหลัก', st.level)) + '</select></div>'
-          + '<div class="dc-field"><label>โหมดกำหนดตำแหน่ง</label><select id="dMode">' + opt('range', 'สุ่มช่วง 0–3 ตำแหน่ง', st.mode) + opt('custom', 'กำหนดหลักเองทุกจุด', st.mode) + '</select></div>'
+          + '<div class="dc-field"><label>ระดับความยาก' + (st.op === 'mul' ? ' (จำนวนหลักตัวคูณ)' : ' (' + K().unit + ')') + '</label><select id="dLevel">' + (st.op === 'mul' ? opt('easy', 'ง่าย — ตัวคูณ 1 หลัก', st.level) : opt('easy', 'ง่าย — ' + K().unit + 'น้อย (0–1)', st.level)) + (st.op === 'mul' ? opt('medium', 'ปานกลาง — ตัวคูณ 2 หลัก', st.level) : opt('medium', 'ปานกลาง — มี' + K().unit + ' 2–3 ตัว', st.level)) + (st.op === 'mul' ? opt('hard', 'ยาก — ตัวคูณ 3 หลัก', st.level) : opt('hard', 'ยาก — มี' + K().unit + 'ทุกหลัก', st.level))
+          + opt('random', 'สุ่ม — คละทุกระดับ', st.level) + '</select></div>'
+          + '<div class="dc-field"><label>โหมดกำหนดตำแหน่ง</label><select id="dMode">' + opt('range', 'สุ่มช่วง 0–3 ตำแหน่ง', st.mode) + opt('custom', 'กำหนดหลักเองทุกจุด', st.mode) + opt('random', 'สุ่มทั้งหมด (หลัก+ตำแหน่ง)', st.mode) + '</select></div>'
           + '<div class="dc-field" id="dRangeBox"' + (st.mode === 'range' ? '' : ' style="display:none"') + '>'
           + '<label>สุ่มตำแหน่งทศนิยม</label><div class="dc-inline"><select id="dRmin">' + dpShort(st.rmin) + '</select><span>ถึง</span><select id="dRmax">' + dpShort(st.rmax) + '</select><span>ตำแหน่ง</span></div>'
           + '<label style="margin-top:8px">จำนวนหลักหน้าจุด (จำนวนเต็ม)</label><input id="dInt" type="number" min="1" max="7" value="' + st.intDigits + '"></div>'
