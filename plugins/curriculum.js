@@ -132,7 +132,7 @@
         var selAr = (curGen === 'arith' && opsArr.length) ? opsArr.slice() : ['+'];
         var selCarry = lvObj.carry || 'any';
         var RANGES_ = [['0-20', '0–20'], ['1-20', '1–20'], ['10-20', '10–20'], ['21-100', '21–100'], ['1-100', '1–100'], ['1-200', '1–200'], ['100-200', '100–200'], ['201-1000', '201–1,000'], ['100-1000', '100–1,000']];
-        var selRange = (lvObj.range && lvObj.range.join('-')) || (curGen === 'numwrite' ? '21-100' : ((curGen === 'expand' || curGen === 'evenodd') ? '100-1000' : '10-20'));
+        var selRange = (lvObj.range && lvObj.range.join('-')) || ((curGen === 'numwrite' || curGen === 'numline') ? '21-100' : ((curGen === 'expand' || curGen === 'evenodd') ? '100-1000' : '10-20'));
         var selColor = lvObj.color || 'orange';
         var selDir = lvObj.dir || 'asc';
         var selK = lvObj.k || 4;
@@ -148,6 +148,8 @@
         var selPtStep = lvObj.step || 2;
         var selPtDir = lvObj.dir || 'mix';
         var selPtLayout = (curGen === 'pattern' ? (lvObj.layout || 'fill') : 'fill');
+        var selNlOp = lvObj.op || '+';
+        var selNlLayout = (curGen === 'numline' ? (lvObj.layout || 'labeled') : 'labeled');
         var selCmpMode = lvObj.mode || 'two';
         var instr0 = lvObj.instruction || '';
 
@@ -335,6 +337,20 @@
                 '</select>' +
                 '<div style="font-size:.8rem;color:#9aa8c8;margin-top:.3rem">เลือก "ช่วงตัวเลข" ด้านบน · แบบมาร์กจะมีทั้งเพิ่ม/ลด/ไม่ใช่ ปนกัน · แนะนำพิมพ์ 1 คอลัมน์</div>' +
               '</div>' +
+              '<div id="sw_numlineWrap" style="display:none">' +
+                '<label style="font-size:.85rem;color:#9aa8c8">การดำเนินการ</label>' +
+                '<select id="sw_nlop" style="' + INP + '">' +
+                  '<option value="+"' + (selNlOp === '+' ? ' selected' : '') + '>การบวก (+)</option>' +
+                  '<option value="-"' + (selNlOp === '-' ? ' selected' : '') + '>การลบ (−)</option>' +
+                  '<option value="mix"' + (selNlOp === 'mix' ? ' selected' : '') + '>คละ บวก/ลบ</option>' +
+                '</select>' +
+                '<label style="font-size:.85rem;color:#9aa8c8;margin-top:.4rem;display:block">รูปแบบเส้นจำนวน</label>' +
+                '<select id="sw_nllayout" style="' + INP + '">' +
+                  '<option value="labeled"' + (selNlLayout === 'labeled' ? ' selected' : '') + '>มีตัวเลขกำกับ + เติมวิธีคิด</option>' +
+                  '<option value="blank"' + (selNlLayout === 'blank' ? ' selected' : '') + '>เส้นเปล่า (นักเรียนเขียนเอง) + ตอบ</option>' +
+                '</select>' +
+                '<div style="font-size:.8rem;color:#9aa8c8;margin-top:.3rem">เลือก "ช่วงตัวเลข" ด้านบน · เส้นจำนวนย่อ/ขยายสเกลอัตโนมัติ · แนะนำพิมพ์ 1 คอลัมน์</div>' +
+              '</div>' +
               '<div id="sw_noOps" style="display:none;font-size:.82rem;color:#9aa8c8;margin-top:.3rem">ชนิดนี้สร้างโจทย์ให้อัตโนมัติ ไม่ต้องตั้งตัวดำเนินการ</div>' +
             '</div>',
           showCancelButton: true, confirmButtonText: editing ? 'บันทึก' : 'เพิ่ม', cancelButtonText: 'ยกเลิก', confirmButtonColor: '#6366f1',
@@ -345,7 +361,7 @@
               var v = sel.value;
               document.getElementById('sw_arithWrap').style.display = v === 'arith' ? 'block' : 'none';
               document.getElementById('sw_picWrap').style.display = v === 'picture' ? 'block' : 'none';
-              document.getElementById('sw_rangeWrap').style.display = (v === 'compare' || v === 'numwrite' || v === 'order' || v === 'expand' || v === 'evenodd' || v === 'pattern') ? 'block' : 'none';
+              document.getElementById('sw_rangeWrap').style.display = (v === 'compare' || v === 'numwrite' || v === 'order' || v === 'expand' || v === 'evenodd' || v === 'pattern' || v === 'numline') ? 'block' : 'none';
               document.getElementById('sw_colorWrap').style.display = v === 'numwrite' ? 'block' : 'none';
               document.getElementById('sw_dirWrap').style.display = v === 'order' ? 'block' : 'none';
               document.getElementById('sw_timeWrap').style.display = v === 'time' ? 'block' : 'none';
@@ -357,7 +373,8 @@
               document.getElementById('sw_compareWrap').style.display = v === 'compare' ? 'block' : 'none';
               document.getElementById('sw_evenoddWrap').style.display = v === 'evenodd' ? 'block' : 'none';
               document.getElementById('sw_patternWrap').style.display = v === 'pattern' ? 'block' : 'none';
-              document.getElementById('sw_noOps').style.display = (v === 'arith' || v === 'picture' || v === 'compare' || v === 'numwrite' || v === 'order' || v === 'time' || v === 'geometry' || v === 'measlen' || v === 'weigh' || v === 'word' || v === 'expand' || v === 'evenodd' || v === 'pattern') ? 'none' : 'block';
+              document.getElementById('sw_numlineWrap').style.display = v === 'numline' ? 'block' : 'none';
+              document.getElementById('sw_noOps').style.display = (v === 'arith' || v === 'picture' || v === 'compare' || v === 'numwrite' || v === 'order' || v === 'time' || v === 'geometry' || v === 'measlen' || v === 'weigh' || v === 'word' || v === 'expand' || v === 'evenodd' || v === 'pattern' || v === 'numline') ? 'none' : 'block';
             }
             sel.addEventListener('change', toggle); toggle();
             var icurl = document.getElementById('sw_icurl');
@@ -445,6 +462,13 @@
               lvObj.step = Number(document.getElementById('sw_ptstep').value) || 2;
               lvObj.dir = document.getElementById('sw_ptdir').value || 'mix';
               lvObj.layout = document.getElementById('sw_ptlayout').value || 'fill';
+              return { chapterName: name, icon: icon, gen: gen, ops: '', lv: lvObj, hasLv: true };
+            }
+            if (gen === 'numline') {
+              var nr = (document.getElementById('sw_range').value || '21-100').split('-').map(Number);
+              lvObj.range = nr;
+              lvObj.op = document.getElementById('sw_nlop').value || '+';
+              lvObj.layout = document.getElementById('sw_nllayout').value || 'labeled';
               return { chapterName: name, icon: icon, gen: gen, ops: '', lv: lvObj, hasLv: true };
             }
             return { chapterName: name, icon: icon, gen: gen, ops: '' };
