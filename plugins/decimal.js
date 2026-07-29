@@ -147,7 +147,7 @@
         fromRight = n - 1 - i;
         ch = (fromRight >= shift && fromRight < shift + str.length) ? str.charAt(str.length - 1 - (fromRight - shift)) : '';
         out += '<td class="db ans">' + (blank ? '' : ch) + '</td>';
-        if (wf > 0 && i === wi - 1) out += '<td class="pt"></td>';
+        if (wf > 0 && i === wi - 1) out += '<td class="db ans join"></td>';   // เอาจุดออก → ตารางติดกัน
       }
       return out;
     }
@@ -155,8 +155,8 @@
     var bI = '' + p.b.ip, bF = p.b.dp > 0 ? (rep('0', p.b.dp) + p.b.fp).slice(-p.b.dp) : '';
     var nI = L.ansStr.slice(0, L.ansStr.length - L.ans.dp), nF = L.ans.dp > 0 ? L.ansStr.slice(L.ansStr.length - L.ans.dp) : '';
     var html = '<table class="calcT mulT">'
-      + '<tr>' + rowPoint(aI, aF, wo, false, false) + '<td rowspan="2" class="opR">' + opSym + '</td></tr>'
-      + '<tr>' + rowPoint(bI, bF, wo, false, false) + '</tr>'
+      + '<tr>' + rowPoint(aI, aF, p.a.dp, false, false) + '<td rowspan="2" class="opR">' + opSym + '</td></tr>'
+      + '<tr>' + rowPoint(bI, bF, p.b.dp, false, false) + '</tr>'
       + '<tr class="lnrow"><td colspan="' + L.ncols + '" class="ln"></td><td class="opR"></td></tr>';
     if (multi) {
       L.ps.forEach(function (q, idx) {
@@ -308,7 +308,7 @@
       + '.calcT td{width:8.5mm;min-width:8.5mm;max-width:8.5mm;height:8.5mm;text-align:center;font-size:22px;padding:0;line-height:8.5mm;box-sizing:border-box}'
       + '.calcT td.db{border:1.5px solid #333}'
       + '.calcT td.opR{color:' + ac + ';font-weight:700;font-size:26px;text-align:center;vertical-align:middle;padding-left:4px;width:9mm;min-width:9mm;max-width:9mm}'
-      + '.calcT td.pt{width:4.5mm;min-width:4.5mm;max-width:4.5mm;vertical-align:bottom;font-weight:700;font-size:30px;line-height:.7;padding-bottom:1mm}'
+      + '.calcT td.pt{width:8.5mm;min-width:8.5mm;max-width:8.5mm;vertical-align:bottom;font-weight:700;font-size:32px;line-height:.7;padding-bottom:1mm}'
       + '.calcT td.ln{border-bottom:2.5px solid #333;height:3px;padding:0}'
       + '.calcT td.pt.ans{color:' + ac + '}'
       + '.calcT td.gap{border:0;width:8.5mm;min-width:8.5mm;max-width:8.5mm}'
@@ -402,7 +402,7 @@
       + '.dc-pb .calcT td{width:27px;min-width:27px;max-width:27px;height:27px;text-align:center;font-size:19px;padding:0;box-sizing:border-box}'
       + '.dc-pb .calcT td.db{border:1.5px solid var(--muted)}'
       + '.dc-pb .calcT td.opR{color:var(--accent);font-weight:700;font-size:23px;text-align:center;vertical-align:middle;padding-left:4px;width:28px;min-width:28px;max-width:28px}'
-      + '.dc-pb .calcT td.pt{width:14px;min-width:14px;max-width:14px;vertical-align:bottom;font-weight:700;font-size:26px;line-height:.7;padding-bottom:3px}'
+      + '.dc-pb .calcT td.pt{width:27px;min-width:27px;max-width:27px;vertical-align:bottom;font-weight:700;font-size:28px;line-height:.7;padding-bottom:3px}'
       + '.dc-pb .calcT td.ln{border-bottom:2px solid var(--muted);height:2px;padding:0}'
       + '.dc-pb .calcT td.pt.ans{color:var(--accent)}'
       + '.dc-pb .calcT td.gap{border:0;width:27px;min-width:27px;max-width:27px}'
