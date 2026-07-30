@@ -495,24 +495,13 @@
     var cellRows = (o.op === 'div') ? (2 + maxRows) : ((o.op === 'mul' && maxRows > 1) ? (2 + maxRows + 1) : 3);
     var lines = (o.op === 'div') ? 1 : ((o.op === 'mul' && maxRows > 1) ? 2 : 1);
     var cs, csH;
-    if (o.op === 'div') {                                          // หารยาว: ใช้เต็มแนวนอน ช่องใหญ่เท่าการคูณ
-      // ลอง 2 คอลัมน์ก่อน — ถ้าช่องยังใหญ่พอ (≥10mm) ใช้ 2 คอลัมน์ · โจทย์ยาวจริงค่อยสลับ 1 คอลัมน์
-      var csW2 = (((PAGE - 8) / 2) - NUMW) / (maxCols + OPR);
-      var h2rows = ((AVAIL - GAP) / 2 - lines * 2 - 4) / cellRows;   // ขนาดที่ใส่ได้ 2 แถว (4 ข้อ/หน้า)
-      var h1row = (AVAIL - lines * 2 - 4) / cellRows;                // ขนาดที่ใส่ได้ 1 แถว (2 ข้อ/หน้า)
-      csH = (h2rows >= 9) ? h2rows : h1row;
-      var csTry2 = Math.min(csW2, csH, 14);
-      if (csTry2 >= 9) { cols = 2; cs = csTry2; }
-      else { cols = 1; cs = Math.min((PAGE - NUMW) / (maxCols + OPR), h1row, 14); }
-    } else if (o.op === 'mul') {                                   // คูณ: ลอง 2 คอลัมน์ก่อน เหมือนการหาร
-      var mW2 = (((PAGE - 8) / 2) - NUMW) / (maxCols + OPR);
-      var m2 = ((AVAIL - GAP) / 2 - lines * 2 - 4) / cellRows, m1 = (AVAIL - lines * 2 - 4) / cellRows;
-      csH = (m2 >= 8) ? m2 : m1;
-      var try2 = Math.min(mW2, csH, 15);
-      if (try2 >= 6.5) { cols = 2; cs = try2; }
-      else { cols = 1; cs = Math.min((PAGE - NUMW) / (maxCols + OPR), m1, 15); }
+    if (o.op === 'mul' || o.op === 'div') {                         // คูณ/หาร แสดงวิธีทำ: 1 คอลัมน์ 2 ข้อ/หน้า เต็มหน้า A4
+      cols = 1;
+      var csW1 = (PAGE - NUMW) / (maxCols + OPR);                   // เต็มความกว้าง
+      var csH2 = ((AVAIL - GAP) / 2 - lines * 2 - 4) / cellRows;    // ให้พอดี 2 ข้อในหน้า
+      cs = Math.min(csW1, csH2, 22);
     } else {
-      cs = (((PAGE - 8) / 2) - NUMW) / (maxCols + OPR);            // ให้เต็มความกว้าง
+      cs = (((PAGE - 8) / 2) - NUMW) / (maxCols + OPR);
       if (cs < 7) { cols = 1; cs = (PAGE - NUMW) / (maxCols + OPR); }
       csH = ((AVAIL - GAP) / 2 - lines * 2 - 4) / cellRows;
       cs = Math.min(cs, csH, 15);
@@ -520,7 +509,7 @@
     cs = Math.floor(cs * 10) / 10;
     var hProb = cellRows * cs + lines * 2 + 4;                     // ความสูงต่อข้อ (mm)
     var rowsPer = Math.max(1, Math.floor((AVAIL + GAP) / (hProb + GAP)));
-    var PER = rowsPer * cols;
+    var PER = (o.op === 'mul' || o.op === 'div') ? 2 : rowsPer * cols;
     for (i = 0; i < o.probs.length; i += PER) pages.push(o.probs.slice(i, i + PER));
     var total = pages.length;
     var body = pages.map(function (chunk, pi) {
