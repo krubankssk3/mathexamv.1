@@ -392,12 +392,12 @@
   // โจทย์บรรทัดเดียว: a (op) b = ______
   function inlineHTML(p, showAns, opSym, approx) {
     var ans = showNum(p.ans);
-    return '<span class="inl">' + showNum(p.a) + ' <b>' + opSym + '</b> ' + showNum(p.b) + ' <b>=</b> '
-      + (showAns ? '<span class="ians">' + (approx ? '&asymp; ' : '') + ans + '</span>' : '<span class="ibl"></span>') + '</span>';
+    return '<span class="inl"><span class="n1">' + showNum(p.a) + '</span><b>' + opSym + '</b><span class="n2">' + showNum(p.b) + '</span><b>=</b>'
+      + (showAns ? '<span class="ians">' + (approx ? '&asymp;' : '') + ans + '</span>' : '<span class="ibl"></span>') + '</span>';
   }
 
   /* ---------- CSS เอกสารพิมพ์ ---------- */
-  function printCSS(ac, cs) {
+  function printCSS(ac, cs, wA, wB) {
     var fs = (cs * 2.55).toFixed(1), pf = (cs * 2.9).toFixed(1), op = (cs * 1.05).toFixed(2);
     return ''
       + '@page{size:A4 portrait;margin:9mm}'
@@ -432,10 +432,12 @@
       + '.divT tr.vrow td{height:0;padding:0;border:0}'
       + '.divT td.vln{border-bottom:2.5px solid #333;height:2px;padding:0}'
       + '.calcT td.ans{color:' + ac + '}'
-      + '.inl{font-size:' + (cs * 2.2).toFixed(1) + 'px;white-space:nowrap;line-height:2.4}'
-      + '.inl b{color:' + ac + ';margin:0 3px}'
-      + '.ibl{display:inline-block;min-width:' + (cs * 3.5).toFixed(1) + 'mm;border-bottom:1px dotted #666}'
-      + '.ians{color:' + ac + ';font-weight:700}'
+      + '.inl{font-size:' + (cs * 2.2).toFixed(1) + 'px;white-space:nowrap;line-height:2.4;font-variant-numeric:tabular-nums}'
+      + '.inl b{color:' + ac + ';margin:0 4px;display:inline-block;width:1.1ch;text-align:center}'
+      + '.inl .n1{display:inline-block;min-width:' + (wA || 8) + 'ch;text-align:right}'
+      + '.inl .n2{display:inline-block;min-width:' + (wB || 6) + 'ch;text-align:right}'
+      + '.ibl{display:inline-block;min-width:' + (cs * 3.6).toFixed(1) + 'mm;border-bottom:1px dotted #666;margin-left:4px}'
+      + '.ians{color:' + ac + ';font-weight:700;margin-left:4px}'
       + '.foot{margin-top:10px;text-align:center;font-size:11px;color:#777;border-top:1px solid #eee;padding-top:6px}';
   }
   function headHTML(o) {
@@ -472,6 +474,8 @@
     var PAGE = 192, NUMW = 8, OPR = 1.05, GAP = 6, AVAIL = 200, cols = 2;
     if (o.layout === 'inline') {                                   // โจทย์บรรทัดเดียว: แน่นแบบใบงานเศษส่วน
       var csI = 9, hRow = 16, rowsI = Math.max(4, Math.floor((AVAIL + 4) / hRow));
+      var wA = 0, wB = 0;
+      o.probs.forEach(function (p) { wA = Math.max(wA, showNum(p.a).length); wB = Math.max(wB, showNum(p.b).length); });
       var PERI = rowsI * 2, pagesI = [];
       for (i = 0; i < o.probs.length; i += PERI) pagesI.push(o.probs.slice(i, i + PERI));
       var totalI = pagesI.length;
@@ -486,7 +490,7 @@
         return '<div class="page' + (pi > 0 ? ' brk' : '') + '">' + hdI + '<div class="grid" style="grid-template-columns:repeat(2,1fr)">' + cellsI + '</div>' + ftI + '</div>';
       }).join('');
       return '<!doctype html><html lang="th"><head><meta charset="utf-8"><title>' + esc(o.title) + '</title><style>'
-        + printCSS(o.accent, csI) + '</style></head><body>' + bodyI + '</body></html>';
+        + printCSS(o.accent, csI, wA, wB) + '</style></head><body>' + bodyI + '</body></html>';
     }
     var cellRows = (o.op === 'div') ? (2 + maxRows) : ((o.op === 'mul' && maxRows > 1) ? (2 + maxRows + 1) : 3);
     var lines = (o.op === 'div') ? 1 : ((o.op === 'mul' && maxRows > 1) ? 2 : 1);
@@ -500,10 +504,17 @@
       var csTry2 = Math.min(csW2, csH, 14);
       if (csTry2 >= 9) { cols = 2; cs = csTry2; }
       else { cols = 1; cs = Math.min((PAGE - NUMW) / (maxCols + OPR), h1row, 14); }
+    } else if (o.op === 'mul') {                                   // คูณ: ลอง 2 คอลัมน์ก่อน เหมือนการหาร
+      var mW2 = (((PAGE - 8) / 2) - NUMW) / (maxCols + OPR);
+      var m2 = ((AVAIL - GAP) / 2 - lines * 2 - 4) / cellRows, m1 = (AVAIL - lines * 2 - 4) / cellRows;
+      csH = (m2 >= 8) ? m2 : m1;
+      var try2 = Math.min(mW2, csH, 15);
+      if (try2 >= 6.5) { cols = 2; cs = try2; }
+      else { cols = 1; cs = Math.min((PAGE - NUMW) / (maxCols + OPR), m1, 15); }
     } else {
       cs = (((PAGE - 8) / 2) - NUMW) / (maxCols + OPR);            // ให้เต็มความกว้าง
       if (cs < 7) { cols = 1; cs = (PAGE - NUMW) / (maxCols + OPR); }
-      csH = ((AVAIL - GAP) / 2 - lines * 2 - 4) / cellRows;        // ไม่ให้สูงจนได้แค่ 1 ข้อ/หน้า
+      csH = ((AVAIL - GAP) / 2 - lines * 2 - 4) / cellRows;
       cs = Math.min(cs, csH, 15);
     }
     cs = Math.floor(cs * 10) / 10;
@@ -635,7 +646,10 @@
       + '.dc-pb .divT tr.vrow td{height:0;padding:0;border:0}'
       + '.dc-pb .divT td.vln{border-bottom:2px solid var(--muted);height:2px;padding:0}'
       + '.dc-pb .calcT td.ans{color:var(--accent)}'
-      + '.dc-pb .inl{font-size:19px;white-space:nowrap}.dc-pb .inl b{color:var(--accent);margin:0 3px}'
+      + '.dc-pb .inl{font-size:19px;white-space:nowrap;font-variant-numeric:tabular-nums}'
+      + '.dc-pb .inl b{color:var(--accent);margin:0 4px;display:inline-block;width:1.1ch;text-align:center}'
+      + '.dc-pb .inl .n1{display:inline-block;min-width:8ch;text-align:right}'
+      + '.dc-pb .inl .n2{display:inline-block;min-width:6ch;text-align:right}'
       + '.dc-pb .ibl{display:inline-block;min-width:70px;border-bottom:1px dotted var(--muted)}'
       + '.dc-pb .ians{color:var(--accent);font-weight:700}'
       + '.dctile{--tile:var(--accent);position:relative;border:0;cursor:pointer;color:#fff;border-radius:22px;background:linear-gradient(150deg,var(--tile),color-mix(in srgb,var(--tile) 55%,#000));display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;width:170px;height:170px}'
