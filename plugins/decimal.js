@@ -519,8 +519,9 @@
     if (o.op === 'mul' || o.op === 'div') {                         // คูณ/หาร แสดงวิธีทำ: 1 คอลัมน์ 2 ข้อ/หน้า เต็มหน้า A4
       cols = 1;
       var csW1 = (PAGE - NUMW) / (maxCols + OPR);                   // เต็มความกว้าง
-      var csH2 = ((AVAIL - GAP) / 2 - lines * 2 - 4) / (cellRows + 2.1);   // เผื่อบรรทัดโจทย์ + วิธีทำ + ให้พอดี 2 ข้อ
+      var csH2 = ((AVAIL - GAP) / 2 - lines * 2 - 4) / (cellRows + 2.1);   // พอดี 2 ข้อ/หน้า
       cs = Math.min(csW1, csH2, 22);
+      if (cs < 8) { cs = Math.min(csW1, (AVAIL - lines * 2 - 4) / (cellRows + 2.1), 22); o.onePer = true; }   // เล็กเกิน → 1 ข้อ/หน้า ตารางใหญ่
     } else {
       cs = (((PAGE - 8) / 2) - NUMW) / (maxCols + OPR);
       if (cs < 7) { cols = 1; cs = (PAGE - NUMW) / (maxCols + OPR); }
@@ -530,13 +531,16 @@
     cs = Math.floor(cs * 10) / 10;
     var hProb = cellRows * cs + lines * 2 + 4 + ((o.op === 'mul' || o.op === 'div') ? cs * 2.1 : 0);   // + บรรทัดโจทย์ + วิธีทำ
     var rowsPer = Math.max(1, Math.floor((AVAIL + GAP) / (hProb + GAP)));
-    var PER = (o.op === 'mul' || o.op === 'div') ? 2 : rowsPer * cols;
+    var PER = (o.op === 'mul' || o.op === 'div') ? (o.onePer ? 1 : 2) : rowsPer * cols;
     for (i = 0; i < o.probs.length; i += PER) pages.push(o.probs.slice(i, i + PER));
     var total = pages.length;
     var body = pages.map(function (chunk, pi) {
       var cells = chunk.map(function (p, j) {
         return '<div class="pb"><span class="no">' + (pi * PER + j + 1) + ')</span>'
-          + (o.layout === 'inline' ? inlineHTML(p, withKey, o.opSym, o.approx) : o.op === 'div' ? calcGridDiv(p, withKey) : o.op === 'mul' ? calcGridMul(p, withKey, o.opSym, o.mWi) : calcGrid(p, withKey, o.opSym)) + '</div>';
+          + (o.layout === 'inline' ? inlineHTML(p, withKey, o.opSym, o.approx)
+            : (o.op === 'div' || o.op === 'mul')
+              ? ('<div class="wk">' + qLineHTML(p, o.opSym) + (o.op === 'div' ? calcGridDiv(p, withKey, o.dvN, o.dvRows) : calcGridMul(p, withKey, o.opSym, o.mWi)) + '</div>')
+              : calcGrid(p, withKey, o.opSym)) + '</div>';
       }).join('');
       var grid = '<div class="grid" style="grid-template-columns:repeat(' + cols + ',1fr)">' + cells + '</div>';
       var header = pi === 0
@@ -820,7 +824,7 @@
 
       function doPrint(withKey) {
         var S = svc.settings || {}, cur = K();
-        var o = { title: defTitle(), setId: st.setId, opSym: cur.op, op: st.op, layout: ((st.op === 'mul' || st.op === 'div') ? st.layout : 'work'), approx: (st.op === 'div' && (st.divKind === 'round' || st.divKind === 'mixdec')), sub: cur.word + ' · ระดับ' + levelWord() + ' · ' + modeWord(),
+        var o = { title: defTitle(), setId: st.setId, opSym: cur.op, op: st.op, layout: ((st.op === 'mul' || st.op === 'div') ? st.layout : 'work'), approx: (st.op === 'div' && (true)), sub: cur.word + ' · ระดับ' + levelWord() + ' · ' + modeWord(),
           accent: cur.accent, org: S.org || '', logo: S.logo || LOGO, probs: st.probs, qrImg: '' };
         var finish = function (qrImg) { o.qrImg = qrImg || ''; printDoc(sheetHTML(o, withKey)); if (svc.toast) svc.toast('success', withKey ? 'เปิดหน้าพิมพ์ฉบับเฉลยแล้ว' : 'เปิดหน้าพิมพ์ใบงานแล้ว'); };
         if (!withKey) {
