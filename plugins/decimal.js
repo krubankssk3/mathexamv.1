@@ -389,6 +389,10 @@
       + '<tr>' + cells(p.ans, true) + '<td class="opR"></td></tr></table>';
   }
 
+  // บรรทัดโจทย์ (นำหน้าวิธีทำ)
+  function qLineHTML(p, opSym) {
+    return '<div class="qline">' + showNum(p.a) + ' <b>' + opSym + '</b> ' + showNum(p.b) + ' <b>=</b></div>';
+  }
   // โจทย์บรรทัดเดียว: a (op) b = ______
   function inlineHTML(p, showAns, opSym, approx) {
     var ans = showNum(p.ans);
@@ -420,6 +424,9 @@
       + '.grid{display:grid;gap:6mm 10px;flex:1;align-content:start;justify-items:center}'
       + '.pb{display:flex;gap:8px;padding:2px;break-inside:avoid;page-break-inside:avoid;align-items:flex-start;justify-content:center}'
       + '.pb .no{font-weight:700;color:' + ac + ';min-width:7mm;font-size:' + (cs * 2).toFixed(1) + 'px;padding-top:2mm}'
+      + '.qline{font-size:' + (cs * 2.1).toFixed(1) + 'px;font-weight:600;margin-bottom:' + (cs * 0.25).toFixed(1) + 'mm;font-variant-numeric:tabular-nums}'
+      + '.qline b{color:' + ac + ';margin:0 3px}'
+      + '.wk{display:flex;flex-direction:column;align-items:flex-start}'
       + '.calcT{border-collapse:collapse;break-inside:avoid;page-break-inside:avoid}'
       + '.calcT td{width:' + cs + 'mm;min-width:' + cs + 'mm;max-width:' + cs + 'mm;height:' + cs + 'mm;text-align:center;font-size:' + fs + 'px;padding:0;line-height:' + cs + 'mm;box-sizing:border-box}'
       + '.calcT td.db{border:1.5px solid #333}'
@@ -498,7 +505,7 @@
     if (o.op === 'mul' || o.op === 'div') {                         // คูณ/หาร แสดงวิธีทำ: 1 คอลัมน์ 2 ข้อ/หน้า เต็มหน้า A4
       cols = 1;
       var csW1 = (PAGE - NUMW) / (maxCols + OPR);                   // เต็มความกว้าง
-      var csH2 = ((AVAIL - GAP) / 2 - lines * 2 - 4) / cellRows;    // ให้พอดี 2 ข้อในหน้า
+      var csH2 = ((AVAIL - GAP) / 2 - lines * 2 - 4) / (cellRows + 1.4);   // เผื่อบรรทัดโจทย์ + ให้พอดี 2 ข้อ
       cs = Math.min(csW1, csH2, 22);
     } else {
       cs = (((PAGE - 8) / 2) - NUMW) / (maxCols + OPR);
@@ -507,7 +514,7 @@
       cs = Math.min(cs, csH, 15);
     }
     cs = Math.floor(cs * 10) / 10;
-    var hProb = cellRows * cs + lines * 2 + 4;                     // ความสูงต่อข้อ (mm)
+    var hProb = cellRows * cs + lines * 2 + 4 + ((o.op === 'mul' || o.op === 'div') ? cs * 1.4 : 0);   // + บรรทัดโจทย์
     var rowsPer = Math.max(1, Math.floor((AVAIL + GAP) / (hProb + GAP)));
     var PER = (o.op === 'mul' || o.op === 'div') ? 2 : rowsPer * cols;
     for (i = 0; i < o.probs.length; i += PER) pages.push(o.probs.slice(i, i + PER));
@@ -623,6 +630,9 @@
       + '.dc-prev{display:grid;gap:14px 18px;margin-top:14px;grid-template-columns:repeat(2,1fr);justify-items:center;align-items:start;align-content:start}'
       + '.dc-pb{display:flex;gap:10px;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg2);align-items:flex-start}'
       + '.dc-pb .no{font-weight:700;color:var(--accent);min-width:22px;padding-top:4px}'
+      + '.dc-pb .qline{font-size:18px;font-weight:600;margin-bottom:5px;font-variant-numeric:tabular-nums}'
+      + '.dc-pb .qline b{color:var(--accent);margin:0 3px}'
+      + '.dc-pb .wk{display:flex;flex-direction:column;align-items:flex-start}'
       + '.dc-pb .calcT{border-collapse:collapse}'
       + '.dc-pb .calcT td{width:27px;min-width:27px;max-width:27px;height:27px;text-align:center;font-size:19px;padding:0;box-sizing:border-box}'
       + '.dc-pb .calcT td.db{border:1.5px solid var(--muted)}'
@@ -777,7 +787,9 @@
         if (!st.probs.length) { out.innerHTML = '<div class="panel" style="padding:30px;text-align:center;color:var(--muted)">เลือกค่าทางซ้าย แล้วกด “สร้างชุดแบบฝึก”</div>'; return; }
         var pWi = 0, pWf = 0;
         if (st.op === 'mul') st.probs.forEach(function (p) { var L = mulLayout(p.a, p.b); pWi = Math.max(pWi, L.wi); pWf = Math.max(pWf, L.wo); });
-        var cells = st.probs.map(function (p, i) { return '<div class="dc-pb"><span class="no">' + (i + 1) + ')</span>' + (st.layout === 'inline' ? inlineHTML(p, st.showKey, K().op, st.divKind === 'round') : st.op === 'div' ? calcGridDiv(p, st.showKey) : st.op === 'mul' ? calcGridMul(p, st.showKey, K().op, pWi, pWf) : calcGrid(p, st.showKey, K().op)) + '</div>'; }).join('');
+        var cells = st.probs.map(function (p, i) { return '<div class="dc-pb"><span class="no">' + (i + 1) + ')</span>' + (st.layout === 'inline' ? inlineHTML(p, st.showKey, K().op, st.divKind === 'round')
+            : (st.op === 'div' || st.op === 'mul') ? ('<div class="wk">' + qLineHTML(p, K().op) + (st.op === 'div' ? calcGridDiv(p, st.showKey) : calcGridMul(p, st.showKey, K().op, pWi, pWf)) + '</div>')
+            : calcGrid(p, st.showKey, K().op)) + '</div>'; }).join('');
         out.innerHTML = '<div class="panel" style="padding:18px">'
           + '<div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:8px">'
           + '<div><div class="eyebrow">ตัวอย่างก่อนพิมพ์</div><div class="font-display" style="font-weight:800;font-size:1.2rem">' + esc(defTitle()) + ' <span style="font-size:.78rem;color:var(--muted)">ชุด ' + esc(st.setId) + '</span></div></div>'
