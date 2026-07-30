@@ -460,6 +460,24 @@
     o.mWi = mWi;
     // --- เลือกจำนวนข้อต่อแถว + ขนาดช่อง ให้เต็มความกว้าง A4 ---
     var PAGE = 192, NUMW = 8, OPR = 1.05, GAP = 6, AVAIL = 200, cols = 2;
+    if (o.layout === 'inline') {                                   // โจทย์บรรทัดเดียว: แน่นแบบใบงานเศษส่วน
+      var csI = 9, hRow = 16, rowsI = Math.max(4, Math.floor((AVAIL + 4) / hRow));
+      var PERI = rowsI * 2, pagesI = [];
+      for (i = 0; i < o.probs.length; i += PERI) pagesI.push(o.probs.slice(i, i + PERI));
+      var totalI = pagesI.length;
+      var bodyI = pagesI.map(function (chunk, pi) {
+        var cellsI = chunk.map(function (p, j) {
+          return '<div class="pb"><span class="no">' + (pi * PERI + j + 1) + ')</span>' + inlineHTML(p, withKey, o.opSym, o.approx) + '</div>';
+        }).join('');
+        var hdI = pi === 0
+          ? headHTML(o) + (withKey ? '<div style="text-align:center;color:' + o.accent + ';font-weight:700;margin:2px 0 6px">★ ฉบับเฉลย ★</div>' : '')
+          : '<div class="conthd">' + esc(o.title) + ' <span>· ชุด ' + esc(o.setId) + ' · หน้า ' + (pi + 1) + '/' + totalI + '</span></div>';
+        var ftI = (pi === totalI - 1) ? '<div class="foot">' + FOOTER + '</div>' : '';
+        return '<div class="page' + (pi > 0 ? ' brk' : '') + '">' + hdI + '<div class="grid" style="grid-template-columns:repeat(2,1fr)">' + cellsI + '</div>' + ftI + '</div>';
+      }).join('');
+      return '<!doctype html><html lang="th"><head><meta charset="utf-8"><title>' + esc(o.title) + '</title><style>'
+        + printCSS(o.accent, csI) + '</style></head><body>' + bodyI + '</body></html>';
+    }
     var cellRows = (o.op === 'div') ? (2 + maxRows) : ((o.op === 'mul' && maxRows > 1) ? (2 + maxRows + 1) : 3);
     var lines = (o.op === 'div') ? 1 : ((o.op === 'mul' && maxRows > 1) ? 2 : 1);
     var cs, csH;
@@ -532,6 +550,45 @@
       TM.el = w; TM.reset = reset; reset();
     }
     TM.reset(); TM.el.style.display = 'flex';
+  }
+
+  /* ---------- QR เฉลย (โหลด qrcode.min.js เองถ้าเว็บยังไม่มี) ---------- */
+  function ensureQRLib(cb) {
+    if (window.QRCode) { cb(true); return; }
+    var tried = 0;
+    function load(src) {
+      var sc = document.createElement('script');
+      sc.src = src;
+      sc.onload = function () { cb(!!window.QRCode); };
+      sc.onerror = function () { tried++; if (tried === 1) load('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'); else cb(false); };
+      document.head.appendChild(sc);
+    }
+    load('qrcode.min.js');
+  }
+  function b64utf8(str) { return btoa(unescape(encodeURIComponent(str))); }
+  function keyURLLocal(title, setId, answers) {
+    var o = { t: title, s: setId, a: answers };
+    return location.origin + location.pathname + '#k=' + encodeURIComponent(b64utf8(JSON.stringify(o)));
+  }
+  function makeQRLocal(text) {
+    return new Promise(function (res) {
+      ensureQRLib(function (ok) {
+        if (!ok) { res(''); return; }
+        try {
+          var tmp = document.createElement('div');
+          tmp.style.cssText = 'position:absolute;left:-9999px;top:0';
+          document.body.appendChild(tmp);
+          new QRCode(tmp, { text: text, width: 260, height: 260, correctLevel: QRCode.CorrectLevel.L });
+          setTimeout(function () {
+            var url = '', cv = tmp.querySelector('canvas');
+            if (cv) { try { url = cv.toDataURL('image/png'); } catch (e) { } }
+            if (!url) { var im = tmp.querySelector('img'); if (im) url = im.src; }
+            if (tmp.parentNode) tmp.parentNode.removeChild(tmp);
+            res(url);
+          }, 150);
+        } catch (e) { res(''); }
+      });
+    });
   }
 
   /* ---------- CSS พรีวิว ---------- */
@@ -707,9 +764,10 @@
         var o = { title: defTitle(), setId: st.setId, opSym: cur.op, op: st.op, layout: ((st.op === 'mul' || st.op === 'div') ? st.layout : 'work'), approx: (st.op === 'div' && st.divKind === 'round'), sub: cur.word + ' · ระดับ' + levelWord() + ' · ' + modeWord(),
           accent: cur.accent, org: S.org || '', logo: S.logo || LOGO, probs: st.probs, qrImg: '' };
         var finish = function (qrImg) { o.qrImg = qrImg || ''; printDoc(sheetHTML(o, withKey)); if (svc.toast) svc.toast('success', withKey ? 'เปิดหน้าพิมพ์ฉบับเฉลยแล้ว' : 'เปิดหน้าพิมพ์ใบงานแล้ว'); };
-        if (!withKey && svc.makeQR && svc.keyURL) {
+        if (!withKey) {
           var answers = st.probs.map(function (p) { return st.op === 'div' ? showNum(p.ans) : (p.ans.digits ? showNum({ ip: p.ans.ip, fp: p.ans.fp, dp: p.ans.dp }) : showNum(p.ans)); });   // เฉพาะคำตอบ (ให้ QR ไม่ล้น)
-          svc.makeQR(svc.keyURL(o.title, st.setId, answers)).then(function (img) { finish(img); }, function () { finish(''); });
+          var url = (svc.keyURL ? svc.keyURL(o.title, st.setId, answers) : keyURLLocal(o.title, st.setId, answers));
+          makeQRLocal(url).then(function (img) { finish(img); }, function () { finish(''); });
         } else finish('');
       }
 
