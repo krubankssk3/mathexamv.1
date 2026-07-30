@@ -331,17 +331,27 @@
     }
     else if (st.mode === 'custom') { ia = st.intA; da = st.dpA; ib = st.intB; db = st.dpB; }
     else { ia = st.intDigits; da = rndI(st.rmin, st.rmax); ib = st.intDigits; db = rndI(st.rmin, st.rmax); }
-    if (st.op === 'div') {                              // หาร: สร้างจากผลหาร ให้หารได้เสมอ
-      var kind = st.divKind || 'dec', dd, qd;
-      if (st.level === 'custom') { dd = Math.max(1, Math.min(3, st.divDd || 1)); qd = Math.max(1, Math.min(4, st.divQd || 2)); }
-      else { dd = rndI(1, 2); qd = (lv === 'easy' ? 1 : lv === 'medium' ? 2 : 3); }
-      var qdp = (kind === 'whole') ? 0 : Math.max(1, Math.min(3, st.qdp || 2));   // จำนวนเต็ม = ไม่มีทศนิยมเด็ดขาด
-      var ddp = (st.level === 'custom') ? Math.max(0, Math.min(2, st.divDp || 0)) : 0;
-      if (kind !== 'round' && qdp + ddp > 3) ddp = Math.max(0, 3 - qdp);           // ตัวตั้งต้องไม่เกิน 3 ตำแหน่ง
-      return genDivProblem(dd, qd, kind, qdp, ddp);
+    if (st.op === 'div') {                              // หาร: กำหนดเองอิสระ หรือคละทั้งหมด
+      var kind = st.divKind || 'dec', dd, qd, qdp, ddp, aD = null, aDp = null;
+      if (st.numMode === 'random') {
+        kind = ['dec', 'round', 'whole'][rndI(0, 2)];
+        dd = rndI(1, 2); qd = rndI(1, 3); ddp = rndI(0, 1);
+        qdp = (kind === 'whole') ? 0 : rndI(1, 3);
+        if (kind !== 'round' && qdp + ddp > 3) ddp = Math.max(0, 3 - qdp);
+        if (kind === 'round') { aD = rndI(2, 5); aDp = rndI(0, 2); }
+      } else {
+        dd = Math.max(1, Math.min(3, st.divDd || 1));
+        ddp = Math.max(0, Math.min(3, st.divDp != null ? st.divDp : 0));
+        qdp = (kind === 'whole') ? 0 : Math.max(1, Math.min(3, st.qdp || 2));
+        if (kind === 'round') { aD = Math.max(1, Math.min(7, st.intA || 3)); aDp = Math.max(0, Math.min(3, st.dpA != null ? st.dpA : 0)); qd = 2; }
+        else { qd = Math.max(1, Math.min(4, st.divQd || 2)); if (qdp + ddp > 3) ddp = Math.max(0, 3 - qdp); }
+      }
+      return genDivProblem(dd, qd, kind, qdp, ddp, aD, aDp);
     }
-    if (st.op === 'mul') {
-      if (st.mode === 'range') {                        // ระดับ = จำนวนหลักรวมของตัวคูณ (= จำนวนแถวผลคูณย่อย)
+    if (st.op === 'mul') {                              // คูณ: กำหนดเองอิสระ หรือคละทั้งหมด
+      if (st.numMode === 'random') { db = rndI(0, 2); ib = rndI(1, 3 - db); da = db; ia = rndI(1, 4); }
+      else { ia = Math.max(1, Math.min(7, st.intA || 2)); da = Math.max(0, Math.min(3, st.dpA != null ? st.dpA : 1)); ib = Math.max(1, Math.min(4, st.intB || 1)); db = Math.max(0, Math.min(3, st.dpB != null ? st.dpB : 1)); }
+      if (false) {                                      // (โครงเดิม ไม่ใช้แล้ว)
         var tot = lv === 'easy' ? 1 : lv === 'medium' ? 2 : 3;
         db = Math.min(db, tot - 1); if (db < 0) db = 0;
         ib = tot - db;
@@ -690,15 +700,25 @@
               + opt('dec', 'ทศนิยม (หารลงตัวพอดี)', st.divKind) + opt('round', 'ทศนิยม (ปัดเศษ ≈)', st.divKind) + opt('whole', 'จำนวนเต็ม (ไม่มีทศนิยม)', st.divKind) + '</select></div>'
               + '<div class="dc-field" id="dQdpBox"' + (st.divKind !== 'whole' ? '' : ' style="display:none"') + '><label>ตำแหน่งทศนิยมของผลหาร</label><select id="dQdp">'
               + [1, 2, 3].map(function (n) { return opt(n, n + ' ตำแหน่ง', st.qdp); }).join('') + '</select></div>') : '')
-          + '<div class="dc-field"><label>ระดับความยาก' + (st.op === 'mul' ? ' (จำนวนหลักตัวคูณ)' : st.op === 'div' ? ' (จำนวนหลักผลหาร)' : ' (' + K().unit + ')') + '</label><select id="dLevel">' + (st.op === 'mul' ? opt('easy', 'ง่าย — ตัวคูณ 1 หลัก', st.level) : st.op === 'div' ? opt('easy', 'ง่าย — ผลหาร 1 หลัก', st.level) : opt('easy', 'ง่าย — ' + K().unit + 'น้อย (0–1)', st.level)) + (st.op === 'mul' ? opt('medium', 'ปานกลาง — ตัวคูณ 2 หลัก', st.level) : st.op === 'div' ? opt('medium', 'ปานกลาง — ผลหาร 2 หลัก', st.level) : opt('medium', 'ปานกลาง — มี' + K().unit + ' 2–3 ตัว', st.level)) + (st.op === 'mul' ? opt('hard', 'ยาก — ตัวคูณ 3 หลัก', st.level) : st.op === 'div' ? opt('hard', 'ยาก — ผลหาร 3 หลัก', st.level) : opt('hard', 'ยาก — มี' + K().unit + 'ทุกหลัก', st.level))
-          + opt('random', 'สุ่ม — คละทุกระดับ', st.level)
-          + (st.op === 'div' ? opt('custom', 'กำหนดเอง — ระบุจำนวนหลัก', st.level) : '') + '</select></div>'
-          + (st.op === 'div' ? '' : '<div class="dc-field"><label>โหมดกำหนดตำแหน่ง</label><select id="dMode">' + opt('range', 'สุ่มช่วง 0–3 ตำแหน่ง', st.mode) + opt('custom', 'กำหนดหลักเองทุกจุด', st.mode) + opt('random', 'สุ่มทั้งหมด (หลัก+ตำแหน่ง)', st.mode) + '</select></div>')
-          + (st.op === 'div' ?
-            ('<div class="dc-field" id="dDivCustom"' + (st.level === 'custom' ? '' : ' style="display:none"') + '><label>กำหนดจำนวนหลักเอง</label>'
-              + '<div class="dc-row"><span class="lbl">ผลหาร</span><input id="dDivQd" type="number" min="1" max="4" value="' + st.divQd + '"> หลัก</div>'
-              + '<div class="dc-row"><span class="lbl">ตัวหาร</span><input id="dDivDd" type="number" min="1" max="3" value="' + st.divDd + '"> หลัก <select id="dDivDp">'
-              + [0, 1, 2].map(function (n) { return opt(n, n, st.divDp); }).join('') + '</select> ตำแหน่ง</div></div>') : '')
+          + ((st.op === 'mul' || st.op === 'div') ?
+            ('<div class="dc-field"><label>รูปแบบตัวเลข</label><select id="dNumMode">'
+              + opt('custom', 'กำหนดเองทุกค่า', st.numMode) + opt('random', 'คละทั้งหมด (สุ่มทุกค่า)', st.numMode) + '</select></div>'
+              + '<div class="dc-field" id="dFreeBox"' + (st.numMode === 'custom' ? '' : ' style="display:none"') + '><label>กำหนดค่าเอง (หลัก · ตำแหน่งทศนิยม)</label>'
+              + (st.op === 'mul'
+                ? ('<div class="dc-row"><span class="lbl">ตัวตั้ง</span><input id="dIntA" type="number" min="1" max="7" value="' + st.intA + '"> หลัก <select id="dDpA">' + dpShort(st.dpA) + '</select> ตน.</div>'
+                   + '<div class="dc-row"><span class="lbl">ตัวคูณ</span><input id="dIntB" type="number" min="1" max="4" value="' + st.intB + '"> หลัก <select id="dDpB">' + dpShort(st.dpB) + '</select> ตน.</div>'
+                   + '<div style="font-size:11px;color:var(--muted);margin-top:4px">ตัวคูณ หลัก+ทศนิยม รวมกันยิ่งมาก แถวผลคูณย่อยยิ่งเยอะ</div>')
+                : ((st.divKind === 'round'
+                    ? '<div class="dc-row"><span class="lbl">ตัวตั้ง</span><input id="dIntA" type="number" min="1" max="7" value="' + st.intA + '"> หลัก <select id="dDpA">' + dpShort(st.dpA) + '</select> ตน.</div>'
+                    : '<div class="dc-row"><span class="lbl">ผลหาร</span><input id="dDivQd" type="number" min="1" max="4" value="' + st.divQd + '"> หลัก</div>')
+                   + '<div class="dc-row"><span class="lbl">ตัวหาร</span><input id="dDivDd" type="number" min="1" max="3" value="' + st.divDd + '"> หลัก <select id="dDivDp">' + [0, 1, 2, 3].map(function (n) { return opt(n, n, st.divDp); }).join('') + '</select> ตน.</div>'))
+              + '</div>')
+            : ('<div class="dc-field"><label>ระดับความยาก (' + K().unit + ')</label><select id="dLevel">'
+              + opt('easy', 'ง่าย — ' + K().unit + 'น้อย (0–1)', st.level)
+              + opt('medium', 'ปานกลาง — มี' + K().unit + ' 2–3 ตัว', st.level)
+              + opt('hard', 'ยาก — มี' + K().unit + 'ทุกหลัก', st.level)
+              + opt('random', 'สุ่ม — คละทุกระดับ', st.level) + '</select></div>'
+              + '<div class="dc-field"><label>โหมดกำหนดตำแหน่ง</label><select id="dMode">' + opt('range', 'สุ่มช่วง 0–3 ตำแหน่ง', st.mode) + opt('custom', 'กำหนดหลักเองทุกจุด', st.mode) + opt('random', 'สุ่มทั้งหมด (หลัก+ตำแหน่ง)', st.mode) + '</select></div>'))
           + (st.op === 'div' ? '' : '<div class="dc-field" id="dRangeBox"' + (st.mode === 'range' ? '' : ' style="display:none"') + '>'
           + '<label>สุ่มตำแหน่งทศนิยม</label><div class="dc-inline"><select id="dRmin">' + dpShort(st.rmin) + '</select><span>ถึง</span><select id="dRmax">' + dpShort(st.rmax) + '</select><span>ตำแหน่ง</span></div>'
           + '<label style="margin-top:8px">จำนวนหลักหน้าจุด (จำนวนเต็ม)</label><input id="dInt" type="number" min="1" max="7" value="' + st.intDigits + '"></div>')
@@ -716,8 +736,8 @@
           + '</div></section><section id="dOut"></section></div>';
         $('#dBack', host).onclick = renderHome;
         $('#dTimer', host).onclick = tmOpen;
-        $('#dDivKind', host) && ($('#dDivKind', host).onchange = function () { st.divKind = this.value; var b = $('#dQdpBox', host); if (b) b.style.display = (this.value !== 'whole') ? '' : 'none'; });
-        $('#dLevel', host).onchange = function () { var b = $('#dDivCustom', host); if (b) b.style.display = this.value === 'custom' ? '' : 'none'; };
+        $('#dDivKind', host) && ($('#dDivKind', host).onchange = function () { st.divKind = this.value; var b = $('#dQdpBox', host); if (b) b.style.display = (this.value !== 'whole') ? '' : 'none'; renderAdd(); });
+        if ($('#dNumMode', host)) $('#dNumMode', host).onchange = function () { st.numMode = this.value; var b = $('#dFreeBox', host); if (b) b.style.display = this.value === 'custom' ? '' : 'none'; };
         if ($('#dMode', host)) $('#dMode', host).onchange = function () {
           st.mode = this.value;
           $('#dRangeBox', host).style.display = this.value === 'range' ? '' : 'none';
@@ -727,7 +747,8 @@
           if (hb) hb.style.display = this.value === 'custom' ? '' : 'none';
         };
         $('#dGen', host).onclick = function () {
-          st.level = $('#dLevel', host).value;
+          if ($('#dLevel', host)) st.level = $('#dLevel', host).value;
+          if ($('#dNumMode', host)) st.numMode = $('#dNumMode', host).value;
           if ($('#dDivKind', host)) st.divKind = $('#dDivKind', host).value;
           if ($('#dQdp', host)) st.qdp = +$('#dQdp', host).value;
           if ($('#dDivQd', host)) st.divQd = clampI($('#dDivQd', host).value, 1, 4, 2);
