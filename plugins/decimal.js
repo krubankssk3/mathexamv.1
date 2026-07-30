@@ -174,14 +174,14 @@
   // kind 'whole' = ผลหารจำนวนเต็ม · 'dec' = ผลหารทศนิยม qdp ตำแหน่ง
   function roundTo(v, dp) { var m = pow10(dp); return Math.round(v * m) / m; }
   // kind: 'whole' = ลงตัว จำนวนเต็ม · 'dec' = ลงตัว ทศนิยม qdp · 'round' = หารไม่ลงตัว ปัดเศษ qdp ตำแหน่ง
-  function genDivProblem(divDigits, qDigits, kind, qdp, divDp) {
+  function genDivProblem(divDigits, qDigits, kind, qdp, divDp, aDigits, aDpIn) {
     divDp = divDp || 0;
     var g = 0, d, dv, qv, qf, qi, dividend;
     if (kind === 'round') {                          // สุ่มตรง ๆ แล้วปัดเศษ (คำตอบเป็นทศนิยมซ้ำได้)
       do {
         dv = genNum(divDigits, divDp);
-        var aInt = Math.max(divDigits, Math.min(6, qDigits + divDigits - 1));
-        var aDp = Math.min(3, rndI(0, 2));
+        var aInt = aDigits ? Math.max(divDigits, Math.min(7, aDigits)) : Math.max(divDigits, Math.min(6, qDigits + divDigits - 1));
+        var aDp = (aDpIn != null) ? Math.min(3, aDpIn) : Math.min(3, rndI(0, 2));
         var av = genNum(aInt, aDp);
         var aVal = (av.ip * pow10(av.dp) + av.fp) / pow10(av.dp);
         var bVal = (dv.ip * pow10(dv.dp) + dv.fp) / pow10(dv.dp);
@@ -225,7 +225,7 @@
   function calcGridDiv(p, showAns, forceN, padRows) {
     var L = longDivSteps(p.a, p.b), D = '' + (p.a.ip * pow10(p.a.dp) + p.a.fp), n = D.length;
     var wd = ('' + p.b.ip).length + (p.b.dp > 0 ? 1 + p.b.dp : 0), dp = p.a.dp;
-    if (forceN && forceN > n) { D = rep(' ', forceN - n) + D; n = forceN; }   // เติมช่องซ้ายให้กว้างเท่ากันทุกข้อ
+
     function fracIdx(i) { return dp > 0 && (n - 1 - i) === dp - 1; }   // ช่องจุดอยู่ก่อนหลักนี้
     function pointCell(cls, show) { return dp > 0 ? '<td class="pt' + (cls || '') + '">' + (show ? '.' : '') + '</td>' : ''; }
     // แถวเนื้อหา: str วางให้หลักสุดท้ายอยู่คอลัมน์ endCol · lead = ช่องนำหน้า (ตัวหาร+วงเล็บ)
@@ -236,7 +236,7 @@
       if (opts.divisor) {
         var bs = '' + p.b.ip + (p.b.dp > 0 ? '.' + (rep('0', p.b.dp) + p.b.fp).slice(-p.b.dp) : '');
         for (i = 0; i < wd; i++) { var bc = bs.charAt(i); out += (bc === '.') ? '<td class="pt">.</td>' : ('<td class="db">' + bc + '</td>'); }
-        out += '<td class="dbk">)</td>';
+        out += '<td class="dbk"></td>';
       }
       else { for (i = 0; i < wd; i++) out += '<td class="gap"></td>'; out += '<td class="gap"></td>'; }
       for (i = 0; i < n; i++) {
@@ -448,7 +448,7 @@
       + '.calcT td.ln{border-bottom:2.5px solid #333;height:3px;padding:0}'
       + '.calcT td.pt.ans{color:' + ac + '}'
       + '.calcT td.gap{border:0}'
-      + '.divT td.dbk{border:0;font-size:' + (cs * 3.4).toFixed(1) + 'px;font-weight:400;color:#333;vertical-align:middle;width:' + (cs * 0.5).toFixed(1) + 'mm;min-width:' + (cs * 0.5).toFixed(1) + 'mm;line-height:1}'
+      + '.divT td.dbk{border:0;border-right:2.5px solid #333;width:' + (cs * 0.22).toFixed(1) + 'mm;min-width:' + (cs * 0.22).toFixed(1) + 'mm;max-width:' + (cs * 0.22).toFixed(1) + 'mm;padding:0}'
       + '.divT tr.vrow td{height:0;padding:0;border:0}'
       + '.divT td.vln{border-bottom:2.5px solid #333;height:2px;padding:0}'
       + '.calcT td.ans{color:' + ac + '}'
@@ -660,7 +660,7 @@
       + '.dc-pb .calcT td.ln{border-bottom:2px solid var(--muted);height:2px;padding:0}'
       + '.dc-pb .calcT td.pt.ans{color:var(--accent)}'
       + '.dc-pb .calcT td.gap{border:0;width:27px;min-width:27px;max-width:27px}'
-      + '.dc-pb .divT td.dbk{border:0;font-size:26px;color:var(--muted);vertical-align:middle;width:14px;min-width:14px;line-height:1}'
+      + '.dc-pb .divT td.dbk{border:0;border-right:2px solid var(--muted);width:5px;min-width:5px;max-width:5px;padding:0}'
       + '.dc-pb .divT tr.vrow td{height:0;padding:0;border:0}'
       + '.dc-pb .divT td.vln{border-bottom:2px solid var(--muted);height:2px;padding:0}'
       + '.dc-pb .calcT td.ans{color:var(--accent)}'
@@ -730,20 +730,22 @@
           + (st.op === 'div' ?
             ('<div class="dc-field"><label>แบบคำตอบ</label><select id="dDivKind">'
               + opt('dec', 'ทศนิยม (หารลงตัวพอดี)', st.divKind) + opt('round', 'ทศนิยม (ปัดเศษ ≈)', st.divKind) + opt('mixdec', 'คละ (ลงตัว + ปัดเศษ)', st.divKind) + opt('whole', 'จำนวนเต็ม (ไม่มีทศนิยม)', st.divKind) + '</select></div>'
-              + '<div class="dc-field" id="dQdpBox"' + (st.divKind !== 'whole' ? '' : ' style="display:none"') + '><label>ตำแหน่งทศนิยมของผลหาร</label><select id="dQdp">'
-              + [1, 2, 3].map(function (n) { return opt(n, n + ' ตำแหน่ง', st.qdp); }).join('') + '</select></div>') : '')
+              + '') : '')
           + ((st.op === 'mul' || st.op === 'div') ?
             ('<div class="dc-field"><label>รูปแบบตัวเลข</label><select id="dNumMode">'
               + opt('custom', 'กำหนดเองทุกค่า', st.numMode) + opt('random', 'คละทั้งหมด (สุ่มทุกค่า)', st.numMode) + '</select></div>'
               + '<div class="dc-field" id="dFreeBox"' + (st.numMode === 'custom' ? '' : ' style="display:none"') + '><label>กำหนดค่าเอง (หลัก · ตำแหน่งทศนิยม)</label>'
               + (st.op === 'mul'
                 ? ('<div class="dc-row"><span class="lbl">ตัวตั้ง</span><input id="dIntA" type="number" min="1" max="7" value="' + st.intA + '"> หลัก <select id="dDpA">' + dpShort(st.dpA) + '</select> ตน.</div>'
-                   + '<div class="dc-row"><span class="lbl">ตัวคูณ</span><input id="dIntB" type="number" min="1" max="4" value="' + st.intB + '"> หลัก <select id="dDpB">' + dpShort(st.dpB) + '</select> ตน.</div>'
-                   + '<div style="font-size:11px;color:var(--muted);margin-top:4px">ตัวคูณ หลัก+ทศนิยม รวมกันยิ่งมาก แถวผลคูณย่อยยิ่งเยอะ</div>')
-                : ((st.divKind === 'round'
-                    ? '<div class="dc-row"><span class="lbl">ตัวตั้ง</span><input id="dIntA" type="number" min="1" max="7" value="' + st.intA + '"> หลัก <select id="dDpA">' + dpShort(st.dpA) + '</select> ตน.</div>'
-                    : '<div class="dc-row"><span class="lbl">ผลหาร</span><input id="dDivQd" type="number" min="1" max="4" value="' + st.divQd + '"> หลัก</div>')
-                   + '<div class="dc-row"><span class="lbl">ตัวหาร</span><input id="dDivDd" type="number" min="1" max="3" value="' + st.divDd + '"> หลัก <select id="dDivDp">' + [0, 1, 2, 3].map(function (n) { return opt(n, n, st.divDp); }).join('') + '</select> ตน.</div>'))
+                   + '<div class="dc-row"><span class="lbl">ตัวคูณ</span><input id="dIntB" type="number" min="1" max="4" value="' + st.intB + '"> หลัก <select id="dDpB">' + dpShort(st.dpB) + '</select> ตน.</div>')
+                : (st.divKind === 'round'
+                  ? ('<div class="dc-row"><span class="lbl">ตัวตั้ง</span><input id="dIntA" type="number" min="1" max="7" value="' + st.intA + '"> หลัก <select id="dDpA">' + dpShort(st.dpA) + '</select> ตน.</div>'
+                     + '<div class="dc-row"><span class="lbl">ตัวหาร</span><input id="dDivDd" type="number" min="1" max="3" value="' + st.divDd + '"> หลัก <select id="dDivDp">' + dpShort(st.divDp) + '</select> ตน.</div>'
+                     + '<div class="dc-row"><span class="lbl">ปัดผลหาร</span><select id="dQdp2">' + [1, 2, 3].map(function (n) { return opt(n, n + ' ตำแหน่ง', st.qdp); }).join('') + '</select></div>'
+                     + '<div style="font-size:11px;color:var(--muted);margin-top:4px">กำหนดได้อิสระทั้ง 3 ค่า (ไม่ต้องหารลงตัว)</div>')
+                  : ('<div class="dc-row"><span class="lbl">ผลหาร</span><input id="dDivQd" type="number" min="1" max="4" value="' + st.divQd + '"> หลัก' + (st.divKind === 'whole' ? '' : ' <select id="dQdp2">' + dpShort(st.qdp) + '</select> ตน.') + '</div>'
+                     + '<div class="dc-row"><span class="lbl">ตัวหาร</span><input id="dDivDd" type="number" min="1" max="3" value="' + st.divDd + '"> หลัก <select id="dDivDp">' + dpShort(st.divDp) + '</select> ตน.</div>'
+                     + '<div style="font-size:11px;color:var(--muted);margin-top:4px">ตัวตั้งระบบคำนวณให้ (= ผลหาร × ตัวหาร) เพื่อให้หารลงตัว</div>')))
               + '</div>')
             : ('<div class="dc-field"><label>ระดับความยาก (' + K().unit + ')</label><select id="dLevel">'
               + opt('easy', 'ง่าย — ' + K().unit + 'น้อย (0–1)', st.level)
@@ -783,6 +785,7 @@
           if ($('#dNumMode', host)) st.numMode = $('#dNumMode', host).value;
           if ($('#dDivKind', host)) st.divKind = $('#dDivKind', host).value;
           if ($('#dQdp', host)) st.qdp = +$('#dQdp', host).value;
+          if ($('#dQdp2', host)) st.qdp = +$('#dQdp2', host).value;
           if ($('#dDivQd', host)) st.divQd = clampI($('#dDivQd', host).value, 1, 4, 2);
           if ($('#dDivDd', host)) st.divDd = clampI($('#dDivDd', host).value, 1, 3, 1);
           if ($('#dDivDp', host)) st.divDp = clampI($('#dDivDp', host).value, 0, 2, 0);
