@@ -418,6 +418,45 @@
     TM.reset(); TM.el.style.display = 'flex';
   }
 
+  /* ---------- QR เฉลย (โหลด qrcode.min.js เองถ้าเว็บยังไม่มี) ---------- */
+  function ensureQRLib(cb) {
+    if (window.QRCode) { cb(true); return; }
+    var tried = 0;
+    function load(src) {
+      var sc = document.createElement('script');
+      sc.src = src;
+      sc.onload = function () { cb(!!window.QRCode); };
+      sc.onerror = function () { tried++; if (tried === 1) load('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'); else cb(false); };
+      document.head.appendChild(sc);
+    }
+    load('qrcode.min.js');
+  }
+  function b64utf8(str) { return btoa(unescape(encodeURIComponent(str))); }
+  function keyURLLocal(title, setId, answers) {
+    var o = { t: title, s: setId, a: answers };
+    return location.origin + location.pathname + '#k=' + encodeURIComponent(b64utf8(JSON.stringify(o)));
+  }
+  function makeQRLocal(text) {
+    return new Promise(function (res) {
+      ensureQRLib(function (ok) {
+        if (!ok) { res(''); return; }
+        try {
+          var tmp = document.createElement('div');
+          tmp.style.cssText = 'position:absolute;left:-9999px;top:0';
+          document.body.appendChild(tmp);
+          new QRCode(tmp, { text: text, width: 260, height: 260, correctLevel: QRCode.CorrectLevel.L });
+          setTimeout(function () {
+            var url = '', cv = tmp.querySelector('canvas');
+            if (cv) { try { url = cv.toDataURL('image/png'); } catch (e) { } }
+            if (!url) { var im = tmp.querySelector('img'); if (im) url = im.src; }
+            if (tmp.parentNode) tmp.parentNode.removeChild(tmp);
+            res(url);
+          }, 150);
+        } catch (e) { res(''); }
+      });
+    });
+  }
+
   /* ---------- CSS พรีวิวในแอป ---------- */
   function ensureCSS() {
     if ($('#efFracCSS')) return;
@@ -582,12 +621,13 @@
           sub: cur.word + ' · ' + kindWord() + ' · ตัวส่วน' + (st.same ? 'เท่ากัน' : 'ไม่เท่ากัน') + ' · ระดับ' + levelWord(),
           accent: cur.accent, org: S.org || '', logo: S.logo || LOGO, probs: st.probs, qrImg: '' };
         var finish = function (qrImg) { o.qrImg = qrImg || ''; printDoc(sheetHTML(o, withKey)); if (svc.toast) svc.toast('success', withKey ? 'เปิดหน้าพิมพ์ฉบับเฉลยแล้ว' : 'เปิดหน้าพิมพ์ใบงานแล้ว'); };
-        if (!withKey && svc.makeQR && svc.keyURL) {
+        if (!withKey) {
           var answers = st.probs.map(function (p) {              // เฉพาะคำตอบสุดท้าย (ให้ QR ไม่ล้น)
             var c = p.ans.chain[p.ans.chain.length - 1];
             return c.t === 'whole' ? ('' + c.w) : c.t === 'mixed' ? (c.w + ' ' + c.n + '/' + c.d) : (c.n + '/' + c.d);
           });
-          svc.makeQR(svc.keyURL(o.title, st.setId, answers)).then(function (img) { finish(img); }, function () { finish(''); });
+          var url = (svc.keyURL ? svc.keyURL(o.title, st.setId, answers) : keyURLLocal(o.title, st.setId, answers));
+          makeQRLocal(url).then(function (img) { finish(img); }, function () { finish(''); });
         } else finish('');
       }
 
