@@ -570,6 +570,14 @@
     var o = { t: title, s: setId, a: answers };
     return location.origin + location.pathname + '#k=' + encodeURIComponent(b64utf8(JSON.stringify(o)));
   }
+  function fitQRText(title, setId, answers, mkURL) {
+    var url = mkURL(title, setId, answers), n = answers.length;
+    while (url.length > 1400 && n > 5) {                 // ยาวเกิน → ลดจำนวนคำตอบใน QR
+      n = Math.floor(n * 0.8);
+      url = mkURL(title, setId, answers.slice(0, n));
+    }
+    return url;
+  }
   function makeQRLocal(text) {
     return new Promise(function (res) {
       ensureQRLib(function (ok) {
@@ -766,8 +774,12 @@
         var finish = function (qrImg) { o.qrImg = qrImg || ''; printDoc(sheetHTML(o, withKey)); if (svc.toast) svc.toast('success', withKey ? 'เปิดหน้าพิมพ์ฉบับเฉลยแล้ว' : 'เปิดหน้าพิมพ์ใบงานแล้ว'); };
         if (!withKey) {
           var answers = st.probs.map(function (p) { return st.op === 'div' ? showNum(p.ans) : (p.ans.digits ? showNum({ ip: p.ans.ip, fp: p.ans.fp, dp: p.ans.dp }) : showNum(p.ans)); });   // เฉพาะคำตอบ (ให้ QR ไม่ล้น)
-          var url = (svc.keyURL ? svc.keyURL(o.title, st.setId, answers) : keyURLLocal(o.title, st.setId, answers));
-          makeQRLocal(url).then(function (img) { finish(img); }, function () { finish(''); });
+          var mk = (svc.keyURL ? svc.keyURL : keyURLLocal);
+          var url = fitQRText(o.title, st.setId, answers, mk);
+          makeQRLocal(url).then(function (img) {
+            if (!img && svc.toast) svc.toast('info', 'สร้าง QR เฉลยไม่สำเร็จ — พิมพ์ใบงานต่อโดยไม่มี QR');
+            finish(img);
+          }, function () { finish(''); });
         } else finish('');
       }
 
