@@ -3,6 +3,60 @@
   var $ = function (s, r) { return (r || document).querySelector(s); };
   var $$ = function (s, r) { return [].slice.call((r || document).querySelectorAll(s)); };
 
+  /* ---------- QR เฉลย: สร้างเอง + ย่อข้อมูลให้สแกนติด ---------- */
+  function ensureQRLib(cb) {
+    if (window.QRCode) { cb(true); return; }
+    var tried = 0;
+    function load(src) {
+      var sc = document.createElement('script');
+      sc.src = src;
+      sc.onload = function () { cb(!!window.QRCode); };
+      sc.onerror = function () { tried++; if (tried === 1) load('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'); else cb(false); };
+      document.head.appendChild(sc);
+    }
+    load('qrcode.min.js');
+  }
+  function b64utf8(str) { return btoa(unescape(encodeURIComponent(str))); }
+  function keyURLLocal(title, setId, answers) {
+    return location.origin + location.pathname + '#k=' + encodeURIComponent(b64utf8(JSON.stringify({ t: title, s: setId, a: answers })));
+  }
+  // ย่อคำตอบ: ตัด HTML/ช่องว่างเกิน + จำกัดความยาวต่อข้อ
+  function shortAns(v) {
+    var t = String(v == null ? '' : v).replace(/<[^>]+>/g, ' ').replace(/&[a-z]+;/g, ' ').replace(/\s+/g, ' ').trim();
+    var i = t.indexOf('\u2192');                       // โจทย์ปัญหา: เก็บประโยคสัญลักษณ์ (ก่อนลูกศร)
+    if (i > 0) t = t.slice(0, i).trim();
+    var j = t.indexOf(' / ');                           // เขียนจำนวน: เก็บเลขฮินดูอารบิก
+    if (j > 0) t = t.slice(0, j).trim();
+    if (t.length > 22) t = t.slice(0, 22) + '\u2026';
+    return t;
+  }
+  // ย่อ URL ให้อยู่ในระดับที่ QR ยังสแกนติด (จุดไม่เล็กเกิน)
+  function fitQRText(title, setId, answers, mkURL) {
+    var a = answers.map(shortAns), url = mkURL(title, setId, a), n = a.length;
+    while (url.length > 950 && n > 5) { n = Math.floor(n * 0.85); url = mkURL(title, setId, a.slice(0, n)); }
+    return url;
+  }
+  function makeQRLocal(text) {
+    return new Promise(function (res) {
+      ensureQRLib(function (ok) {
+        if (!ok) { res(''); return; }
+        try {
+          var tmp = document.createElement('div');
+          tmp.style.cssText = 'position:absolute;left:-9999px;top:0';
+          document.body.appendChild(tmp);
+          new QRCode(tmp, { text: text, width: 320, height: 320, correctLevel: QRCode.CorrectLevel.L });
+          setTimeout(function () {
+            var url = '', cv = tmp.querySelector('canvas');
+            if (cv) { try { url = cv.toDataURL('image/png'); } catch (e) { } }
+            if (!url) { var im = tmp.querySelector('img'); if (im) url = im.src; }
+            if (tmp.parentNode) tmp.parentNode.removeChild(tmp);
+            res(url);
+          }, 150);
+        } catch (e) { res(''); }
+      });
+    });
+  }
+
   window.Platform.register({
     id: 'worksheet',
     mount: function (host, svc) {
@@ -201,7 +255,8 @@
         var draw = function (qr) { stage.innerHTML = svc.examSheetHTML(sheetOpts(c, st.showKey, qr)); };
         if (st.qr) {
           if (!window.QRCode) { svc.toast('warning', 'โหลดตัวสร้าง QR ไม่ได้ — กรุณาอัปไฟล์ index.html ใหม่ หรือเช็คอินเทอร์เน็ต'); draw(''); return; }
-          svc.makeQR(svc.keyURL(c.title, c.setId, c.problems.map(function (p) { return p.a; }))).then(draw);
+          var mk1 = (svc.keyURL ? svc.keyURL : keyURLLocal);
+          makeQRLocal(fitQRText(c.title, c.setId, c.problems.map(function (p) { return p.a; }), mk1)).then(draw);
         } else { draw(''); }
       }
       function keyBtn() { $('#key', host).innerHTML = st.showKey ? '<i class="ti ti-eye-off"></i> ซ่อนเฉลย' : '<i class="ti ti-eye"></i> แสดงเฉลย'; }
@@ -226,7 +281,8 @@
         var copies = Math.max(1, Math.min(10, st.copies || 1));
         var sets = [st.current];
         for (var i = 1; i < copies; i++) sets.push(makeSet());   // ชุดถัดไปสุ่มใหม่
-        var jobs = sets.map(function (s) { return st.qr ? svc.makeQR(svc.keyURL(s.title, s.setId, s.problems.map(function (p) { return p.a; }))) : Promise.resolve(''); });
+        var mk2 = (svc.keyURL ? svc.keyURL : keyURLLocal);
+        var jobs = sets.map(function (s) { return st.qr ? makeQRLocal(fitQRText(s.title, s.setId, s.problems.map(function (p) { return p.a; }), mk2)) : Promise.resolve(''); });
         svc.loading('กำลังเตรียมพิมพ์...');
         Promise.all(jobs).then(function (qrs) {
           svc.done();
