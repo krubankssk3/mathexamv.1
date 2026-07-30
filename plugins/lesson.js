@@ -385,6 +385,50 @@
     document.head.appendChild(s);
   }
 
+  /* ---------- QR เฉลย (โหลด qrcode.min.js เองถ้าเว็บยังไม่มี) ---------- */
+  function ensureQRLib(cb) {
+    if (window.QRCode) { cb(true); return; }
+    var tried = 0;
+    function load(src) {
+      var sc = document.createElement('script');
+      sc.src = src;
+      sc.onload = function () { cb(!!window.QRCode); };
+      sc.onerror = function () { tried++; if (tried === 1) load('https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js'); else cb(false); };
+      document.head.appendChild(sc);
+    }
+    load('qrcode.min.js');
+  }
+  function b64utf8(str) { return btoa(unescape(encodeURIComponent(str))); }
+  function keyURLLocal(title, setId, answers) {
+    var o = { t: title, s: setId, a: answers };
+    return location.origin + location.pathname + '#k=' + encodeURIComponent(b64utf8(JSON.stringify(o)));
+  }
+  function fitQRText(title, setId, answers, mkURL) {
+    var url = mkURL(title, setId, answers), n = answers.length;
+    while (url.length > 1400 && n > 5) { n = Math.floor(n * 0.8); url = mkURL(title, setId, answers.slice(0, n)); }
+    return url;
+  }
+  function makeQRLocal(text) {
+    return new Promise(function (res) {
+      ensureQRLib(function (ok) {
+        if (!ok) { res(''); return; }
+        try {
+          var tmp = document.createElement('div');
+          tmp.style.cssText = 'position:absolute;left:-9999px;top:0';
+          document.body.appendChild(tmp);
+          new QRCode(tmp, { text: text, width: 260, height: 260, correctLevel: QRCode.CorrectLevel.L });
+          setTimeout(function () {
+            var url = '', cv = tmp.querySelector('canvas');
+            if (cv) { try { url = cv.toDataURL('image/png'); } catch (e) { } }
+            if (!url) { var im = tmp.querySelector('img'); if (im) url = im.src; }
+            if (tmp.parentNode) tmp.parentNode.removeChild(tmp);
+            res(url);
+          }, 150);
+        } catch (e) { res(''); }
+      });
+    });
+  }
+
   window.Platform.register({
     id: 'lesson',
     title: 'แบบฝึกหัดการดำเนินการทางคณิตศาสตร์',
@@ -612,12 +656,16 @@
           if (svc.toast) svc.toast('success', withKey ? 'เปิดหน้าพิมพ์ฉบับเฉลยแล้ว' : 'เปิดหน้าพิมพ์ใบงานแล้ว');
         };
         // QR เฉลยมุมบนขวา (เฉพาะใบงาน) — ใช้บริการกลางถ้ามี
-        if (!withKey && svc.makeQR && svc.keyURL) {
+        if (!withKey) {
           var answers = ast.probs.map(function (p) {
             return ast.kind === 'div' ? (String(p.ans) + (p.rem ? ' เศษ ' + p.rem : '')) : String(p.ans);
           });
-          var url = svc.keyURL(o.title, ast.setId, answers);
-          svc.makeQR(url).then(function (img) { finish(img); }, function () { finish(''); });
+          var mk = (svc.keyURL ? svc.keyURL : keyURLLocal);
+          var url = fitQRText(o.title, ast.setId, answers, mk);
+          makeQRLocal(url).then(function (img) {
+            if (!img && svc.toast) svc.toast('info', 'สร้าง QR เฉลยไม่สำเร็จ — พิมพ์ใบงานต่อโดยไม่มี QR');
+            finish(img);
+          }, function () { finish(''); });
         } else { finish(''); }
       }
 
